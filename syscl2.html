@@ -1,0 +1,31 @@
+<!doctype html><html><head>
+<style>
+textarea { width: 95%; min-height: 100px; }
+</style>
+<script src='lexparse.js'></script>
+<script src='runtime.js'></script>
+<script src='nanos.js'></script>
+<script src='transpile.js'></script>
+</head><body>
+<h2>Input</h2>
+<textarea id='inputArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br>
+<input type='button' value='Transpile' id='execBtn'>
+<h2>Errors</h2>
+<textarea id='errors' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<h2>Code</h2>
+<textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<script>
+function transpileNow () {
+    const tr = transpile(inputArea.value);
+    const errs = [];
+    codeArea.value = tr.code;
+    if (tr.fatal) errs.push("FATAL: " + tr.fatal);
+    errs.push(...tr.errors);
+    errors.value = errs.join("\n");
+}
+execBtn.addEventListener('click', transpileNow);
+</script>
+<!--
+vim: sw=4:syntax=javascript
+-->
+</body></html>

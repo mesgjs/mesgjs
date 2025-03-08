@@ -1,0 +1,334 @@
+// Generate string escapes for JavaScript
+function escapeJSStr (s) {
+    return s.replace(/[\x00-\x1f'"\\\u0200-\uffff]/g, c => {
+	switch (c) {
+	case '\b': return '\\b';
+	case '\n': return '\\n';
+	case '\r': return '\\r';
+	case '\t': return '\\t';
+	case "'": return "\\'";
+	case '"': return '\\"';
+	case '\\': return '\\\\';
+	}
+	const cc = c.charCodeAt(), ccs = cc.toString(16);
+	if (cc < 0x10) return '\\x0' + ccs;
+	if (cc < 0x100) return '\\x' + ccs;
+	if (cc < 0x1000) return '\\u0' + ccs;
+	return '\\u' + ccs;
+    });
+}
+
+// Split input into lexical tokens
+const lexPats = {
+    mlc: '/\\*.*?\\*/',		// Multi-line comment
+    slc: '//.*?(?:\r*\n|$)',	// Single-line comment
+    // Number
+    num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
+    sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
+    dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
+    stok: '[!%#&[(={})\\]]',	// Special tokens
+    spc: '\\s+',		// Space
+    oth: '[^!%#&[(={})\\]\\s]+',// Other
+};
+
+// Simple lexical analyzer
+function lex (input, loc = {}) {
+    const lre = new RegExp('(' + 'mlc slc num sqs dqs stok spc oth'.
+      split(' ').map(k => lexPats[k]).join('|') + ')', 's');
+    const num = new RegExp('^' + lexPats.num + '$');
+    let { col = 0, line = 0, src = undefined } = loc;
+
+    // Advance input position based on input
+    function adv (str) {
+	str.split(/([\r\n\t])/).forEach(part => {
+	    switch (part) {
+	    case '\r': col = 0; break;
+	    case '\n': col = 0; ++line; break;
+	    case '\t': col = (col & ~7) + 8; break;
+	    default: col += part.length; break;
+	    }
+	});
+    }
+
+    return { tokens: input.split(lre).map(text => {
+	    const loc = { col, line, src };
+	    adv(text);
+
+	    switch (text[0]) {
+	    case undefined:
+		return false;
+	    case "'": // Text literal
+	    case '"':
+		{
+		const uesl = unescStrLit(text.slice(1, -1));
+		return { type: 'txt', loc, text: uesl, staticValue: uesl };
+		}
+	    case '/':
+		return false;		// Comments
+	    case '!':			// Mespar (message parameters)
+	    case '%':			// Persto (persistent storage)
+	    case '#':			// Scratch (transient storage)
+	    case '&':			// Defer
+	    case '{':			// Block
+	    case '}':
+	    case '(':			// Message call
+	    case ')':
+	    case '[':			// List
+	    case ']':
+	    case '=':			// Named value
+		return { type: text, loc };
+	    default:
+		if (/^\s/.test(text)) return false;
+		if (num.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
+		return { type: 'wrd', loc, text, staticValue: text };
+	    }
+	}).
+	filter(t => t), loc: { col, line, src } };
+}
+
+// Generate parse tree from lexical tokens
+function parse (tokens) {
+    const end = tokens.length, output = [], errors = [], cache = {};
+    let read = 0, blkDep = 0, lstDep = 0, msgDep = 0;
+
+    // Support functions
+
+    function error (message, fatal = false) {
+	errors.push(message);
+	if (fatal) throw new Error(message);
+    }
+
+    function tls (token = tokens[read]) { return tokenLocStr(token); }
+
+    function save (read0, node) {	// Cache parsed node
+	cache[read0] ||= {};
+	cache[read0][node.type] = { node, readNext: read };
+	return node;
+    }
+
+    // Check for a previously-parsed node at the current position
+    function lookup (type) {
+	const hit = cache[read]?.[type];
+	if (hit) {
+	    read = hit.readNext;
+	    return hit.node;
+	}
+	return null;
+    }
+
+    // General parsing
+
+    function parseBlock () {
+	// { block }
+	if (tokens[read]?.type !== '{') return null;
+	const hit = lookup('{');
+	if (hit) return hit;
+	const statements = [], read0 = read++, cur = tokens[read0];
+	const node = { type: '{', loc: cur.loc, statements };
+
+	++blkDep;
+	for (let cur; cur = tokens[read]; ) {
+	    if (cur.type === '}') {
+		++read; --blkDep;
+		return save(read0, node);
+	    }
+	    if ((msgDep && cur.type === ')') || (lstDep && cur.type === ']')) break;
+	    const statement = parseStatement();
+	    if (statement) node.statements.push(statement);
+	    else {
+		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		++read;
+	    }
+	}
+	error(`Unterminated block at ${tls(cur)}`);
+	--blkDep;
+	return save(read0, node);
+    }
+
+    function parseChain () {
+	// base ( message-and-optional-params ) ...
+	const hit = lookup('chn');
+	if (hit) return hit;
+	const read0 = read, base = parseVar() || parseLiteral();
+	if (!base) return null;
+	const messages = [], node = { type: 'chn', base, messages };
+	for (let message; message = parseMessage(); ) messages.push(message);
+	if (messages.length) return save(read0, node);
+	read = read0;
+	return null;
+    }
+
+    function parseDefer () {
+	// &variable or &chain
+	if (tokens[read]?.type !== '&') return null;
+	const read0 = read++, cur = tokens[read0],
+	    node = { type: '&', loc: cur.loc };
+	const expr = parseChain() || parseVar(true);
+	if (expr) {
+	    node.expr = expr;
+	    return node;
+	}
+	error(`Missing message chain or named variable for defer at ${tls(cur)}`);
+	return null;
+    }
+
+    function parseList () {
+	// [ name=value value ... ]
+	if (tokens[read]?.type !== '[') return null;
+	const hit = lookup('[');
+	if (hit) return hit;
+	const read0 = read++, cur = tokens[read0], items = [],
+	    node = { type: '[', loc: cur.loc, items };
+
+	++lstDep;
+	for (let cur; cur = tokens[read]; ) {
+	    if (cur.type === ']') {
+		++read; --lstDep;
+		return save(read0, node);
+	    }
+	    if ((msgDep && cur.type === ')') || (blkDep && cur.type === '}')) break;
+	    const item = parseNamedValue() || parseValue();
+	    if (item) items.push(item);
+	    else {
+		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		++read;
+	    }
+	}
+	error(`Unterminated list at ${tls(cur)}`);
+	--lstDep;
+	return save(read0, node);
+    }
+
+    function parseLiteral () {
+	// Text, word, number, list, or block
+	const cur = tokens[read];
+	switch (cur?.type) {
+	case 'num':
+	case 'txt':
+	case 'wrd':
+	    return tokens[read++];
+	}
+	return parseList() || parseBlock();
+    }
+
+    function parseMessage () {
+	// ( message params )
+	if (tokens[read]?.type !== '(') return null;
+	const hit = lookup('(');
+	if (hit) return hit;
+	const read0 = read, cur = tokens[read++];
+	const message = parseValue(), params = [], node = {
+	    type: '(', loc: cur.loc, message, params
+	};
+
+	++msgDep;
+	for (let cur; cur = tokens[read]; ) {
+	    if (cur.type === ')') {
+		++read; --msgDep;
+		return save(read0, node);
+	    }
+	    if ((lstDep && cur.type === ']') || (blkDep && cur.type === '}')) break;
+	    const param = parseNamedValue() || parseValue();
+	    if (param) params.push(param);
+	    else {
+		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		++read;
+	    }
+	}
+	error(`Unterminated message at ${tls(cur)}`);
+	--msgDep;
+	return save(read0, node);
+    }
+
+    function parseName () {
+	// Chain, number, text, or word
+	const chain = parseChain();
+	if (chain) return chain;
+	const cur = tokens[read];
+	switch (cur?.type) {
+	case 'num':
+	case 'txt':
+	case 'wrd':
+	    return tokens[read++];
+	}
+	return null;
+    }
+
+    function parseNamedValue () {
+	// name=value
+	const hit = lookup('=');
+	if (hit) return hit;
+	const read0 = read, name = parseName();
+	if (!name || tokens[read]?.type !== '=') {
+	    read = read0;
+	    return null;
+	}
+	const eq = tokens[read++], value = parseValue();
+	if (!value) {
+	    error(`Missing value in named value at ${tls(eq)}`);
+	    return null;
+	}
+	return save(read0, {
+	    type: '=', loc: eq.loc, name, value
+	});
+    }
+
+    function parseStatement () { return parseChain(); }
+
+    function parseValue () {
+	// Chain, literal, or variable
+	return parseDefer() || parseChain() || parseLiteral() || parseVar(true);
+    }
+
+    function parseVar (reqName = false) {
+	// % / %name / # / #name / ! / !name
+	const ns = tokens[read], space = ns?.type;
+	if ('!#%'.indexOf(space) < 0) return null;
+	const name = tokens[++read], nType = name?.type;
+	if (nType === 'txt' || nType === 'wrd') {
+	    ++read;
+	    return {
+		type: 'var', space, name,
+		staticName: name.staticValue, loc: ns.loc
+	    };
+	}
+	if (reqName) --read;
+	return (reqName ? null : { type: 'var', space, loc: ns.loc });
+    }
+
+    // ----------
+
+    while (read < end) {
+	const res = parseStatement();
+	if (res) output.push(res);
+	else {
+	    error(`Syntax error (unexpected ${tokens[read]?.type}) at ${tls()}`);
+	    ++read;
+	}
+    }
+    return { tree: output, errors };
+}
+
+// Return a token's location string
+function tokenLocStr (token) {
+    const loc = token?.loc;
+    return (loc ? `${loc.src || 'unknown'}:${loc.line + 1}:${loc.col + 1}` : 'end of input');
+}
+
+// Convert an escapped (input) string into a raw (internal) string
+function unescStrLit (input) {
+    return input.replace(/\\[\\bnrt'"]|\\x[\da-fA-F]{2}|\\u[\da-fA-F]{4}/g, e => {
+	switch (e[1]) {
+	case '\\': case "'": case '"':
+	case 'b': case 'n': case 'r': case 't':
+	    return (({
+		'\\': '\\', "'": "'", '"': '"',
+		b: '\b', n: '\n', r: '\r', t: '\t'
+	    })[e[1]]);
+	case 'x': case 'u':
+	    return String.fromCharCode(parseInt(e.substring(2), 16));
+	}
+    });
+}
+
+// END
