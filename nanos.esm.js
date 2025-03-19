@@ -1,5 +1,12 @@
-// Named and numbered ordered storage
-class NANOS {
+/*
+ * NANOS - Named and numbered ordered storage
+ * Copyright 2024-2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Author: Brian Katzung <briank@kappacs.com>
+ */
+
+export const isIndex = key => /^(?:0|[1-9]\d*)$/.test(key);
+
+export class NANOS {
     #next;
     #keys;
     #storage;
@@ -25,7 +32,7 @@ class NANOS {
 	return this;
     }
 
-    // NOTE: returns deleted value!
+    // NOTE: unlike the delete statement, this returns the deleted value!
     delete (key) {
 	const skey = '' + key;
 	const ret = this.#storage[skey];
@@ -36,9 +43,13 @@ class NANOS {
 	return ret;
     }
 
-    // Returns [ [ key1, value1 ], ... [ keyN, valueN ] ]
-    entries () {
-	const ik = k => this.#isIndex(k) ? parseInt(k) : k;
+    /*
+     * Returns [ [ key1, value1 ], ... [ keyN, valueN ] ]
+     * Compact mode uses numeric index keys instead of the standard strings
+     * (e.g. 0 instead of '0').
+     */
+    entries (compact = false) {
+	const ik = compact ? (k => isIndex(k) ? parseInt(k) : k) : (k => k);
 	return this.#keys.map(key => [ ik(key), this.#storage[key] ]);
     }
 
@@ -93,8 +104,6 @@ class NANOS {
 
     includes (value) { return this.keyOf(value) !== undefined; }
 
-    #isIndex (key) { return /^(?:0|[1-9]\d*)$/.test(key); }
-
     // Returns first key/index with matching value, or undefined; cf indexOf
     keyOf (value) {
 	return this.find(v => v === value)?.[0];
@@ -116,7 +125,7 @@ class NANOS {
 	this.#next = nn;
     }
 
-    pairs () { return [...this.entries()].flat(1); }
+    pairs (compact = false) { return [...this.entries(compact)].flat(1); }
 
     // Like Array.pop (only applies to indexed values)
     pop () {
@@ -133,10 +142,11 @@ class NANOS {
 	items.forEach(value => {
 	    if (Array.isArray(value)) {
 		let base = this.#next;
-		for (const k of Object.keys(value)) if (this.#isIndex(k)) this.set(base + parseInt(k), value[k]);
+		for (const k of Object.keys(value)) if (isIndex(k)) this.set(base + parseInt(k), value[k]);
 	    } else if (typeof value === 'object') for (const key of Object.keys(value)) this.set(key, value[key]);
 	    else this.set(this.#next, value);
 	});
+	return this;
     }
 
     #renumber (from, to, by) {
@@ -155,7 +165,7 @@ class NANOS {
 	    for (let k = from; k < to; ++k) move(k, by);
 	}
 	if (by) this.#keys = this.#keys.map(key => {
-	    const ind = this.#isIndex(key) && parseInt(key);
+	    const ind = isIndex(key) && parseInt(key);
 	    if (ind !== false && ind >= from && ind < to) return ind + by + '';
 	    return key;
 	});
@@ -165,7 +175,7 @@ class NANOS {
     reverse () {
 	const s = this.#storage, nks = [], ns = {}, last = this.#next - 1;
 	for (const ok of this.#keys.toReversed()) {
-	    const nk = this.#isIndex(ok) ? (last - ok) : ok;
+	    const nk = isIndex(ok) ? (last - ok) : ok;
 	    ns[nk] = s[ok];
 	    nks.push(nk);
 	}
@@ -182,20 +192,20 @@ class NANOS {
     set (key, value, insert = false) {
 	if (key === undefined) key = this.#next;
 	const skey = '' + key;
-	const ind = this.#isIndex(skey) && parseInt(skey);
+	const ind = isIndex(skey) && parseInt(skey);
 	if (!Object.hasOwn(this.#storage, skey)) {
 	    if (insert) {
 		if (ind === false || !this.#next) this.#keys.unshift(skey);
 		else {
 		    let ki = this.#keys.length;
-		    while (ki > 0 && (!this.#isIndex(this.#keys[ki - 1]) || ind < this.#keys[ki - 1])) --ki;
+		    while (ki > 0 && (!isIndex(this.#keys[ki - 1]) || ind < this.#keys[ki - 1])) --ki;
 		    this.#keys.splice(ki, 0, skey);
 		}
 	    } else { // append
 		if (ind === false || ind >= this.#next) this.#keys.push(skey);
 		else {
 		    let ki = 0;
-		    while (ki < this.#keys.length && (!this.#isIndex(this.#keys[ki]) || ind > this.#keys[ki])) ++ki;
+		    while (ki < this.#keys.length && (!isIndex(this.#keys[ki]) || ind > this.#keys[ki])) ++ki;
 		    this.#keys.splice(ki, 0, skey);
 		}
 	    }
@@ -223,13 +233,13 @@ class NANOS {
     }
 
     // Might be the best we can do
-    toJSON () { return {type:'@NANOS@', next: this.#next, pairs: this.pairs()}; }
+    toJSON () { return {type:'@NANOS@', next: this.#next, pairs: this.pairs(true)}; }
 
     toString (sep = ',') {
 	const tos = v => v?.toString() ?? { null: 'null', undefined: 'undefined' }[v];
 	const s = this.#storage, parts = [];
 	for (const key of this.#keys) {
-	    if (this.#isIndex(key)) parts.push(tos(s[key]));
+	    if (isIndex(key)) parts.push(tos(s[key]));
 	    else parts.push(key + '=' + tos(s[key]));
 	}
 	return 'N[' + parts.join(sep) + ']';
@@ -240,11 +250,14 @@ class NANOS {
 	items.toReversed().forEach(value => {
 	    if (Array.isArray(value)) {
 		this.#renumber(0, this.#next, value.length);
-		for (const k of Object.keys(value).reverse()) if (this.#isIndex(k)) this.set(k, value[k], true);
+		for (const k of Object.keys(value).reverse()) if (isIndex(k)) this.set(k, value[k], true);
 	    } else if (typeof value === 'object') for (const key of Object.keys(value).reverse()) this.set(key, value[key], true);
 	    else this.unshift([value]);
 	});
+	return this;
     }
 }
+
+export { NANOS as default };
 
 // END

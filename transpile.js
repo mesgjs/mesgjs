@@ -1,13 +1,16 @@
 // Split raw text input into tokens, parse, and transpile
-function transpile (input, loc = {}) {
+function transpile (input, opts = {}) {
+    const loc = opts.location || {};
     const { tree, errors } = parse(lex(input, loc).tokens);
-    return transpileTree(tree, errors);
+    return transpileTree(tree, { ...opts, errors });
 }
 
 // Transpile pre-parsed input
-function transpileTree (tree, errors = []) {
-    let outBuf = [], nextBlock = 0;
+function transpileTree (tree, opts = {}) {
+    let outBuf = [], nextBlock = 0, blocksIP = 0, usedMods = false;
+    const errors = Array.isArray(opts.errors) ? opts.errors : [];
     const blocks = [], outStack = [];
+    const aws = opts.addWhiteSpace;
 
     const error = (message, fatal = false) => {
 	    if (fatal) throw new Error(message);
@@ -51,6 +54,9 @@ function transpileTree (tree, errors = []) {
 	case '=':	// Named value(!)
 	    // This should only occur in a list or message
 	    error(`Error: Named-value outside of list/message at ${tls(node)}`, true);
+	case 'js':	// Embedded JavaScript
+	    generateJS(node);
+	    break;
 	case 'num':	// Number
 	    generateNumber(node);
 	    break;
@@ -72,8 +78,8 @@ function transpileTree (tree, errors = []) {
 	const base = node.base, msgs = node.messages;
 	function specialBase (base) {
 	    switch (base.type === 'wrd' && base.text) {
-	    case '@c': output('core'); break;	// core
-	    case '@m': output('m'); break;	// message
+	    case '@c': output('$core'); break;	// core
+	    case '@d': output('d'); break;	// dispatch
 	    default: return false;
 	    }
 	    return true;
@@ -81,6 +87,7 @@ function transpileTree (tree, errors = []) {
 	output('sm('.repeat(msgs.length));
 	if (!specialBase(base)) generate(base);
 	msgs.forEach(m => { output(','); generateMessage(m); output(')'); });
+	if (node.isStmt) output(aws ? ';\n' : ';');
     }
 
     const generateBlock = node => generateCode(node, 'block');
@@ -91,30 +98,39 @@ function transpileTree (tree, errors = []) {
 	// Generate out-of-band (blocks array) content
 	pushOut();
 	// Code template will be assigned a global block id at first binding
-	output(`{cd:m=>{const{mp,ps,sm,ts}=m;`);
+	output(`{cd:d=>{const{mp,ps,sm,ts}=d;`);
 	switch (type) {
 	case 'block':
-	    node.statements.forEach(s => { generate(s); output(';'); });
+	    node.statements.forEach(s => generate(s));
 	    output('}}');
 	    break;
 	case 'defer':
 	    output('return ');
 	    generate(node.expr);
-	    output(';}}');
+	    output(aws ? ';\n}}' : ';}}');
 	    break;
 	}
 	blocks[blockNum] = popOut();
 
 	// Generate in-band code content
-	output(`m.b(bt[${blockNum}])`);
+	output(`d.b(bt[${blockNum}])`);
     }
 
     function generateFinalOutput () {
 	if (blocks.length) {
-	    outBuf.unshift('(()=>{const bt=[', blocks.join(','), '];');
-	    outBuf.push('})();');
+	    outBuf.splice(blocksIP, 0, 'const bt=[', blocks.join(','), '];');
 	    blocks.length = 0;
 	}
+	if (usedMods) outBuf.unshift('const $mods=ls();');
+	outBuf.unshift(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope();`);
+    }
+
+    function generateJS (node) {
+	if (opts.enableJS) {
+	    output(node.text);
+	    if (!nextBlock) blocksIP = outBuf.length;
+	}
+	else error(`Error: JavaScript is not enabled at ${tls(node)}`);
     }
 
     function generateList (node) {
@@ -160,14 +176,15 @@ function transpileTree (tree, errors = []) {
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) output(`ng(${space},'${escapeJSStr(node.name.text)}')`);
+	if (node.name) output(`na(${space},'${escapeJSStr(node.name.text)}')`);
 	else output(space);
     }
 
     function generateWord (node) {
 	switch (node.text) {
 	case '@f': output('$f'); break;		// false
-	case '@mods': output('$mods'); break;	// module storage
+	case '@mods':				// module storage
+	    usedMods = true; output('$mods'); break;
 	case '@n': output('$n'); break;		// null
 	case '@t': output('$t'); break;		// true
 	case '@u': output('$u'); break;		// undefined

@@ -16,7 +16,7 @@ textarea { width: 95%; min-height: 100px; }
 <textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <script>
 function transpileNow () {
-    const tr = transpile(inputArea.value);
+    const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true });
     const errs = [];
     codeArea.value = tr.code;
     if (tr.fatal) errs.push("FATAL: " + tr.fatal);

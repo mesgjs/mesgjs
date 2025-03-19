@@ -20,6 +20,7 @@ function escapeJSStr (s) {
 
 // Split input into lexical tokens
 const lexPats = {
+    ejs: '@js\\{.*?@}',		// Embeded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
     // Number
@@ -33,7 +34,7 @@ const lexPats = {
 
 // Simple lexical analyzer
 function lex (input, loc = {}) {
-    const lre = new RegExp('(' + 'mlc slc num sqs dqs stok spc oth'.
+    const lre = new RegExp('(' + 'ejs mlc slc num sqs dqs stok spc oth'.
       split(' ').map(k => lexPats[k]).join('|') + ')', 's');
     const num = new RegExp('^' + lexPats.num + '$');
     let { col = 0, line = 0, src = undefined } = loc;
@@ -80,6 +81,7 @@ function lex (input, loc = {}) {
 	    default:
 		if (/^\s/.test(text)) return false;
 		if (num.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
+		if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) };
 		return { type: 'wrd', loc, text, staticValue: text };
 	    }
 	}).
@@ -145,13 +147,13 @@ function parse (tokens) {
 	return save(read0, node);
     }
 
-    function parseChain () {
+    function parseChain (isStmt = false) {
 	// base ( message-and-optional-params ) ...
 	const hit = lookup('chn');
 	if (hit) return hit;
 	const read0 = read, base = parseVar() || parseLiteral();
 	if (!base) return null;
-	const messages = [], node = { type: 'chn', base, messages };
+	const messages = [], node = { type: 'chn', base, messages, isStmt };
 	for (let message; message = parseMessage(); ) messages.push(message);
 	if (messages.length) return save(read0, node);
 	read = read0;
@@ -169,6 +171,15 @@ function parse (tokens) {
 	    return node;
 	}
 	error(`Missing message chain or named variable for defer at ${tls(cur)}`);
+	return null;
+    }
+
+    function parseJS () {
+	const cur = tokens[read];
+	if (cur?.type === 'js') {
+	    ++read;
+	    return cur;
+	}
 	return null;
     }
 
@@ -273,7 +284,7 @@ function parse (tokens) {
 	});
     }
 
-    function parseStatement () { return parseChain(); }
+    function parseStatement () { return parseJS() || parseChain(true); }
 
     function parseValue () {
 	// Chain, literal, or variable
