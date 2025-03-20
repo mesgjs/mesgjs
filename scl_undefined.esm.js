@@ -14,6 +14,7 @@ export function installUndefined () {
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    toString: () => '@u',
+	    valueOf: () => undefined,
 	},
 	init: octx => setRO(octx, 'ps', null),
     });

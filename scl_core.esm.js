@@ -8,69 +8,63 @@ import { logInterfaces, getInstance, getInterface, isIndex, jsToSCL, runIfCode, 
 
 function opAnd (d) {
     const { mp } = d;
-    for (const e of mp?.entries ? m.entries() : []) if (isIndex(e[0]) && !runIfCode(e[1])) return false;
+    for (const e of mp.indexEntries()) if (!runIfCode(e[1])) return false;
     return true;
 }
 
 function opCase (d) {
+    const { mp } = d;
+    // Need to define equality testing
 }
 
 function opGet (d) {
-    const { mp } = d;
-    if (mp?.at) {
-	const instance = getInstance(mp.at(0));
-	if (instance && mp.hasKey('init')) instance('init', mp.at('init'));
-	return instance;
-    }
+    const { mp } = d, instance = getInstance(mp.at(0));
+    if (instance && mp.has('init')) instance('init', mp.at('init'));
+    return instance;
 }
 
 function opIf (d) {
-    const { mp } = d;
-    if (mp instanceof NANOS) {
-	const end = mp.next - 1;
-	for (let i = 0; i < end; i += 2) if (runIfCode(mp.at(i))) return runIfCode(mp.at(i + 1));
-	return runIfCode(mp.at('else'));
-    }
+    const { mp } = d, end = mp.next - 1;
+    for (let i = 0; i < end; i += 2) if (runIfCode(mp.at(i))) return runIfCode(mp.at(i + 1));
+    /*
+     * Return the else value if provided; otherwise return the final
+     * expression if there's an odd number of expressions.
+     */
+    if (mp.has('else')) return runIfCode(mp.at('else'));
+    if (mp.next % 2) return runIfCode(mp.at(end));
 }
 
 function opImport (d) {
 }
 
-const opInterface = d => d.mp?.at ? getInterface(d.mp.at(0)) : undefined;
-
-const opNot = d => !(d.mp?.at ? d.mp.at(0) : undefined);
-
 function opOr (d) {
     const { mp } = d;
-    for (const e of m?.entries ? m.entries() : []) if (isIndex(e[0]) && runIfCode(e[1])) return true;
+    for (const e of mp.indexEntries) if (runIfCode(e[1])) return true;
     return false;
 }
 
-const opType = d => d.mp?.at ? jsToSCL(d.mp.at(0))?.sclType : undefined;
 
-const opTypeAccepts = d => d.mp?.at ? typeAccepts(d.mp.at(0), d.mp.at(1)) : undefined;
 
 export function installCore () {
-    const ix = getInterface('@core');
-    ix.set({
+    getInterface('@core').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    and: opAnd,
-	    case: opCase,
+	    // case: opCase,
 	    if: opIf,
-	    import: opImport,
+	    // import: opImport,
 	    get: opGet,
-	    interface: opInterface,
+	    interface: d => getInterface(d.mp.at(0)),
 	    logInterfaces,
-	    not: opNot,
+	    not: d => !d.mp.at(0),
 	    or: opOr,
-	    showDispatch: d => console.log(d),
-	    type: opType,
-	    typeAccepts: opTypeAccepts,
+	    // testDispatch: d => console.log(d),
+	    type: d => jsToSCL(d.mp.at(0))?.sclType,
+	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	},
     });
     setRO(globalThis, {
-	$core: getInstance('@core')),
+	$core: getInstance('@core'),
 	$f: false,
 	$n: null,
 	$t: true,

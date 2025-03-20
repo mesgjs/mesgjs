@@ -100,9 +100,16 @@ export class NANOS {
     }
 
     // Instead of "key in NANOS"
-    hasKey (key) { return this.#keys.includes(key); }
+    has (key) { return Object.hasOwn(this.#storage, key); }
 
     includes (value) { return this.keyOf(value) !== undefined; }
+
+    indexEntries (compact = false) {
+	return this.entries(compact).filter(e => isIndex(e[0]));
+    }
+
+    // Just the index keys
+    indexes () { return this.#keys.filter(k => isIndex(k)); }
 
     // Returns first key/index with matching value, or undefined; cf indexOf
     keyOf (value) {

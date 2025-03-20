@@ -14,15 +14,18 @@ function opF (d) {
 const opAF = d => { };
 
 export function installList () {
-    const ix = getInterface('@list');
-    ix.set({
+    getInterface('@list').set({
 	final: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
 	    clear: d => d.ps.clear(),
 	    entries: d => d.ps.entries(),
+	    has: d => d.ps.has(d.mp.at(0)),
+	    includes: d => d.ps.includes(d.mp.at(0)),
+	    indexEntries: d => d.ps.indexEntries(),
+	    indexes: d => d.ps.keys(),
 	    keys: d => d.ps.keys(),
 	    next: d => d.ps.next,
-	    pairs: d => d.ps.pairs(),	// TO DO: optional compact
+	    pairs: d => d.ps.pairs(d.mp.at(0)),
 	    pop: d => d.ps.pop(),
 	    shift: d => d.ps.shift(),
 	    size: d => d.ps.size,

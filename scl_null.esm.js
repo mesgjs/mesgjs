@@ -9,11 +9,11 @@ import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { isIndex, NANOS } from 'syscl/nanos.esm.js';
 
 export function installNull () {
-    const ix = getInterface('@null');
-    ix.set({
+    getInterface('@null').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    toString: () => '@n',
+	    valueOf: () => null,
 	},
 	init: octx => setRO(octx, 'ps', null),
     });

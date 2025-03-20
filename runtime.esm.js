@@ -9,6 +9,8 @@
  */
 import { NANOS, isIndex } from 'syscl/nanos.esm.js';
 export { NANOS, isIndex };
+import { unifiedList } from 'syscl/unified_list.esm.js';
+import 'syscl/shim.esm.js';
 
 // Foundational-class installers
 import { installBoolean } from 'syscl/scl_boolean.esm.js';
@@ -72,7 +74,7 @@ export const {
 } = (() => {
     let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2;
     const getCode = Symbol.for('getCode');
-    const interfaces = {}, firstInit = [];
+    const interfaces = Object.create(null), firstInit = [];
 
     /*
      * Return canonical message properties
@@ -89,13 +91,15 @@ export const {
 	    if (op === undefined && mb.rr === rr) ({ sr, st, op, mp } = mb);
 	}
 	if (op instanceof NANOS) op = op.storage;
-	if (typeof op === 'object') {
+	if (typeof op === 'object') {	// List-op message
 	    const hp = prop => Object.hasOwn(op, prop);
-	    if (hp('params')) mp = op.params;
 	    if (hp('else')) [ hasElse, elseExpr ] = [ true, op.else ];
+	    if (hp('params')) mp = op.params;
 	    if (hp('op')) op = op.op;
 	    else if (hp('0')) op = op[0];
+	    else throw new Error('Missing operation in SysCL list-op message');
 	}
+	mp = unifiedList(mp);		// Use unified mp interface
 	return { sr, st, rr, op, mp, hasElse, elseExpr };
     }
 
@@ -125,7 +129,7 @@ export const {
 	function newSCLDispatch (op, mp, handler) {
 	    let capture = false;
 	    // Each dispatch has its own code bindings
-	    const myCode = {}, bindCode = tpl => {
+	    const myCode = Object.create(null), bindCode = tpl => {
 		if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
 		const ucid = tpl.ucid;
 		if (!myCode[ucid]) myCode[ucid] = newSCLCode(tpl.cd, disp);
@@ -233,7 +237,7 @@ export const {
 	const ix = interfaces[type];
 	if (!ix) throw new Error(`Cannot get instance for unknown SysCL interface "${type}"`);
 	if (ix.instance) return ix.instance;
-	const octx = {}, pi = function sclObject (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
+	const octx = Object.create(null), pi = function sclObject (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
@@ -252,7 +256,7 @@ export const {
 	else if (typeof name !== 'string' || !name || (name[0] === '?' && !interfaces[name]) || (name[0] === '@' && initPhase !== 1)) return;
 	const ix = interfaces[name], isFirst = !ix;
 	if (isFirst) interfaces[name] = {
-	    handlers: {}, chain: new Set([]), refd: false,
+	    handlers: Object.create(null), chain: new Set([]), refd: false,
 	    abstract: false, final: false, locked: false,
 	    once: false, pristine: true, singleton: false
 	};
@@ -438,6 +442,7 @@ export const $f = false, $n = null, $t = true, $u = undefined;
 // Promote a JS object to a SCL object for messaging
 const sclInstance = Symbol.for('sclInstance');
 export function jsToSCL (jsv) {
+    if (jsv?.sclType) return jsv;
     const setInstance = (type, jsv) => {
 	const inst = getInstance(type, jsv);
 	setRO(jsv, sclInstance, inst, false);

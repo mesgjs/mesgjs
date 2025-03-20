@@ -9,13 +9,12 @@ import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { isIndex, NANOS } from 'syscl/nanos.esm.js';
 
 export function installBoolean () {
-    const ix = getInterface('@boolean');
-    ix.set({
+    getInterface('@boolean').set({
 	abstract: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
+	    dump: d => console.log(d, d.ps),
 	    toString: d => d.ps ? '@t' : '@f',
 	},
-	init: (octx, pi, ary) => setRO(octx, 'ps', ary),
     });
     getInterface('@false').set({
 	final: true, lock: true, pristine: true, singleton: true,
