@@ -15,8 +15,7 @@ function opF (d) {
 const opAF = d => { };
 
 export function installJSArray () {
-    const ix = getInterface('@jsArray');
-    ix.set({
+    getInterface('@jsArray').set({
 	final: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
 	    length: d => d.ps.length,

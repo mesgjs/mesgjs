@@ -88,11 +88,11 @@ export const {
 	if (checkBaton) {
 	    const mb = mesgBaton;
 	    mesgBaton = undefined;
-	    if (op === undefined && mb.rr === rr) ({ sr, st, op, mp } = mb);
+	    if (op === undefined && mb?.rr === rr) ({ sr, st, op, mp } = mb);
 	}
 	if (op instanceof NANOS) op = op.storage;
 	if (typeof op === 'object') {	// List-op message
-	    const hp = prop => Object.hasOwn(op, prop);
+	    const hp = prop => hasOwn(op, prop);
 	    if (hp('else')) [ hasElse, elseExpr ] = [ true, op.else ];
 	    if (hp('params')) mp = op.params;
 	    if (hp('op')) op = op.op;
@@ -119,7 +119,7 @@ export const {
 	const handler = getHandler(rt, op);
 
 	if (!handler) {
-	    if (Object.hasOwn(d1, 'else')) return runIfCode(d1.else);
+	    if (hasOwn(d1, 'else')) return runIfCode(d1.else);
 	    throw new Error(`No SysCL handler found for "${rt}(${op})"`);
 	}
 
@@ -137,24 +137,25 @@ export const {
 	    };
 	    // As part of the messaging pathway, dispatch objects are custom
 	    const disp = function sclDispatch () {
-		const { sr, op, mp, elseExpr } = canMesgProps({});
+		const { sr, op, mp, elseExpr } = canMesgProps({ rr: disp });
 		// Only accept messages from the original receiver
 		if (sr !== disp.rr || op === undefined) return;
 		switch (op) {
 		case 'redis':		// Redispatch
 		{
 		    // Accept either list-op or mp else parameter
-		    const dispElse = (hasOwn(mp, 'else') ? mp.else : elseExpr);
-		    if (mp instanceof NANOS) mp = mp.storage;
-		    const type = mp.type || handler.type;
-		    // The type must be in current handler's chain
+		    const dispElse = mp.has('else') ? mp.at('else') : elseExpr;
+		    // Optionally choose a specific type from the chain
+		    const type = mp.at('type') || handler.type;
+		    // The type must be in *current* handler's chain
 		    if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
 		    // Optionally change op and/or mp
-		    const rop = hasOwn(mp, 'op') ? mp.op : handler.op, rmp = hasOwn('mp', 'params') ? mp.params : mp, redis = getHandler(type, rop, type === handler.type);
+		    const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = mp.has('params') ? unifiedList(mp.at('params')) : mp, redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
 		    // Don't allow switch to default if not changing op
-		    if (!redis || (!hasOwn(mp, 'op') && redis.op !== rop)) return runIfCode(dispElse);
+		    // console.log(`Looking for "${type}(${rdop})"; found`, redis);
+		    if (!redis || (!mp.has('op') && redis.op !== rdop)) return runIfCode(dispElse);
 		    // Looks good; fire the redispatch
-		    return newSCLDispatch(rop, rmp, redis);
+		    return newSCLDispatch(rdop, rdmp, redis);
 		}
 		case 'handlerType': return handler.type;
 		case 'op': return disp.op;
@@ -262,7 +263,7 @@ export const {
 	};
 	if (ix?.once) return;
 	const sif = function sclInterface (op, mp) {
-	    ({ op, mp } = canMesgProps({ op, mp }));
+	    ({ op, mp } = canMesgProps({ rr: sif, op, mp }));
 	    switch (op) {
 	    case 'instance': return getInstance(name, mp);
 	    case 'name': return name;
