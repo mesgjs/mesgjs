@@ -1,12 +1,40 @@
+/*
+ * SysCL2-to-JavaScript Transpilation Functions
+ * Copyright 2024-2025 Kappa Computer Solutions, LLC and Brian Katzung
+ * Author: Brian Katzung <briank@kappacs.com>
+ */
+
+import { lex, parse } from 'syscl/lexparse.esm.js';
+
+// Generate string escapes for JavaScript
+export function escapeJSStr (s) {
+    return s.replace(/[\x00-\x1f'"\\\u0200-\uffff]/g, c => {
+	switch (c) {
+	case '\b': return '\\b';
+	case '\n': return '\\n';
+	case '\r': return '\\r';
+	case '\t': return '\\t';
+	case "'": return "\\'";
+	case '"': return '\\"';
+	case '\\': return '\\\\';
+	}
+	const cc = c.charCodeAt(), ccs = cc.toString(16);
+	if (cc < 0x10) return '\\x0' + ccs;
+	if (cc < 0x100) return '\\x' + ccs;
+	if (cc < 0x1000) return '\\u0' + ccs;
+	return '\\u' + ccs;
+    });
+}
+
 // Split raw text input into tokens, parse, and transpile
-function transpile (input, opts = {}) {
+export function transpile (input, opts = {}) {
     const loc = opts.location || {};
     const { tree, errors } = parse(lex(input, loc).tokens);
     return transpileTree(tree, { ...opts, errors });
 }
 
-// Transpile pre-parsed input
-function transpileTree (tree, opts = {}) {
+// Transpile pre-parsed input to JavaScript code (text)
+export function transpileTree (tree, opts = {}) {
     let outBuf = [], nextBlock = 0, blocksIP = 0, usedMods = false;
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
     const blocks = [], outStack = [];
@@ -78,8 +106,8 @@ function transpileTree (tree, opts = {}) {
 	const base = node.base, msgs = node.messages;
 	function specialBase (base) {
 	    switch (base.type === 'wrd' && base.text) {
-	    case '@c': output('$core'); break;	// core
-	    case '@d': output('d'); break;	// dispatch
+	    case '@c': output('$c'); break;	// core
+	    case '@d': output('d'); break;	// dispatch object
 	    default: return false;
 	    }
 	    return true;
@@ -98,7 +126,7 @@ function transpileTree (tree, opts = {}) {
 	// Generate out-of-band (blocks array) content
 	pushOut();
 	// Code template will be assigned a global block id at first binding
-	output(`{cd:d=>{const{mp,ps,sm,ts}=d;`);
+	output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
 	switch (type) {
 	case 'block':
 	    node.statements.forEach(s => generate(s));
@@ -113,16 +141,16 @@ function transpileTree (tree, opts = {}) {
 	blocks[blockNum] = popOut();
 
 	// Generate in-band code content
-	output(`d.b(bt[${blockNum}])`);
+	output(`b(c[${blockNum}])`);
     }
 
     function generateFinalOutput () {
 	if (blocks.length) {
-	    outBuf.splice(blocksIP, 0, 'const bt=[', blocks.join(','), '];');
+	    outBuf.splice(blocksIP, 0, 'const c=[', blocks.join(','), '];');
 	    blocks.length = 0;
 	}
 	if (usedMods) outBuf.unshift('const $mods=ls();');
-	outBuf.unshift(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope();`);
+	outBuf.unshift(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`);
     }
 
     function generateJS (node) {

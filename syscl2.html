@@ -2,10 +2,13 @@
 <style>
 textarea { width: 95%; min-height: 100px; }
 </style>
-<script src='lexparse.js'></script>
-<script src='runtime.js'></script>
-<script src='nanos.js'></script>
-<script src='transpile.js'></script>
+<script type='importmap'>
+{
+    "imports": {
+	"syscl/": "./"
+    }
+}
+</script>
 </head><body>
 <h2>Input</h2>
 <textarea id='inputArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br>
@@ -14,7 +17,8 @@ textarea { width: 95%; min-height: 100px; }
 <textarea id='errors' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <h2>Code</h2>
 <textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-<script>
+<script type='module'>
+import { transpile } from 'syscl/transpile.esm.js';
 function transpileNow () {
     const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true });
     const errs = [];

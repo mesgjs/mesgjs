@@ -43,7 +43,12 @@ function opOr (d) {
     return false;
 }
 
-
+function opRun (d) {
+    const { mp } = d;
+    let result;
+    for (const e of mp.indexEntries) result = runIfCode(e[1]);
+    return result;
+}
 
 export function installCore () {
     getInterface('@core').set({
@@ -58,13 +63,14 @@ export function installCore () {
 	    logInterfaces,
 	    not: d => !d.mp.at(0),
 	    or: opOr,
+	    run: opRun,
 	    // testDispatch: d => console.log(d),
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	},
     });
     setRO(globalThis, {
-	$core: getInstance('@core'),
+	$c: getInstance('@core'),
 	$f: false,
 	$n: null,
 	$t: true,

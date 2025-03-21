@@ -43,6 +43,9 @@ export class SCLFlow extends Error {
     }
 }
 
+
+export const listFromPairs = pa => new NANOS().fromPairs(pa);
+export const namespaceAt = (namespace, key) => namespace?.at ? namespace.at(key) : undefined;
 export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
 
 // Set a read-only object property or properties
@@ -69,12 +72,21 @@ export const {
     logInterfaces,
     getInstance,
     getInterface,
+    moduleScope,
     newSCLCode,
     typeAccepts,
 } = (() => {
     let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2;
     const getCode = Symbol.for('getCode');
     const interfaces = Object.create(null), firstInit = [];
+
+    // Bind a code template to a dispatch object and save it
+    function bindCode (tpl, disp, cache) {
+	if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
+	const ucid = tpl.ucid;
+	if (!cache[ucid]) cache[ucid] = newSCLCode(tpl.cd, disp);
+	return cache[ucid];
+    }
 
     /*
      * Return canonical message properties
@@ -129,12 +141,7 @@ export const {
 	function newSCLDispatch (op, mp, handler) {
 	    let capture = false;
 	    // Each dispatch has its own code bindings
-	    const myCode = Object.create(null), bindCode = tpl => {
-		if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
-		const ucid = tpl.ucid;
-		if (!myCode[ucid]) myCode[ucid] = newSCLCode(tpl.cd, disp);
-		return myCode[ucid];
-	    };
+	    const cache = Object.create(null);
 	    // As part of the messaging pathway, dispatch objects are custom
 	    const disp = function sclDispatch () {
 		const { sr, op, mp, elseExpr } = canMesgProps({ rr: disp });
@@ -172,7 +179,7 @@ export const {
 	    };
 	    Object.defineProperty(disp, 'ps', { get: () => octx?.ps, enumerable: true });
 	    setRO(disp, { sr, st, rr, rt, octx, op, mp, sm,
-		b: tpl => bindCode(tpl),
+		b: tpl => bindCode(tpl, disp, cache),
 		sclType: '@dispatch',
 	    });
 	    if (handler.code.sclType === '@handler') {
@@ -294,30 +301,50 @@ export const {
 
     function logInterfaces () { console.log(interfaces); }
 
-    /*
-     * Return a new SCL code object.
-     * These are very simple foundational objects supporting exactly
-     * two operations:
-     * 1) The getCode symbol passes the code via the code baton (for
-     *    adding op handlers in addInterface)
-     * 2) "run" runs the code in the context of the original message
-     */
-    function newSCLCode (cd, om) {
+    function moduleScope () {
+	// Return a module dispatch object (currently a message sink)
+	if (initPhase) initialize();
+	const cache = Object.create(null), d = function sclModule () {}, b = tpl => bindCode(tpl, d, cache), sm = (rr, op, mp) => sendMessage({ sr: d, st: '@module', rr, op, mp });
+	setRO(d, {
+	    sr: $u, st: $u, rr: d, rt: '@module', sclType: '@module',
+	    octx: $u, op: 'load', mp: $u, ps: $u, ts: $u,
+	    b, sm,
+	});
+	return { d,
+	    ls: listFromPairs,
+	    na: namespaceAt,
+	};
+    }
+
+    // Return a new SCL code object given code and a dispatch
+    function newSCLCode (cd, od) {
 	// Encapsulate the code with a custom interface function
-	const code = function sclCode (op) {
-	    ({ op } = canMesgProps({ rr: code, op }));
-	    switch (op) {
+	const code = function sclCode (op, mp) {
+	    const mb = mesgBaton;
+	    const { op: cdop } = canMesgProps({ rr: code, op });
+	    switch (cdop) {
+	    case 'call':		// Call like a function
+	    {
+		// Restart the message using a standard dispatch
+		const octx = setRO(Object.create(null), { cd, ps: false });
+		mesgBaton = mb;
+		return receiveMessage({ octx, rr: code, rt: '@code', op, mp });
+	    }
 	    case getCode:
 		codeBaton = { code: cd };
 		break;
-	    case 'run': return cd(om);
+	    case 'run': return cd(od);	// Run in original dispatch context
 	    }
 	};
 	return setRO(code, 'sclType', '@code');
     }
     firstInit.push(() => {
-	getInterface('@code').set({ pristine: true, private: true, lock: true });
-	stub('@code', 'run');
+	getInterface('@code').set({ pristine: true, private: true, lock: true,
+	    /* Function Mode */ handlers: {
+		call: d => d.octx.cd(d),
+		run: d => undefined,
+	    },
+	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
     });
 
@@ -430,6 +457,7 @@ export const {
 	logInterfaces,
 	getInstance: coreGetInstance,
 	getInterface,
+	moduleScope,
 	newSCLCode,
 	typeAccepts,
     };
@@ -466,23 +494,6 @@ export function jsToSCL (jsv) {
     default:
 	return getInstance('@undefined');
     }
-}
-
-export const listFromPairs = pa => new NANOS().fromPairs(pa);
-export const namespaceAt = (namespace, key) => namespace?.at ? namespace.at(key) : undefined;
-
-export function moduleScope () {
-    // Return a module dispatch object (that accepts no messages)
-    const d = function sclModule () {};
-    setRO(d, {
-	sr: $u, st: $u, rr: d, rt: '@module', sclType: '@module',
-	octx: $u, op: 'load', mp: $u, ps: $u, ts: $u,
-	sm: sendAnonymousMessage,
-    });
-    return { d,
-	ls: listFromPairs,
-	na: namespaceAt,
-    };
 }
 
 // Send a message anonymously (promoting JS receiver objects as necessary)

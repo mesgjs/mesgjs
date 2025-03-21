@@ -1,22 +1,8 @@
-// Generate string escapes for JavaScript
-function escapeJSStr (s) {
-    return s.replace(/[\x00-\x1f'"\\\u0200-\uffff]/g, c => {
-	switch (c) {
-	case '\b': return '\\b';
-	case '\n': return '\\n';
-	case '\r': return '\\r';
-	case '\t': return '\\t';
-	case "'": return "\\'";
-	case '"': return '\\"';
-	case '\\': return '\\\\';
-	}
-	const cc = c.charCodeAt(), ccs = cc.toString(16);
-	if (cc < 0x10) return '\\x0' + ccs;
-	if (cc < 0x100) return '\\x' + ccs;
-	if (cc < 0x1000) return '\\u0' + ccs;
-	return '\\u' + ccs;
-    });
-}
+/*
+ * SysCL2 Lexical Analyzer And Parsing Functions
+ * Copyright 2024-2025 Kappa Computer Solutions, LLC and Brian Katzung
+ * Author: Brian Katzung <briank@kappacs.com>
+ */
 
 // Split input into lexical tokens
 const lexPats = {
@@ -33,7 +19,7 @@ const lexPats = {
 };
 
 // Simple lexical analyzer
-function lex (input, loc = {}) {
+export function lex (input, loc = {}) {
     const lre = new RegExp('(' + 'ejs mlc slc num sqs dqs stok spc oth'.
       split(' ').map(k => lexPats[k]).join('|') + ')', 's');
     const num = new RegExp('^' + lexPats.num + '$');
@@ -89,7 +75,7 @@ function lex (input, loc = {}) {
 }
 
 // Generate parse tree from lexical tokens
-function parse (tokens) {
+export function parse (tokens) {
     const end = tokens.length, output = [], errors = [], cache = {};
     let read = 0, blkDep = 0, lstDep = 0, msgDep = 0;
 

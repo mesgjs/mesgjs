@@ -4,13 +4,12 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO, typeAccepts } from 'syscl/runtime.esm.js';
-// import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-// import { isIndex } from 'syscl/nanos.esm.js';
+import { getInterface, jsToSCL, setRO, typeAccepts } from 'syscl/runtime.esm.js';
 
-// Add string bits together with an optional separator
-function opAdd (d) {
-    const { mp, ps } = d, sep = mp.at('sep') ?? '', parts = [ ps ];
+// Join strings together with an optional separator
+// a(join b c with=-) // a-b-c
+function opJoin (d) {
+    const { mp, ps } = d, sep = mp.at('with') ?? '', parts = [ ps ];
     for (const e of mp.indexEntries()) {
 	const so = jsToSCL(e[1]);
 	if (typeAccepts(so.sclType, 'toString')) parts.push(so('toString'));
@@ -18,8 +17,9 @@ function opAdd (d) {
     return parts.join(sep);
 }
 
-// Join bits of string together with the receiver in between
-function opJoin (d) {
+// Join strings together with the receiver as separator
+// ,(joining a b c) // a,b,c
+function opJoining (d) {
     const { mp, ps } = d, parts = [];
     for (const e of mp.indexEntries()) {
 	const so = jsToSCL(e[1]);
@@ -32,8 +32,8 @@ export function installString () {
     getInterface('@string').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
-	    add: opAdd,
 	    join: opJoin,
+	    joining: opJoining,
 	    length: d => d.ps.length,
 	    toString: d => d.ps,
 	    valueOf: d => d.ps,
