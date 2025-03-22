@@ -6,10 +6,15 @@
 
 import { logInterfaces, getInstance, getInterface, isIndex, jsToSCL, runIfCode, setRO, typeAccepts } from 'syscl/runtime.esm.js';
 
+// And: false if any not true, else last true result (default true)
 function opAnd (d) {
     const { mp } = d;
-    for (const e of mp.indexEntries()) if (!runIfCode(e[1])) return false;
-    return true;
+    let result = true;
+    for (const e of mp.indexEntries()) {
+	result = runIfCode(e[1]);
+	if (!result) return false;
+    }
+    return result;
 }
 
 function opCase (d) {
@@ -37,16 +42,20 @@ function opIf (d) {
 function opImport (d) {
 }
 
+// Or: first true result, else false
 function opOr (d) {
     const { mp } = d;
-    for (const e of mp.indexEntries) if (runIfCode(e[1])) return true;
+    for (const e of mp.indexEntries()) {
+	const r = runIfCode(e[1]);
+	if (r) return r;
+    }
     return false;
 }
 
 function opRun (d) {
     const { mp } = d;
     let result;
-    for (const e of mp.indexEntries) result = runIfCode(e[1]);
+    for (const e of mp.indexEntries()) result = runIfCode(e[1]);
     return result;
 }
 
@@ -54,12 +63,14 @@ export function installCore () {
     getInterface('@core').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
+	    _: d => d.mp.at(0),
 	    and: opAnd,
 	    // case: opCase,
 	    if: opIf,
 	    // import: opImport,
 	    get: opGet,
 	    interface: d => getInterface(d.mp.at(0)),
+	    log: d => console.log(...d.mp.values()),
 	    logInterfaces,
 	    not: d => !d.mp.at(0),
 	    or: opOr,

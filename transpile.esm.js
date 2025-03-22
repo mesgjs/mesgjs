@@ -149,7 +149,7 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=[', blocks.join(','), '];');
 	    blocks.length = 0;
 	}
-	if (usedMods) outBuf.unshift('const $mods=ls();');
+	if (usedMods) outBuf.unshift('const mps=ls();');
 	outBuf.unshift(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`);
     }
 
@@ -211,8 +211,8 @@ export function transpileTree (tree, opts = {}) {
     function generateWord (node) {
 	switch (node.text) {
 	case '@f': output('$f'); break;		// false
-	case '@mods':				// module storage
-	    usedMods = true; output('$mods'); break;
+	case '@mps':				// module persistent storage
+	    usedMods = true; output('mps'); break;
 	case '@n': output('$n'); break;		// null
 	case '@t': output('$t'); break;		// true
 	case '@u': output('$u'); break;		// undefined

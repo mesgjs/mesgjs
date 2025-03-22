@@ -111,7 +111,7 @@ export const {
 	    else if (hp('0')) op = op[0];
 	    else throw new Error('Missing operation in SysCL list-op message');
 	}
-	mp = unifiedList(mp);		// Use unified mp interface
+	mp = unifiedList(mp, true);	// Use unified mp interface
 	return { sr, st, rr, op, mp, hasElse, elseExpr };
     }
 
@@ -185,7 +185,7 @@ export const {
 	    if (handler.code.sclType === '@handler') {
 		// Persistent storage per object; transient (scratch) per dispatch
 		if (octx.ps === undefined) setRO(octx, 'ps', new NANOS());
-		if (disp.ts === undefined) setRO(mesg, 'ts', new NANOS());
+		if (disp.ts === undefined) setRO(disp, 'ts', new NANOS());
 	    }
 	    try { return handler.code(disp); }
 	    catch (e) {
@@ -302,9 +302,18 @@ export const {
     function logInterfaces () { console.log(interfaces); }
 
     function moduleScope () {
-	// Return a module dispatch object (currently a message sink)
+	// Return a module dispatch object
 	if (initPhase) initialize();
-	const cache = Object.create(null), d = function sclModule () {}, b = tpl => bindCode(tpl, d, cache), sm = (rr, op, mp) => sendMessage({ sr: d, st: '@module', rr, op, mp });
+	const d = function sclModule (op) {
+	    ({ op } = canMesgProps({ rr: d, op }));
+	    switch (op) {
+	    case 'op': return 'load';
+	    case 'self': return d;
+	    case 'selfType': return '@module';
+	    }
+	    // Silently ignore other messages (?)
+	};
+	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = (rr, op, mp) => sendMessage({ sr: d, st: '@module', rr, op, mp });
 	setRO(d, {
 	    sr: $u, st: $u, rr: d, rt: '@module', sclType: '@module',
 	    octx: $u, op: 'load', mp: $u, ps: $u, ts: $u,
@@ -315,34 +324,57 @@ export const {
 	    na: namespaceAt,
 	};
     }
+    firstInit.push(() => {
+	getInterface('@module').set({ pristine: true, private: true, lock: true });
+	stub('@module', 'op', 'self', 'selfType');
+    });
 
     // Return a new SCL code object given code and a dispatch
     function newSCLCode (cd, od) {
 	// Encapsulate the code with a custom interface function
+	let lock;
 	const code = function sclCode (op, mp) {
 	    const mb = mesgBaton;
 	    const { op: cdop } = canMesgProps({ rr: code, op });
 	    switch (cdop) {
 	    case 'call':		// Call like a function
 	    {
+		if (lock === 'code') return;
 		// Restart the message using a standard dispatch
 		const octx = setRO(Object.create(null), { cd, ps: false });
 		mesgBaton = mb;
-		return receiveMessage({ octx, rr: code, rt: '@code', op, mp });
+		return receiveMessage({ octx, rr: code, rt: od? '@code' : '@function', op, mp });
 	    }
+	    case 'code':		// Lock to code block
+		if (!lock) lock = 'code';
+		return code;
 	    case getCode:
 		codeBaton = { code: cd };
 		break;
-	    case 'run': return cd(od);	// Run in original dispatch context
+	    case 'function':		// Lock to function
+		if (!lock) [ lock, od ] = [ 'function', undefined ];
+		return code;
+	    // Run in original dispatch context
+	    case 'run': return (od ? cd(od) : undefined);
 	    }
 	};
-	return setRO(code, 'sclType', '@code');
+	Object.defineProperty(code, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
+	return code;
     }
     firstInit.push(() => {
+	/*
+	 * Handle the restarted standard-dispatch (call) and stub for the
+	 * custom receiver.
+	 */
+	const call = d => { setRO(d, 'ts', new NANOS()); return d.octx.cd(d); }, stubs = { code: false, function: false, run: false };
 	getInterface('@code').set({ pristine: true, private: true, lock: true,
-	    /* Function Mode */ handlers: {
-		call: d => d.octx.cd(d),
-		run: d => undefined,
+	    /* @code-in-function-mode */ handlers: {
+		call, ...stubs,
+	    },
+	});
+	getInterface('@function').set({ pristine: true, private: true, lock: true,
+	    /* converted-to-@function */ handlers: {
+		call, ...stubs,
 	    },
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
@@ -422,7 +454,7 @@ export const {
 		    if (codeBaton?.code) setRO(ix.handlers[op] = codeBaton.code, 'sclType', '@handler');
 		}
 		else ix.handlers[op] = handler;
-	    }
+	    } else if (handler === false) ix.handlers[op] = false;
 	}
 	codeBaton = undefined;
 

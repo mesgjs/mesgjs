@@ -10,32 +10,32 @@ import { isIndex } from 'syscl/nanos.esm.js';
 
 function opAdd (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a + b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a + b[1], ps);
 }
 
 function opDiv (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a / b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a / b[1], ps);
 }
 
 function opMod (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a % b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a % b[1], ps);
 }
 
 function opMul (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a * b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a * b[1], ps);
 }
 
 function opPow (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a ** b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a ** b[1], ps);
 }
 
 function opSub (d) {
     const { ps, mp } = d;
-    return mp.indexEntries().reduce((a, b) => a - b[1], ps);
+    return [...mp.indexEntries()].reduce((a, b) => a - b[1], ps);
 }
 
 export function installNumber () {

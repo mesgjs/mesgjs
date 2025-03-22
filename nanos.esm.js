@@ -48,30 +48,30 @@ export class NANOS {
      * Compact mode uses numeric index keys instead of the standard strings
      * (e.g. 0 instead of '0').
      */
-    entries (compact = false) {
+    *entries (compact = false) {
 	const ik = compact ? (k => isIndex(k) ? parseInt(k) : k) : (k => k);
-	return this.#keys.map(key => [ ik(key), this.#storage[key] ]);
+	for (const k of this.#keys) yield [ ik(k), this.#storage[k] ];
     }
 
     // Returns a shallow copy of elements for which f(value, key) is true
     filter (f) {
-	return new NANOS.fromEntries(this.entries.filter(kv => f(kv[1], kv[0], this)));
+	return new NANOS.fromEntries([...this.entries()].filter(kv => f(kv[1], kv[0], this)));
     }
 
     // Returns first [key, value] where f(value, key) is true; cf find, findIndex
     find (f) {
 	const s = this.#storage;
-	for (const key of this.#keys) if (f(s[key], key, this)) return [key, s[key]];
+	for (const k of this.#keys) if (f(s[k], k, this)) return [k, s[k]];
     }
 
     // Returns last [key, value] where f(value, key) is true; cf findLast, findLastIndex
     findLast (f) {
 	const s = this.#storage;
-	for (const key of this.#keys.toReversed()) if (f(s[key], key, this)) return [key, s[key]];
+	for (const k of this.#keys.toReversed()) if (f(s[k], k, this)) return [k, s[k]];
     }
 
     forEach (f) {
-	for (const key of this.#keys) f(this.#storage[key], key, this);
+	for (const k of this.#keys) f(this.#storage[k], k, this);
     }
 
     // [ [ key1, value1 ], ... [ keyN, valueN ] ]
@@ -104,12 +104,12 @@ export class NANOS {
 
     includes (value) { return this.keyOf(value) !== undefined; }
 
-    indexEntries (compact = false) {
-	return this.entries(compact).filter(e => isIndex(e[0]));
+    *indexEntries (compact = false) {
+	for (const e of this.entries(compact)) if (isIndex(e[0])) yield e;
     }
 
     // Just the index keys
-    indexes () { return this.#keys.filter(k => isIndex(k)); }
+    *indexes () { for (const k of this.#keys) if (isIndex(k)) yield k; }
 
     // Returns first key/index with matching value, or undefined; cf indexOf
     keyOf (value) {
@@ -150,7 +150,7 @@ export class NANOS {
 	    if (Array.isArray(value)) {
 		let base = this.#next;
 		for (const k of Object.keys(value)) if (isIndex(k)) this.set(base + parseInt(k), value[k]);
-	    } else if (typeof value === 'object') for (const key of Object.keys(value)) this.set(key, value[key]);
+	    } else if (typeof value === 'object') for (const k of Object.keys(value)) this.set(key, value[key]);
 	    else this.set(this.#next, value);
 	});
 	return this;
@@ -243,11 +243,11 @@ export class NANOS {
     toJSON () { return {type:'@NANOS@', next: this.#next, pairs: this.pairs(true)}; }
 
     toString (sep = ',') {
-	const tos = v => v?.toString() ?? { null: 'null', undefined: 'undefined' }[v];
+	const tos = v => (v instanceof NANOS) ? v.toString(sep) : (v?.toString() ?? { null: 'null', undefined: 'undefined' }[v]);
 	const s = this.#storage, parts = [];
-	for (const key of this.#keys) {
-	    if (isIndex(key)) parts.push(tos(s[key]));
-	    else parts.push(key + '=' + tos(s[key]));
+	for (const k of this.#keys) {
+	    if (isIndex(k)) parts.push(tos(s[k]));
+	    else parts.push(k + '=' + tos(s[k]));
 	}
 	return 'N[' + parts.join(sep) + ']';
     }
@@ -258,10 +258,15 @@ export class NANOS {
 	    if (Array.isArray(value)) {
 		this.#renumber(0, this.#next, value.length);
 		for (const k of Object.keys(value).reverse()) if (isIndex(k)) this.set(k, value[k], true);
-	    } else if (typeof value === 'object') for (const key of Object.keys(value).reverse()) this.set(key, value[key], true);
+	    } else if (typeof value === 'object') for (const k of Object.keys(value).reverse()) this.set(k, value[k], true);
 	    else this.unshift([value]);
 	});
 	return this;
+    }
+
+    // Return a (non-sparse) iterator of *indexed* values [0..#next-1]
+    *values () {
+	for (let i = 0; i < this.#next; ++i) yield this.at(i);
     }
 }
 

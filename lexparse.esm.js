@@ -15,7 +15,7 @@ const lexPats = {
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     stok: '[!%#&[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
-    oth: '[^!%#&[(={})\\]\\s]+',// Other
+    oth: '[^\'"!%#&[(={})\\]\\s]+',// Other
 };
 
 // Simple lexical analyzer
@@ -282,7 +282,7 @@ export function parse (tokens) {
 	const ns = tokens[read], space = ns?.type;
 	if ('!#%'.indexOf(space) < 0) return null;
 	const name = tokens[++read], nType = name?.type;
-	if (nType === 'txt' || nType === 'wrd') {
+	if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.staticValue))) {
 	    ++read;
 	    return {
 		type: 'var', space, name,
