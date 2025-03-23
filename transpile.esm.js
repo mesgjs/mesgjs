@@ -28,12 +28,14 @@ export function escapeJSStr (s) {
 }
 
 class Segment {
-    constructor (gen, src) {
-	[this.gen, this.src] = [gen, src?.loc || src];
+    constructor (gen, src, pending) {
+	this.gen = gen;
+	if (src) this.src = src?.loc || src;
+	if (pending) this.pdg = true;
     }
     toString () { return this.gen; }
 }
-const segment = (gen, src) => new Segment(gen, src);
+const segment = (gen, src, pending) => new Segment(gen, src, pending);
 
 // Split raw text input into tokens, parse, and transpile
 export function transpile (input, opts = {}) {
@@ -44,7 +46,7 @@ export function transpile (input, opts = {}) {
 
 // Transpile pre-parsed input to JavaScript code (text)
 export function transpileTree (tree, opts = {}) {
-    let outBuf = [], nextBlock = 0, blocksIP = 0, usedMods = false;
+    let outBuf = [], nextBlock = 0, blocksIP = 0, usedMods;
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
     const blocks = [], outStack = [];
     const aws = opts.addWhiteSpace;
@@ -54,7 +56,7 @@ export function transpileTree (tree, opts = {}) {
 	    errors.push(message);
 	},
 	output = (...c) => outBuf.push(...c),
-	outseg = (g, f) => output(segment(g, f)),
+	outseg = (g, s, pe) => output(segment(g, s, pe)),
 	pushOut = () => outStack.push(outBuf.length),
 	popOut = () => outBuf.splice(outStack.pop()),
 	tls = token => tokenLocStr(token);
@@ -115,16 +117,17 @@ export function transpileTree (tree, opts = {}) {
 	    case '@c': output('$c'); break;	// core
 	    case '@d': output('d'); break;	// dispatch object
 	    case '@mps':			// module persistent storage
-		usedMods = true; output('mps'); break;
+		if (!usedMods) usedMods = base;
+		output('mps');
+		break;
 	    default: return false;
 	    }
 	    return true;
 	}
-	msgs.forEach(m => outseg('sm(', m));
+	msgs.forEach(m => outseg('sm(', m, true));
 	if (!specialBase(base)) generate(base);
 	msgs.forEach(m => { output(','); generateMessage(m); output(')'); });
-	if (node.isStmt) outseg(aws ? ';\n' : ';');
-	else outseg('');
+	if (node.isStmt) output(aws ? ';\n' : ';');
     }
 
     const generateBlock = node => generateCode(node, 'block');
@@ -159,20 +162,20 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=[', ...blocks.flat(1), '];');
 	    blocks.length = 0;
 	}
-	if (usedMods) outBuf.unshift('const mps=ls();');
+	if (usedMods) outBuf.unshift(segment('const mps=ls();', usedMods, true));
 	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`));
     }
 
     function generateJS (node) {
 	if (opts.enableJS) {
-	    outseg(node.text, node);
+	    outseg(node.text, node, true);
 	    if (!nextBlock) blocksIP = outBuf.length;
 	}
 	else error(`Error: JavaScript is not enabled at ${tls(node)}`);
     }
 
     function generateList (node) {
-	outseg('ls([', node);
+	outseg('ls([', node, true);
 	node.items.forEach(i => {
 	    if (i.type === '=') {
 		generate(i.name); output(',');
@@ -186,19 +189,19 @@ export function transpileTree (tree, opts = {}) {
 		output(',');
 	    }
 	});
-	outseg('])');
+	output('])');
     }
 
     function generateMessage (node) {
 	generate(node.message);
 	if (node.params.length) {
 	    output(',');
-	    generateList({ items: node.params });
+	    generateList({ items: node.params, loc: node.params[0].loc });
 	}
     }
 
     function generateNumber (node) {
-	outseg(node.text, node);
+	output(node.text);
     }
 
     function generateText (node) {
@@ -214,7 +217,7 @@ export function transpileTree (tree, opts = {}) {
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) output(segment(`na(${space},'${escapeJSStr(node.name.text)}'`, node), segment(')'));
+	if (node.name) outseg(`na(${space},'${escapeJSStr(node.name.text)}')`, node, true);
 	else output(space);
     }
 
@@ -255,11 +258,11 @@ export function mappingGenerator (segments, loc = {}) {
     let nextSrc = 0, genCol = 0, genLine = 0, genSeg = 0;
     let lastGenCol = 0, lastGenLine = 0;
     let lastSrcCol = 0, lastSrcLine = 0, lastSrcNum = 0;
-    let didOne = false;
+    let didSingle = false, pending = false;
     const sources = {}, mappings = [];
 
-    // Advance input position based on input
-    function adv (str) {
+    // Advance output position
+    function advGen (str) {
 	str.split(/([\r\n\t])/).forEach(part => {
 	    switch (part) {
 	    case '\r': genCol = 0; break;
@@ -270,12 +273,17 @@ export function mappingGenerator (segments, loc = {}) {
 	});
     }
 
+    // Advance map position and (maybe) generate entry
     function advMap (seg) {
 	const sloc = seg.src;
-	if (didOne && !sloc) {
-	    seg.mapped = false;
+	// Avoid consecutive entries for unmapped code
+	if (didSingle && !sloc) return;
+	if (!sloc && seg.gen === '') {
+	    // See what's next before committing
+	    pending = true;
 	    return;
 	}
+	pending = false;
 	if (genLine !== lastGenLine) {
 	    mappings.push(';'.repeat(genLine - lastGenLine));
 	    genSeg = lastGenCol = 0;
@@ -287,16 +295,19 @@ export function mappingGenerator (segments, loc = {}) {
 	    const srcNum = sources[sloc.src];
 	    mappings.push(vlqe(srcNum - lastSrcNum), vlqe(sloc.line - lastSrcLine), vlqe(sloc.col - lastSrcCol));
 	    [ lastSrcNum, lastSrcCol, lastSrcLine ] = [ srcNum, sloc.col, sloc.line ];
-	    didOne = false;
-	} else didOne = true;
+	    didSingle = false;
+	} else didSingle = true;
 	[ lastGenLine, lastGenCol ] = [ genLine, genCol ];
+	if (seg.pdg) pending = true;
     }
 
     for (const seg of segments) {
-	if (typeof seg === 'string') adv(seg);
-	else {
+	if (typeof seg === 'string') {
+	    if (pending) advMap({ gen: seg });
+	    advGen(seg);
+	} else {
 	    advMap(seg);
-	    adv(seg.gen);
+	    advGen(seg.gen);
 	}
     }
 
