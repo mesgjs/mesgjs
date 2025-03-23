@@ -307,16 +307,17 @@ export const {
 	const d = function sclModule (op) {
 	    ({ op } = canMesgProps({ rr: d, op }));
 	    switch (op) {
-	    case 'op': return 'load';
+	    case 'op': return 'import';
 	    case 'self': return d;
 	    case 'selfType': return '@module';
+	    case 'senderType': return '@core';
 	    }
 	    // Silently ignore other messages (?)
 	};
 	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = (rr, op, mp) => sendMessage({ sr: d, st: '@module', rr, op, mp });
 	setRO(d, {
-	    sr: $u, st: $u, rr: d, rt: '@module', sclType: '@module',
-	    octx: $u, op: 'load', mp: $u, ps: $u, ts: $u,
+	    sr: $u, st: '@core', rr: d, rt: '@module', sclType: '@module',
+	    octx: $u, op: 'import', mp: $u, ps: $u, ts: $u,
 	    b, sm,
 	});
 	return { d,

@@ -1,6 +1,6 @@
 <!doctype html><html><head>
 <style>
-textarea { width: 95%; min-height: 100px; }
+textarea { width: 95%; resize: vertical; min-height: 100px; }
 </style>
 <script type='importmap'>
 {
@@ -10,15 +10,17 @@ textarea { width: 95%; min-height: 100px; }
 }
 </script>
 </head><body>
-<h2>Input</h2>
+<h2>SysCL</h2>
 <textarea id='inputArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br>
 <input type='button' value='Transpile' id='execBtn'>
 <h2>Errors</h2>
 <textarea id='errors' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-<h2>Code</h2>
+<h2>JavaScript</h2>
 <textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<h2>Source Map</h2>
+<textarea id='mapArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <script type='module'>
-import { transpile } from 'syscl/transpile.esm.js';
+import { transpile, mappingGenerator } from 'syscl/transpile.esm.js';
 function transpileNow () {
     const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true });
     const errs = [];
@@ -26,6 +28,10 @@ function transpileNow () {
     if (tr.fatal) errs.push("FATAL: " + tr.fatal);
     errs.push(...tr.errors);
     errors.value = errs.join("\n");
+    if (tr.segments) {
+	globalThis.sysclSegments = tr.segments;
+	mapArea.value = JSON.stringify(mappingGenerator(tr.segments));
+    }
 }
 execBtn.addEventListener('click', transpileNow);
 </script>

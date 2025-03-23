@@ -5,6 +5,7 @@
  */
 
 import { lex, parse } from 'syscl/lexparse.esm.js';
+import { encode as vlqe } from 'syscl/vlq.esm.js';
 
 // Generate string escapes for JavaScript
 export function escapeJSStr (s) {
@@ -26,6 +27,14 @@ export function escapeJSStr (s) {
     });
 }
 
+class Segment {
+    constructor (gen, src) {
+	[this.gen, this.src] = [gen, src?.loc || src];
+    }
+    toString () { return this.gen; }
+}
+const segment = (gen, src) => new Segment(gen, src);
+
 // Split raw text input into tokens, parse, and transpile
 export function transpile (input, opts = {}) {
     const loc = opts.location || {};
@@ -45,12 +54,9 @@ export function transpileTree (tree, opts = {}) {
 	    errors.push(message);
 	},
 	output = (...c) => outBuf.push(...c),
-	pushOut = () => { outStack.push(outBuf); outBuf = []; },
-	popOut = () => {
-	    const out = outBuf.join('');
-	    outBuf = outStack.pop();
-	    return out;
-	},
+	outseg = (g, f) => output(segment(g, f)),
+	pushOut = () => outStack.push(outBuf.length),
+	popOut = () => outBuf.splice(outStack.pop()),
 	tls = token => tokenLocStr(token);
 
     /*
@@ -108,14 +114,17 @@ export function transpileTree (tree, opts = {}) {
 	    switch (base.type === 'wrd' && base.text) {
 	    case '@c': output('$c'); break;	// core
 	    case '@d': output('d'); break;	// dispatch object
+	    case '@mps':			// module persistent storage
+		usedMods = true; output('mps'); break;
 	    default: return false;
 	    }
 	    return true;
 	}
-	output('sm('.repeat(msgs.length));
+	msgs.forEach(m => outseg('sm(', m));
 	if (!specialBase(base)) generate(base);
 	msgs.forEach(m => { output(','); generateMessage(m); output(')'); });
-	if (node.isStmt) output(aws ? ';\n' : ';');
+	if (node.isStmt) outseg(aws ? ';\n' : ';');
+	else outseg('');
     }
 
     const generateBlock = node => generateCode(node, 'block');
@@ -138,6 +147,7 @@ export function transpileTree (tree, opts = {}) {
 	    output(aws ? ';\n}}' : ';}}');
 	    break;
 	}
+	if (blockNum) blocks[blockNum - 1].push(',');
 	blocks[blockNum] = popOut();
 
 	// Generate in-band code content
@@ -146,23 +156,23 @@ export function transpileTree (tree, opts = {}) {
 
     function generateFinalOutput () {
 	if (blocks.length) {
-	    outBuf.splice(blocksIP, 0, 'const c=[', blocks.join(','), '];');
+	    outBuf.splice(blocksIP, 0, 'const c=[', ...blocks.flat(1), '];');
 	    blocks.length = 0;
 	}
 	if (usedMods) outBuf.unshift('const mps=ls();');
-	outBuf.unshift(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`);
+	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`));
     }
 
     function generateJS (node) {
 	if (opts.enableJS) {
-	    output(node.text);
+	    outseg(node.text, node);
 	    if (!nextBlock) blocksIP = outBuf.length;
 	}
 	else error(`Error: JavaScript is not enabled at ${tls(node)}`);
     }
 
     function generateList (node) {
-	output('ls([');
+	outseg('ls([', node);
 	node.items.forEach(i => {
 	    if (i.type === '=') {
 		generate(i.name); output(',');
@@ -176,7 +186,7 @@ export function transpileTree (tree, opts = {}) {
 		output(',');
 	    }
 	});
-	output('])');
+	outseg('])');
     }
 
     function generateMessage (node) {
@@ -188,7 +198,7 @@ export function transpileTree (tree, opts = {}) {
     }
 
     function generateNumber (node) {
-	output(node.text);
+	outseg(node.text, node);
     }
 
     function generateText (node) {
@@ -204,15 +214,13 @@ export function transpileTree (tree, opts = {}) {
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) output(`na(${space},'${escapeJSStr(node.name.text)}')`);
+	if (node.name) output(segment(`na(${space},'${escapeJSStr(node.name.text)}'`, node), segment(')'));
 	else output(space);
     }
 
     function generateWord (node) {
 	switch (node.text) {
 	case '@f': output('$f'); break;		// false
-	case '@mps':				// module persistent storage
-	    usedMods = true; output('mps'); break;
 	case '@n': output('$n'); break;		// null
 	case '@t': output('$t'); break;		// true
 	case '@u': output('$u'); break;		// undefined
@@ -226,7 +234,7 @@ export function transpileTree (tree, opts = {}) {
 	tree.forEach(node => generate(node));
 	generateFinalOutput();
 	// Normal return (no fatal errors)
-	return { code: outBuf.join(''), errors };
+	return { code: outBuf.join(''), errors, segments: outBuf };
     } catch (e) {
 	const { fileName: file, lineNumber: line, columnNumber: col } = e;
 	let mesg = e.message;
@@ -239,8 +247,63 @@ export function transpileTree (tree, opts = {}) {
 	}
 	generateFinalOutput();
 	// Return partial result on fatal error
-	return { code: outBuf.join(''), errors, fatal: mesg };
+	return { code: outBuf.join(''), errors, fatal: mesg, segments: outBuf };
     }
+}
+
+export function mappingGenerator (segments, loc = {}) {
+    let nextSrc = 0, genCol = 0, genLine = 0, genSeg = 0;
+    let lastGenCol = 0, lastGenLine = 0;
+    let lastSrcCol = 0, lastSrcLine = 0, lastSrcNum = 0;
+    let didOne = false;
+    const sources = {}, mappings = [];
+
+    // Advance input position based on input
+    function adv (str) {
+	str.split(/([\r\n\t])/).forEach(part => {
+	    switch (part) {
+	    case '\r': genCol = 0; break;
+	    case '\n': genCol = 0; ++genLine; break;
+	    case '\t': genCol = (genCol & ~7) + 8; break;
+	    default: genCol += part.length; break;
+	    }
+	});
+    }
+
+    function advMap (seg) {
+	const sloc = seg.src;
+	if (didOne && !sloc) {
+	    seg.mapped = false;
+	    return;
+	}
+	if (genLine !== lastGenLine) {
+	    mappings.push(';'.repeat(genLine - lastGenLine));
+	    genSeg = lastGenCol = 0;
+	}
+	if (genSeg++) mappings.push(',');
+	mappings.push(vlqe(genCol - lastGenCol));
+	if (sloc) {
+	    if (sources[sloc.src] === undefined) sources[sloc.src] = nextSrc++;
+	    const srcNum = sources[sloc.src];
+	    mappings.push(vlqe(srcNum - lastSrcNum), vlqe(sloc.line - lastSrcLine), vlqe(sloc.col - lastSrcCol));
+	    [ lastSrcNum, lastSrcCol, lastSrcLine ] = [ srcNum, sloc.col, sloc.line ];
+	    didOne = false;
+	} else didOne = true;
+	[ lastGenLine, lastGenCol ] = [ genLine, genCol ];
+    }
+
+    for (const seg of segments) {
+	if (typeof seg === 'string') adv(seg);
+	else {
+	    advMap(seg);
+	    adv(seg.gen);
+	}
+    }
+
+    return {
+	sources: Object.assign([], Object.fromEntries(Object.entries(sources).map(e => [e[1], e[0]]))),
+	mappings: mappings.join(''),
+    };
 }
 
 // END
