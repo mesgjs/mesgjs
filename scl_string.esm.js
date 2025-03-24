@@ -10,8 +10,8 @@ import { getInterface, jsToSCL, setRO, typeAccepts } from 'syscl/runtime.esm.js'
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
     const { mp, ps } = d, sep = mp.at('with') ?? '', parts = [ ps ];
-    for (const e of mp.indexEntries()) {
-	const so = jsToSCL(e[1]);
+    for (const v of mp.values()) {
+	const so = jsToSCL(v);
 	if (typeAccepts(so.sclType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(sep);
@@ -21,8 +21,8 @@ function opJoin (d) {
 // ,(joining a b c) // a,b,c
 function opJoining (d) {
     const { mp, ps } = d, parts = [];
-    for (const e of mp.indexEntries()) {
-	const so = jsToSCL(e[1]);
+    for (const v of mp.values()) {
+	const so = jsToSCL(v);
 	if (typeAccepts(so.sclType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(ps);

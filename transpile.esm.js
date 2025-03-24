@@ -150,8 +150,8 @@ export function transpileTree (tree, opts = {}) {
 	    output(aws ? ';\n}}' : ';}}');
 	    break;
 	}
-	if (blockNum) blocks[blockNum - 1].push(',');
 	blocks[blockNum] = popOut();
+	if (blockNum) blocks[blockNum].unshift(',');
 
 	// Generate in-band code content
 	output(`b(c[${blockNum}])`);
@@ -209,6 +209,7 @@ export function transpileTree (tree, opts = {}) {
     }
 
     function generateVar (node) {
+	const opt = node.isOpt ? ',1' : '';
 	let space;
 	switch (node.space) {
 	case '!': space = 'mp'; break;	// Mespar (message parameters)
@@ -217,7 +218,7 @@ export function transpileTree (tree, opts = {}) {
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) outseg(`na(${space},'${escapeJSStr(node.name.text)}')`, node, true);
+	if (node.name) outseg(`na(${space},'${escapeJSStr(node.name.text)}'${opt})`, node, true);
 	else output(space);
     }
 
@@ -225,6 +226,9 @@ export function transpileTree (tree, opts = {}) {
 	switch (node.text) {
 	case '@f': output('$f'); break;		// false
 	case '@n': output('$n'); break;		// null
+	case '@nan': output('NaN'); break;	// NaN (not a number)
+	case '@neginf': output('-Infinity'); break;
+	case '@posinf': output('Infinity'); break;
 	case '@t': output('$t'); break;		// true
 	case '@u': output('$u'); break;		// undefined
 	default: generateText(node); break;

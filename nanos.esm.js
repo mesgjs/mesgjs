@@ -17,12 +17,9 @@ export class NANOS {
     }
 
     // Get value at key or index (negative index relative to end)
-    at (key) {
-	if (/^-[1-9]\d*$/.test(key)) {
-	    key = parseInt(key) + this.#next;
-	    if (key < 0) return undefined;
-	}
-	return this.#storage[key];
+    at (key, defVal) {
+	key = this.#wrapKey(key);
+	return Object.hasOwn(this.#storage, key) ? this.#storage[key] : defVal;
     }
 
     clear () {
@@ -100,7 +97,7 @@ export class NANOS {
     }
 
     // Instead of "key in NANOS"
-    has (key) { return Object.hasOwn(this.#storage, key); }
+    has (key) { return Object.hasOwn(this.#storage, this.#wrapKey(key)); }
 
     includes (value) { return this.keyOf(value) !== undefined; }
 
@@ -267,6 +264,14 @@ export class NANOS {
     // Return a (non-sparse) iterator of *indexed* values [0..#next-1]
     *values () {
 	for (let i = 0; i < this.#next; ++i) yield this.at(i);
+    }
+
+    #wrapKey (key) {
+	if (/^-[1-9]\d*$/.test(key)) {
+	    key = parseInt(key) + this.#next;
+	    if (key < 0) return;
+	}
+	return key;
     }
 }
 

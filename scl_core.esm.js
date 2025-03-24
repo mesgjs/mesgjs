@@ -10,8 +10,8 @@ import { logInterfaces, getInstance, getInterface, isIndex, jsToSCL, runIfCode, 
 function opAnd (d) {
     const { mp } = d;
     let result = true;
-    for (const e of mp.indexEntries()) {
-	result = runIfCode(e[1]);
+    for (const v of mp.values()) {
+	result = runIfCode(v);
 	if (!result) return false;
     }
     return result;
@@ -45,8 +45,8 @@ function opImport (d) {
 // Or: first true result, else false
 function opOr (d) {
     const { mp } = d;
-    for (const e of mp.indexEntries()) {
-	const r = runIfCode(e[1]);
+    for (const v of mp.values()) {
+	const r = runIfCode(v);
 	if (r) return r;
     }
     return false;
@@ -55,7 +55,7 @@ function opOr (d) {
 function opRun (d) {
     const { mp } = d;
     let result;
-    for (const e of mp.indexEntries()) result = runIfCode(e[1]);
+    for (const e of mp.values()) result = runIfCode(v);
     return result;
 }
 

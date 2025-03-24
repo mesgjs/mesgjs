@@ -14,23 +14,27 @@ import 'syscl/shim.esm.js';
 
 // Foundational-class installers
 import { installBoolean } from 'syscl/scl_boolean.esm.js';
+import { installCodeIter } from 'syscl/scl_code_iter.esm.js';
 import { installCore } from 'syscl/scl_core.esm.js';
 import { installJSArray } from 'syscl/js_array.esm.js';
 import { installList } from 'syscl/scl_list.esm.js';
 import { installNull } from 'syscl/scl_null.esm.js';
 import { installNumber } from 'syscl/scl_number.esm.js';
 import { installString } from 'syscl/scl_string.esm.js';
+import { installTry } from 'syscl/scl_try.esm.js';
 import { installUndefined } from 'syscl/scl_undefined.esm.js';
 
 // Main runtime initializers (after first init in protected zone)
 const mainInit = [
     installCore,	// ** Core FIRST **
     installBoolean,
+    installCodeIter,
     installJSArray,
     installList,
     installNumber,
     installNull,
     installString,
+    installTry,
     installUndefined,
 ];
 
@@ -45,7 +49,10 @@ export class SCLFlow extends Error {
 
 
 export const listFromPairs = pa => new NANOS().fromPairs(pa);
-export const namespaceAt = (namespace, key) => namespace?.at ? namespace.at(key) : undefined;
+export function namespaceAt  (namespace, key, opt) {
+    if (namespace && namespace.has(key)) return namespace.at(key);
+    if (!opt) throw new ReferenceError(`Required key "${key}" not found`);
+}
 export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
 
 // Set a read-only object property or properties
@@ -132,7 +139,7 @@ export const {
 
 	if (!handler) {
 	    if (hasOwn(d1, 'else')) return runIfCode(d1.else);
-	    throw new Error(`No SysCL handler found for "${rt}(${op})"`);
+	    throw new TypeError(`No SysCL handler found for "${rt}(${op})"`);
 	}
 
 	// Send-message function (shared across all dispatches)
@@ -168,7 +175,7 @@ export const {
 		case 'op': return disp.op;
 		case 'return':
 		    capture = true;
-		    throw new SCLFlow('Return', 'return', { value: mp?.at ? mp.at(0) : undefined });
+		    throw new SCLFlow('@dispatch', 'return', { value: mp?.at ? mp.at(0) : undefined });
 		    // Not reached
 		case 'self': return disp.rr;
 		case 'selfType': return disp.rt;
@@ -243,7 +250,7 @@ export const {
      */
     function getInstance (type, ...params) {
 	const ix = interfaces[type];
-	if (!ix) throw new Error(`Cannot get instance for unknown SysCL interface "${type}"`);
+	if (!ix) throw new TypeError(`Cannot get instance for unknown SysCL interface "${type}"`);
 	if (ix.instance) return ix.instance;
 	const octx = Object.create(null), pi = function sclObject (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
 	setRO(pi, 'sclType', type);
@@ -348,13 +355,13 @@ export const {
 	    }
 	    case 'code':		// Lock to code block
 		if (!lock) lock = 'code';
-		return code;
+		return code;		// NB: the object, not the JS function
 	    case getCode:
-		codeBaton = { code: cd };
+		codeBaton = { code: cd }; // JS function for interface
 		break;
 	    case 'function':		// Lock to function
 		if (!lock) [ lock, od ] = [ 'function', undefined ];
-		return code;
+		return code;		// NB: the object, not the JS function
 	    // Run in original dispatch context
 	    case 'run': return (od ? cd(od) : undefined);
 	    }
@@ -422,21 +429,21 @@ export const {
      *   via the interface object, not through the core)
      */
     function setInterface (name, mp, isFirst) {
-	if (name[0] === '@' && initPhase !== 1) throw new Error(`Cannot configure SysCL interface "${name}" after runtime initialization`);
+	if (name[0] === '@' && initPhase !== 1) throw new TypeError(`Cannot configure SysCL interface "${name}" after runtime initialization`);
 	const ix = interfaces[name];
 	if (mp instanceof NANOS) mp = mp.storage;
-	if ((mp.once && !isFirst) || (mp.pristine && !ix.pristine)) throw new Error(`SysCL interface "${name}" is not pristine`);
+	if ((mp.once && !isFirst) || (mp.pristine && !ix.pristine)) throw new TypeError(`SysCL interface "${name}" is not pristine`);
 	ix.pristine = false;
-	if (ix.locked) throw new Error(`Cannot change locked SysCL interface "${name}"`);
+	if (ix.locked) throw new TypeError(`Cannot change locked SysCL interface "${name}"`);
 
 	// Set the interface chain. Refd guarantees an acyclic graph.
 	if (mp.chain) {
-	    if (ix.chain.size) throw new Error(`Cannot change chain for SysCL interface "${name}"`);
-	    if (ix.refd) throw new Error(`Cannot set chain for active SysCL interface "${name}"`);
+	    if (ix.chain.size) throw new TypeError(`Cannot change chain for SysCL interface "${name}"`);
+	    if (ix.refd) throw new TypeError(`Cannot set chain for active SysCL interface "${name}"`);
 	    const chain = new Set(Object.values(mp.chain.storage || mp.chain || []));
 	    for (const item of chain) {
-		if (!interfaces[item]) throw new Error(`SysCL interface "${name}" references unknown interface "${item}"`);
-		if (interfaces[item].final) throw new Error(`SysCL interface "${name}" tries to extend final interface "${item}"`);
+		if (!interfaces[item]) throw new ReferenceError(`SysCL interface "${name}" references unknown interface "${item}"`);
+		if (interfaces[item].final) throw new TypeError(`SysCL interface "${name}" tries to extend final interface "${item}"`);
 		interfaces[item].refd = true;
 	    }
 	    ix.chain = chain;

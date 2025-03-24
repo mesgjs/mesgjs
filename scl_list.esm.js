@@ -52,6 +52,7 @@ export function installList () {
 	handlers: {
 	    at: opAt,
 	    clear: d => d.ps.clear(),
+	    copy: d => new NANOS().fromPairs(d.ps.pairs()),
 	    entries: d => [...d.ps.entries()],
 	    has: d => d.ps.has(d.mp.at(0)),
 	    includes: d => d.ps.includes(d.mp.at(0)),
@@ -62,6 +63,7 @@ export function installList () {
 	    nset: opNset,
 	    pairs: d => d.ps.pairs(d.mp.at(0)),
 	    pop: d => d.ps.pop(),
+	    self: d => d.ps,
 	    set: opSet,
 	    shift: d => d.ps.shift(),
 	    size: d => d.ps.size,

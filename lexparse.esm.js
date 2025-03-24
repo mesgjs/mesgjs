@@ -13,7 +13,7 @@ const lexPats = {
     num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
-    stok: '[!%#&[(={})\\]]',	// Special tokens
+    stok: '[!%#]\\??|[&[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
     oth: '[^\'"!%#&[(={})\\]\\s]+',// Other
 };
@@ -53,8 +53,11 @@ export function lex (input, loc = {}) {
 	    case '/':
 		return false;		// Comments
 	    case '!':			// Mespar (message parameters)
+	    case '!?':
 	    case '%':			// Persto (persistent storage)
+	    case '%?':
 	    case '#':			// Scratch (transient storage)
+	    case '#?':
 	    case '&':			// Defer
 	    case '{':			// Block
 	    case '}':
@@ -279,13 +282,13 @@ export function parse (tokens) {
 
     function parseVar (reqName = false) {
 	// % / %name / # / #name / ! / !name
-	const ns = tokens[read], space = ns?.type;
+	const ns = tokens[read], space = ns?.type?.[0], isOpt = ns?.type?.[1] === '?';
 	if ('!#%'.indexOf(space) < 0) return null;
 	const name = tokens[++read], nType = name?.type;
 	if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.staticValue))) {
 	    ++read;
 	    return {
-		type: 'var', space, name,
+		type: 'var', space, name, isOpt,
 		staticName: name.staticValue, loc: ns.loc
 	    };
 	}

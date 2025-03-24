@@ -31,6 +31,9 @@ function transpileNow () {
     if (tr.segments) {
 	globalThis.sysclSegments = tr.segments;
 	mapArea.value = JSON.stringify(mappingGenerator(tr.segments));
+    } else {
+	globalThis.sysclSegments = [];
+	mapArea.value = '';
     }
 }
 execBtn.addEventListener('click', transpileNow);
