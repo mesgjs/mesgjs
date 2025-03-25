@@ -72,8 +72,9 @@ export class NANOS {
     }
 
     // [ [ key1, value1 ], ... [ keyN, valueN ] ]
-    fromEntries (entries) {
-	for (let i = 0; i < end; ++i) this.set(entries[i][0], entries[i][1]);
+    fromEntries (entries, insert = false) {
+	if (insert) for (const e of [...entries].reverse()) this.set(e[0], e[1], true);
+	else for (const e of entries) this.set(e[0], e[1]);
 	return this;
     }
 
@@ -138,17 +139,25 @@ export class NANOS {
     }
 
     /*
-     * Pushing an array appends the values, preserving any gaps in between.
-     * Pushing an object adds the keys and values.
-     * Push [ array ] or [ object ] to add the actual array or object.
+     * When pushing an object (array, NANOS, object), named keys are set
+     * directly and index keys are appended as an offset from #next
+     * (therefore preserving any gaps).
+     * Push [ object ] to add the actual object itself.
      */
     push (...items) {
 	items.forEach(value => {
-	    if (Array.isArray(value)) {
-		let base = this.#next;
-		for (const k of Object.keys(value)) if (isIndex(k)) this.set(base + parseInt(k), value[k]);
-	    } else if (typeof value === 'object') for (const k of Object.keys(value)) this.set(key, value[key]);
-	    else this.set(this.#next, value);
+	    const base = this.#next;
+	    if (value instanceof NANOS) {
+		for (const e of value.entries()) {
+		    if (isIndex(e[0])) this.set(base + parseInt(e[0]), e[1]);
+		    else this.set(e[0], e[1]);
+		}
+	    } else if (typeof value === 'object') {
+		for (const k of Object.keys(value)) {
+		    if (isIndex(k)) this.set(base + parseInt(k), value[k]);
+		    else this.set(k, value[k]);
+		}
+	    } else this.set(this.#next, value);
 	});
 	return this;
     }
@@ -242,21 +251,33 @@ export class NANOS {
     toString (sep = ',') {
 	const tos = v => (v instanceof NANOS) ? v.toString(sep) : (v?.toString() ?? { null: 'null', undefined: 'undefined' }[v]);
 	const s = this.#storage, parts = [];
+	let nextInd = 0;
 	for (const k of this.#keys) {
-	    if (isIndex(k)) parts.push(tos(s[k]));
+	    if (isIndex(k)) {
+		const ik = parseInt(k);
+		if (ik === nextInd) parts.push(tos(s[k]));
+		else parts.push(k + '=' + tos(s[k]));
+		nextInd = ik + 1;
+	    }
 	    else parts.push(k + '=' + tos(s[k]));
 	}
 	return 'N[' + parts.join(sep) + ']';
     }
 
-    // See push re: handling of items
+    /*
+     * Unshift works like push, except that indexed values are offset-from-0
+     * inserted instead (therefore preserving any gaps).
+     */
     unshift (...items) {
 	items.toReversed().forEach(value => {
-	    if (Array.isArray(value)) {
-		this.#renumber(0, this.#next, value.length);
-		for (const k of Object.keys(value).reverse()) if (isIndex(k)) this.set(k, value[k], true);
-	    } else if (typeof value === 'object') for (const k of Object.keys(value).reverse()) this.set(k, value[k], true);
-	    else this.unshift([value]);
+	    if (value instanceof NANOS) {
+		this.#renumber(0, this.#next, value.next);
+		this.fromEntries(value.entries(), true);
+	    } else if (typeof value === 'object') {
+		const next = Array.isArray(value) ? value.length : Object.keys(value).filter(k => isIndex(k)).reduce((acc, cur) => Math.max(acc, cur), -1) + 1;
+		this.#renumber(0, this.#next, next);
+		this.fromEntries(Object.entries(value), true);
+	    } else this.unshift([value]);
 	});
 	return this;
     }

@@ -32,13 +32,21 @@ export function installString () {
     getInterface('@string').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    eq: d => d.ps === d.mp.at(0),
+	    ge: d => d.ps >= d.mp.at(0),
+	    gt: d => d.ps > d.mp.at(0),
 	    join: opJoin,
 	    joining: opJoining,
+	    le: d => d.ps <= d.mp.at(0),
 	    length: d => d.ps.length,
+	    lt: d => d.ps < d.mp.at(0),
+	    ne: d => d.ps !== d.mp.at(0),
+	    toLower: d => d.ps.toLowerCase(),
 	    toString: d => d.ps,
+	    toUpper: d => d.ps.toUpperCase(),
 	    valueOf: d => d.ps,
 	},
-	init: (octx, pi, str) => setRO(octx, 'ps', str),
+	init: (octx, _pi, str) => setRO(octx, 'ps', str),
     });
 }
 

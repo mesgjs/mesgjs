@@ -8,8 +8,8 @@
  * Defining interfaces and dispatching handlers in response to messages
  */
 import { NANOS, isIndex } from 'syscl/nanos.esm.js';
-export { NANOS, isIndex };
 import { unifiedList } from 'syscl/unified_list.esm.js';
+export { NANOS, isIndex, unifiedList };
 import 'syscl/shim.esm.js';
 
 // Foundational-class installers
@@ -18,6 +18,7 @@ import { installCodeIter } from 'syscl/scl_code_iter.esm.js';
 import { installCore } from 'syscl/scl_core.esm.js';
 import { installJSArray } from 'syscl/js_array.esm.js';
 import { installList } from 'syscl/scl_list.esm.js';
+import { installListIter } from 'syscl/scl_list_iter.esm.js';
 import { installNull } from 'syscl/scl_null.esm.js';
 import { installNumber } from 'syscl/scl_number.esm.js';
 import { installString } from 'syscl/scl_string.esm.js';
@@ -31,6 +32,7 @@ const mainInit = [
     installCodeIter,
     installJSArray,
     installList,
+    installListIter,
     installNumber,
     installNull,
     installString,
@@ -38,19 +40,20 @@ const mainInit = [
     installUndefined,
 ];
 
+// Flow exception, e.g. @d(return value) throws SCLFlow('return', value)
 export class SCLFlow extends Error {
-    constructor (message, type, info) {
+    constructor (message, info) {
 	super(message);
-	this.name = 'SCLFlow';
-	this.type = type;
-	this.info = info;
+	if (info !== undefined) this.info = info;
     }
+
+    get name () { return 'SCLFlow'; }
 }
 
 
 export const listFromPairs = pa => new NANOS().fromPairs(pa);
 export function namespaceAt  (namespace, key, opt) {
-    if (namespace && namespace.has(key)) return namespace.at(key);
+    if (namespace?.has && namespace.has(key)) return namespace.at(key);
     if (!opt) throw new ReferenceError(`Required key "${key}" not found`);
 }
 export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
@@ -175,7 +178,7 @@ export const {
 		case 'op': return disp.op;
 		case 'return':
 		    capture = true;
-		    throw new SCLFlow('@dispatch', 'return', { value: mp?.at ? mp.at(0) : undefined });
+		    throw new SCLFlow('return', mp.at(0));
 		    // Not reached
 		case 'self': return disp.rr;
 		case 'selfType': return disp.rt;
@@ -198,7 +201,7 @@ export const {
 	    catch (e) {
 		if (capture && e instanceof SCLFlow) {
 		    capture = false;
-		    return e.info.value;
+		    return e.info;
 		}
 		throw e;
 	    }

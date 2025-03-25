@@ -6,7 +6,6 @@
 
 import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-import { isIndex } from 'syscl/nanos.esm.js';
 
 function opAdd (d) {
     const { ps, mp } = d;
@@ -16,6 +15,15 @@ function opAdd (d) {
 function opDiv (d) {
     const { ps, mp } = d;
     return [...mp.values()].reduce((a, b) => a / b, ps);
+}
+
+// Is number in the interval defined by the ge, gt, le, lt keys?
+function opInter (d) {
+    const { ps, mp } = d;
+    return (((mp.has('ge') && ps < mp.at('ge')) ||
+      (mp.has('gt') && ps <= mp.at('gt')) ||
+      (mp.has('le') && ps > mp.at('le')) ||
+      (mp.has('lt') && ps >= mp.at('lt'))) ? false : true);
 }
 
 function opMod (d) {
@@ -44,20 +52,27 @@ export function installNumber () {
 	handlers: {
 	    add: opAdd,
 	    div: opDiv,
+	    eq: d => d.ps === d.mp.at(0),
+	    ge: d => d.ps >= d.mp.at(0),
+	    gt: d => d.ps > d.mp.at(0),
+	    inter: opInter,
 	    isNan: d => d.ps !== d.ps,
 	    isNegInf: d => d.ps === -Infinity,
 	    isNegZero: d => d.ps === 0 && (1 / d.ps) === -Infinity,
 	    isPosInf: d => d.ps === Infinity,
 	    isPosZero: d => d.ps === 0 && (1 / d.ps) === Infinity,
+	    le: d => d.ps <= d.mp.at(0),
+	    lt: d => d.ps < d.mp.at(0),
 	    mod: opMod,
 	    mul: opMul,
+	    ne: d => d.ps !== d.mp.at(0),
 	    neg: d => -d.ps,
 	    pow: opPow,
 	    sub: opSub,
-	    toString: d => d.ps.toString(),
+	    toString: d => d.ps.toString(d.mp.at(0)),
 	    valueOf: d => d.ps,
 	},
-	init: (octx, pi, num) => setRO(octx, 'ps', num),
+	init: (octx, _pi, num) => setRO(octx, 'ps', num),
     });
 }
 

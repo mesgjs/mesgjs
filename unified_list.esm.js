@@ -74,7 +74,7 @@ class ObjectProxy extends Proxy {
 const emptyList = new ArrayProxy([]);
 
 export function unifiedList (list, promote) {
-    if (list instanceof NANOS) return list;
+    for (const type of [NANOS, ArrayProxy, ObjectProxy]) if (list instanceof type) return list;
     if (Array.isArray(list)) return new ArrayProxy(list);
     if (typeof list === 'object' && list !== null) return new ObjectProxy(list);
     if (!promote) return list;

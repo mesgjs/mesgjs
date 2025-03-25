@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { logInterfaces, getInstance, getInterface, isIndex, jsToSCL, runIfCode, setRO, typeAccepts } from 'syscl/runtime.esm.js';
+import { logInterfaces, getInstance, getInterface, jsToSCL, runIfCode, setRO, typeAccepts } from 'syscl/runtime.esm.js';
 
 // And: false if any not true, else last true result (default true)
 function opAnd (d) {
@@ -17,9 +17,12 @@ function opAnd (d) {
     return result;
 }
 
+// (case val cmp1 res1 ... cmpN resN else=default)
 function opCase (d) {
-    const { mp } = d;
-    // Need to define equality testing
+    const { mp } = d, val = mp.at(0), type = val?.sclType, stop = mp.next - 1;
+    const op = typeAccepts(type, 'caseEq') ? 'caseEq' : typeAccepts(type, 'eq') ? 'eq' : undefined, eq = op ? (to => val(op, to)) : (to => val === to);
+    for (let i = 1; i < stop; i += 2) if (eq(runIfCode(mp.at(i)))) return runIfCode(mp.at(i + 1));
+    return runIfCode(mp.at('else'));
 }
 
 function opGet (d) {
@@ -39,8 +42,8 @@ function opIf (d) {
     if (mp.next % 2) return runIfCode(mp.at(end));
 }
 
-function opImport (d) {
-}
+// function opImport (d) {
+// }
 
 // Or: first true result, else false
 function opOr (d) {
@@ -53,9 +56,10 @@ function opOr (d) {
 }
 
 function opRun (d) {
-    const { mp } = d;
-    let result;
-    for (const e of mp.values()) result = runIfCode(v);
+    const { mp } = d, collect = mp.at('collect');
+    let result = collect ? new NANOS() : undefined;
+    const save = v => { if (collect) result.push(v); else result = v; };
+    for (const v of mp.values()) save(runIfCode(v));
     return result;
 }
 
@@ -63,19 +67,19 @@ export function installCore () {
     getInterface('@core').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
-	    _: d => d.mp.at(0),
+	    _: d => d.mp.at(0),	// underscore, AKA "basically parentheses"
 	    and: opAnd,
-	    // case: opCase,
+	    case: opCase,
 	    if: opIf,
 	    // import: opImport,
-	    get: opGet,
+	    get: opGet,		// Get instance
 	    interface: d => getInterface(d.mp.at(0)),
 	    log: d => console.log(...d.mp.values()),
+	    // logDispatch: d => console.log(d),
 	    logInterfaces,
 	    not: d => !d.mp.at(0),
 	    or: opOr,
 	    run: opRun,
-	    // testDispatch: d => console.log(d),
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	},
