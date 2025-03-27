@@ -137,9 +137,9 @@ export function transpileTree (tree, opts = {}) {
 	pushOut();
 	// Code template will be assigned a global block id at first binding
 	output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
-	const count = node.statements.length, last = count - 1;
+	const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
 	for (let i = 0; i < count; ++i) {
-	    if (i === last) output('return ');
+	    if (i === rtn) output('return ');
 	    generate(node.statements[i]);
 	}
 	output('}}');

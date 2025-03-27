@@ -13,7 +13,7 @@ const lexPats = {
     num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
-    stok: '[!%#]\\??|[&[(={})\\]]',	// Special tokens
+    stok: '!}|[!%#]\\??|[&[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
     oth: '[^\'"!%#&[(={})\\]\\s]+',// Other
 };
@@ -41,7 +41,7 @@ export function lex (input, loc = {}) {
 	    const loc = { col, line, src };
 	    adv(text);
 
-	    switch (text[0]) {
+	    switch (text[0]) {		// Check *FIRST CHAR* of token
 	    case undefined:
 		return false;
 	    case "'": // Text literal
@@ -53,11 +53,10 @@ export function lex (input, loc = {}) {
 	    case '/':
 		return false;		// Comments
 	    case '!':			// Mespar (message parameters)
-	    case '!?':
+		if (text === '!}') return { type: '}', loc, return: true };
+		// Fall through
 	    case '%':			// Persto (persistent storage)
-	    case '%?':
 	    case '#':			// Scratch (transient storage)
-	    case '#?':
 	    case '{':			// Block
 	    case '}':
 	    case '(':			// Message call
@@ -120,6 +119,7 @@ export function parse (tokens) {
 	for (let cur; cur = tokens[read]; ) {
 	    if (cur.type === '}') {
 		++read; --blkDep;
+		if (cur.return) node.return = true;
 		return save(read0, node);
 	    }
 	    if ((msgDep && cur.type === ')') || (lstDep && cur.type === ']')) break;

@@ -288,6 +288,7 @@ export const {
 	};
 	if (ix?.once) return;
 	const sif = function sclInterface (op, mp) {
+	    let hasElse, elseExpr;
 	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: sif, op, mp }));
 	    switch (op) {
 	    case 'instance': return getInstance(name, mp);
