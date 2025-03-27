@@ -58,7 +58,6 @@ export function lex (input, loc = {}) {
 	    case '%?':
 	    case '#':			// Scratch (transient storage)
 	    case '#?':
-	    case '&':			// Defer
 	    case '{':			// Block
 	    case '}':
 	    case '(':			// Message call
@@ -136,30 +135,16 @@ export function parse (tokens) {
 	return save(read0, node);
     }
 
-    function parseChain (isStmt = false) {
+    function parseChain () {
 	// base ( message-and-optional-params ) ...
 	const hit = lookup('chn');
 	if (hit) return hit;
 	const read0 = read, base = parseVar() || parseLiteral();
 	if (!base) return null;
-	const messages = [], node = { type: 'chn', base, messages, isStmt };
+	const messages = [], node = { type: 'chn', base, messages };
 	for (let message; message = parseMessage(); ) messages.push(message);
 	if (messages.length) return save(read0, node);
 	read = read0;
-	return null;
-    }
-
-    function parseDefer () {
-	// &variable or &chain
-	if (tokens[read]?.type !== '&') return null;
-	const read0 = read++, cur = tokens[read0],
-	    node = { type: '&', loc: cur.loc };
-	const expr = parseChain() || parseVar(true);
-	if (expr) {
-	    node.expr = expr;
-	    return node;
-	}
-	error(`Missing message chain or named variable for defer at ${tls(cur)}`);
 	return null;
     }
 
@@ -273,11 +258,16 @@ export function parse (tokens) {
 	});
     }
 
-    function parseStatement () { return parseJS() || parseChain(true); }
+    function parseStatement () {
+	const js = parseJS();
+	if (js) return js;
+	const node = parseValue();
+	if (node) return { type: 'stm', node };
+    }
 
     function parseValue () {
 	// Chain, literal, or variable
-	return parseDefer() || parseChain() || parseLiteral() || parseVar(true);
+	return parseChain() || parseLiteral() || parseVar(true);
     }
 
     function parseVar (reqName = false) {

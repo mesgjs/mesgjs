@@ -18,11 +18,12 @@ textarea { width: 95%; resize: vertical; min-height: 100px; }
 <h2>JavaScript</h2>
 <textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <h2>Source Map</h2>
+<p><input type='checkbox' id='inlineMap'> Inline source map</p>
 <textarea id='mapArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <script type='module'>
 import { transpile, mappingGenerator } from 'syscl/transpile.esm.js';
 function transpileNow () {
-    const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true });
+    const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true, location: { src: 'unnamed.scl' } });
     const errs = [];
     codeArea.value = tr.code;
     if (tr.fatal) errs.push("FATAL: " + tr.fatal);
@@ -30,7 +31,11 @@ function transpileNow () {
     errors.value = errs.join("\n");
     if (tr.segments) {
 	globalThis.sysclSegments = tr.segments;
-	mapArea.value = JSON.stringify(mappingGenerator(tr.segments));
+	const mapping = mappingGenerator(tr.segments);
+	if (inlineMap.checked) mapping.sourcesContent = [ inputArea.value ];
+	const mapJSON = JSON.stringify(mapping);
+	mapArea.value = mapJSON;
+	if (inlineMap.checked) codeArea.value += "//# sourceMappingURL=data:application/json;base64," + btoa(mapJSON);
     } else {
 	globalThis.sysclSegments = [];
 	mapArea.value = '';

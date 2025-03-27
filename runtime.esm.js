@@ -152,7 +152,10 @@ export const {
 	    let capture = false;
 	    // Each dispatch has its own code bindings
 	    const cache = Object.create(null);
-	    // As part of the messaging pathway, dispatch objects are custom
+	    /*
+	     * As part of the messaging pathway, dispatch objects have custom
+	     * receiver functions.
+	     */
 	    const disp = function sclDispatch () {
 		const { sr, op, mp, elseExpr } = canMesgProps({ rr: disp });
 		// Only accept messages from the original receiver
@@ -280,12 +283,14 @@ export const {
 	};
 	if (ix?.once) return;
 	const sif = function sclInterface (op, mp) {
-	    ({ op, mp } = canMesgProps({ rr: sif, op, mp }));
+	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: sif, op, mp }));
 	    switch (op) {
 	    case 'instance': return getInstance(name, mp);
 	    case 'name': return name;
 	    case 'set': return setInterface(name, mp, isFirst);
 	    }
+	    if (hasElse) return runIfCode(elseExpr);
+	    throw new TypeError(`No SysCL handler found for "@interface(${op})"`);
 	};
 	return setRO(sif, {
 	    forName: name,
@@ -342,32 +347,34 @@ export const {
 
     // Return a new SCL code object given code and a dispatch
     function newSCLCode (cd, od) {
-	// Encapsulate the code with a custom interface function
+	// Encapsulate the code with a custom receiver function
 	let lock;
 	const code = function sclCode (op, mp) {
-	    const mb = mesgBaton;
-	    const { op: cdop } = canMesgProps({ rr: code, op });
+	    const mb = mesgBaton, type = od ? '@code' : '@function';
+	    const { op: cdop, hasElse, elseExpr } = canMesgProps({ rr: code, op });
 	    switch (cdop) {
 	    case 'call':		// Call like a function
 	    {
-		if (lock === 'code') return;
+		if (lock === 'std') return;
 		// Restart the message using a standard dispatch
 		const octx = setRO(Object.create(null), { cd, ps: false });
 		mesgBaton = mb;
-		return receiveMessage({ octx, rr: code, rt: od? '@code' : '@function', op, mp });
+		return receiveMessage({ octx, rr: code, rt: type, op, mp });
 	    }
-	    case 'code':		// Lock to code block
-		if (!lock) lock = 'code';
+	    case 'std':			// Lock to standard code block
+		if (!lock) lock = 'std';
 		return code;		// NB: the object, not the JS function
 	    case getCode:
 		codeBaton = { code: cd }; // JS function for interface
 		break;
-	    case 'function':		// Lock to function
-		if (!lock) [ lock, od ] = [ 'function', undefined ];
+	    case 'fn':			// Lock to function code block
+		if (!lock) [ lock, od ] = [ 'fn', undefined ];
 		return code;		// NB: the object, not the JS function
 	    // Run in original dispatch context
 	    case 'run': return (od ? cd(od) : undefined);
 	    }
+	    if (hasElse) return runIfCode(elseExpr);
+	    throw new TypeError(`No SysCL handler found for "${type}(${cdop})"`);
 	};
 	Object.defineProperty(code, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
 	return code;
@@ -377,7 +384,7 @@ export const {
 	 * Handle the restarted standard-dispatch (call) and stub for the
 	 * custom receiver.
 	 */
-	const call = d => { setRO(d, 'ts', new NANOS()); return d.octx.cd(d); }, stubs = { code: false, function: false, run: false };
+	const call = d => { setRO(d, 'ts', new NANOS()); return d.octx.cd(d); }, stubs = { std: false, fn: false, run: false };
 	getInterface('@code').set({ pristine: true, private: true, lock: true,
 	    /* @code-in-function-mode */ handlers: {
 		call, ...stubs,

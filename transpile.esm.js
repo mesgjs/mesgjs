@@ -81,9 +81,6 @@ export function transpileTree (tree, opts = {}) {
 	case 'chn':	// (Message) chain
 	    generateChain(node);
 	    break;
-	case '&':	// Defer
-	    generateDefer(node);
-	    break;
 	case '[':	// List
 	    generateList(node);
 	    break;
@@ -95,6 +92,10 @@ export function transpileTree (tree, opts = {}) {
 	    break;
 	case 'num':	// Number
 	    generateNumber(node);
+	    break;
+	case 'stm':	// Statement
+	    generate(node.node);
+	    output(aws ? ';\n' : ';');
 	    break;
 	case 'txt':	// Text literal
 	    generateText(node);
@@ -127,29 +128,21 @@ export function transpileTree (tree, opts = {}) {
 	msgs.forEach(m => outseg('sm(', m, true));
 	if (!specialBase(base)) generate(base);
 	msgs.forEach(m => { output(','); generateMessage(m); output(')'); });
-	if (node.isStmt) output(aws ? ';\n' : ';');
     }
 
-    const generateBlock = node => generateCode(node, 'block');
-    const generateDefer = node => generateCode(node, 'defer');
-    function generateCode (node, type) {
+    function generateBlock (node) {
 	const blockNum = nextBlock++;
 
 	// Generate out-of-band (blocks array) content
 	pushOut();
 	// Code template will be assigned a global block id at first binding
 	output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
-	switch (type) {
-	case 'block':
-	    node.statements.forEach(s => generate(s));
-	    output('}}');
-	    break;
-	case 'defer':
-	    output('return ');
-	    generate(node.expr);
-	    output(aws ? ';\n}}' : ';}}');
-	    break;
+	const count = node.statements.length, last = count - 1;
+	for (let i = 0; i < count; ++i) {
+	    if (i === last) output('return ');
+	    generate(node.statements[i]);
 	}
+	output('}}');
 	blocks[blockNum] = popOut();
 	if (blockNum) blocks[blockNum].unshift(',');
 

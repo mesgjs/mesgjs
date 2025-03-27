@@ -18,9 +18,21 @@ export function installJSArray () {
     getInterface('@jsArray').set({
 	final: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
+	    at: d => d.ps.at(d.mp.at(0)),
+	    concat: d => d.ps.concat(...d.mp.values()),
+	    entries: d => [...d.ps.entries()],
+	    flat: d => d.ps.flat(d.mp.at(0)),
 	    length: d => d.ps.length,
 	    pop: d => d.ps.pop(),
+	    push: d => d.ps.push(...d.mp.values()),
+	    reverse: d => d.ps.reverse(),
+	    setLength: d => d.ps.length = d.mp.at(0),
 	    shift: d => d.ps.shift(),
+	    slice: d => d.ps.slice(d.mp.at(0), d.mp.at(1)),
+	    sort: d => d.ps.sort(d.mp.at(0)),
+	    toReversed: d => d.ps.toReversed(),
+	    toSorted: d => d.ps.toSorted(d.mp.at(0)),
+	    unshift: d => d.ps.unshift(...d.mp.values()),
 	},
 	init: (octx, pi, ary) => setRO(octx, 'ps', ary),
     });
