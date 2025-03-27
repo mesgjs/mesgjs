@@ -30,12 +30,12 @@ export function escapeJSStr (s) {
 class Segment {
     constructor (gen, src, pending) {
 	this.gen = gen;
-	if (src) this.src = src?.loc || src;
+	if (src?.loc) this.src = src.loc;
 	if (pending) this.pdg = true;
     }
     toString () { return this.gen; }
 }
-const segment = (gen, src, pending) => new Segment(gen, src, pending);
+const segment = (gen, src, pdg) => new Segment(gen, src, pdg);
 
 // Split raw text input into tokens, parse, and transpile
 export function transpile (input, opts = {}) {
@@ -56,7 +56,7 @@ export function transpileTree (tree, opts = {}) {
 	    errors.push(message);
 	},
 	output = (...c) => outBuf.push(...c),
-	outseg = (g, s, pe) => output(segment(g, s, pe)),
+	outseg = (gen, src, pdg) => output(segment(gen, src, pdg)),
 	pushOut = () => outStack.push(outBuf.length),
 	popOut = () => outBuf.splice(outStack.pop()),
 	tls = token => tokenLocStr(token);

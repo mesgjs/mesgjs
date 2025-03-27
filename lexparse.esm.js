@@ -141,7 +141,7 @@ export function parse (tokens) {
 	if (hit) return hit;
 	const read0 = read, base = parseVar() || parseLiteral();
 	if (!base) return null;
-	const messages = [], node = { type: 'chn', base, messages };
+	const messages = [], node = { type: 'chn', loc: base.loc, base, messages };
 	for (let message; message = parseMessage(); ) messages.push(message);
 	if (messages.length) return save(read0, node);
 	read = read0;
@@ -262,7 +262,7 @@ export function parse (tokens) {
 	const js = parseJS();
 	if (js) return js;
 	const node = parseValue();
-	if (node) return { type: 'stm', node };
+	if (node) return { type: 'stm', loc: node.loc, node };
     }
 
     function parseValue () {
@@ -278,12 +278,12 @@ export function parse (tokens) {
 	if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.staticValue))) {
 	    ++read;
 	    return {
-		type: 'var', space, name, isOpt,
-		staticName: name.staticValue, loc: ns.loc
+		type: 'var', loc: ns.loc, space, name, isOpt,
+		staticName: name.staticValue,
 	    };
 	}
 	if (reqName) --read;
-	return (reqName ? null : { type: 'var', space, loc: ns.loc });
+	return (reqName ? null : { type: 'var', loc: ns.loc, space });
     }
 
     // ----------
