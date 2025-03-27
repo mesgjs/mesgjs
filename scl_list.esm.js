@@ -12,6 +12,11 @@ import { getInterface, isIndex, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/r
 const opAF = d => { };
 */
 
+function opAtInit (d) {
+    const { octx, mp } = d, list = mp.at(0);
+    setRO(octx, 'ps', (list instanceof NANOS) ? list : new NANOS());
+}
+
 function opAt (d) {
     const { mp } = d;
     let cur = d.ps;
@@ -48,8 +53,9 @@ function opSet (d) {
 
 export function installList () {
     getInterface('@list').set({
-	final: true, lock: true, pristine: true, // singleton: true,
+	/* final: true, */ lock: true, pristine: true, // singleton: true,
 	handlers: {
+	    '@init': opAtInit,
 	    at: opAt,
 	    clear: d => d.ps.clear(),
 	    copy: d => new NANOS().fromPairs(d.ps.pairs()),
@@ -70,7 +76,6 @@ export function installList () {
 	    toJSON: d => d.ps.toJSON(),
 	    toString: d => d.ps.toString(' '),
 	},
-	init: (octx, pi, list) => setRO(octx, 'ps', list),
     });
 }
 

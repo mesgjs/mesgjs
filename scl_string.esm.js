@@ -32,6 +32,7 @@ export function installString () {
     getInterface('@string').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', d.mp.at(0, '').toString()),
 	    eq: d => d.ps === d.mp.at(0),
 	    ge: d => d.ps >= d.mp.at(0),
 	    gt: d => d.ps > d.mp.at(0),
@@ -46,7 +47,6 @@ export function installString () {
 	    toUpper: d => d.ps.toUpperCase(),
 	    valueOf: d => d.ps,
 	},
-	init: (octx, _pi, str) => setRO(octx, 'ps', str),
     });
 }
 

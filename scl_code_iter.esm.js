@@ -83,6 +83,7 @@ export function installCodeIter () {
     getInterface('@codeIter').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', {}),
 	    iteration0: d => d.ps.iteration,
 	    iteration1: d => d.ps.iteration + 1,
 	    next: d => { d.ps.capture = true; throw new SCLFlow('next'); },
@@ -93,7 +94,6 @@ export function installCodeIter () {
 	    times: d => d.ps.times,
 	    while: opWhile,
 	},
-	init: octx => setRO(octx, 'ps', {}),
     });
 }
 

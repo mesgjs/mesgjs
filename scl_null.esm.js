@@ -12,10 +12,10 @@ export function installNull () {
     getInterface('@null').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', null),
 	    toString: () => '@n',
 	    valueOf: () => null,
 	},
-	init: octx => setRO(octx, 'ps', null),
     });
 }
 

@@ -12,6 +12,11 @@ function opAdd (d) {
     return [...mp.values()].reduce((a, b) => a + b, ps);
 }
 
+function opAtInit (d) {
+    const { octx, mp } = d, num = mp.at(0), type = typeof num;
+    setRO(octx, 'ps', (type === 'number' || type === 'bigint') ? num : parseFloat(num));
+}
+
 function opDiv (d) {
     const { ps, mp } = d;
     return [...mp.values()].reduce((a, b) => a / b, ps);
@@ -50,6 +55,7 @@ export function installNumber () {
     getInterface('@number').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    '@init': opAtInit,
 	    add: opAdd,
 	    div: opDiv,
 	    eq: d => d.ps === d.mp.at(0),
@@ -72,7 +78,6 @@ export function installNumber () {
 	    toString: d => d.ps.toString(d.mp.at(0)),
 	    valueOf: d => d.ps,
 	},
-	init: (octx, _pi, num) => setRO(octx, 'ps', num),
     });
 }
 

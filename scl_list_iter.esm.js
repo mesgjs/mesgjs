@@ -49,6 +49,7 @@ export function installListIter () {
     getInterface('@listIter').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', {}),
 	    for: opFor,
 	    isIndex: d => d.ps.isIndex,
 	    key: d => d.ps.key,
@@ -57,7 +58,6 @@ export function installListIter () {
 	    stop: d => { d.ps.capture = true; throw new SCLFlow('stop'); },
 	    value: d => d.ps.value,
 	},
-	init: octx => setRO(octx, 'ps', {}),
     });
 }
 

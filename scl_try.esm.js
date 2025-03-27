@@ -30,10 +30,10 @@ export function installTry () {
     getInterface('@try').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', {}),
 	    exception: d => d.ps.exception,
 	    try: opTry,
 	},
-	init: octx => setRO(octx, 'ps', {}),
     });
 }
 

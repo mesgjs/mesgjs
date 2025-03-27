@@ -8,16 +8,16 @@ import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 // import { isIndex, NANOS } from 'syscl/nanos.esm.js';
 
-function opF (d) {
-    const { mp } = d;
+function opAtInit (d) {
+    const { octx, mp } = d, ary = mp.at(0);
+    setRO(octx, 'ps', Array.isArray(ary) ? mp : []);
 }
-
-const opAF = d => { };
 
 export function installJSArray () {
     getInterface('@jsArray').set({
 	final: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
+	    '@init': opAtInit,
 	    at: d => d.ps.at(d.mp.at(0)),
 	    concat: d => d.ps.concat(...d.mp.values()),
 	    entries: d => [...d.ps.entries()],
@@ -34,7 +34,6 @@ export function installJSArray () {
 	    toSorted: d => d.ps.toSorted(d.mp.at(0)),
 	    unshift: d => d.ps.unshift(...d.mp.values()),
 	},
-	init: (octx, pi, ary) => setRO(octx, 'ps', ary),
     });
 }
 

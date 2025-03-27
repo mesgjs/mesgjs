@@ -83,11 +83,10 @@ export const {
     getInstance,
     getInterface,
     moduleScope,
-    newSCLCode,
     typeAccepts,
 } = (() => {
     let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2;
-    const getCode = Symbol.for('getCode');
+    const getCode = Symbol.for('getCode'), initSym = Symbol('@init');
     const interfaces = Object.create(null), firstInit = [];
 
     // Bind a code template to a dispatch object and save it
@@ -129,7 +128,7 @@ export const {
     function coreGetInstance (type, mp) {
 	if (initPhase === 2) initialize();
 	const ix = interfaces[type];
-	if (ix && !ix.private) return getInstance(type, mp);
+	if (ix && !ix.private) return getInstance(type, mp || []);
     }
 
     /*
@@ -237,7 +236,11 @@ export const {
      * Returns {code, type, op}.
      */
     function getHandler (type0, op, next = false) {
+	const noopHandler = { code: () => {}, type: type0, op };
 	let defHandler;
+	// Only allow initial @init from getInstance
+	if (op === '@init') return noopHandler;
+	if (op === initSym) op = '@init';
 	for (const type of flatChain(type0)) {
 	    if (next && type === type0) continue;
 	    const code = interfaces[type]?.handlers[op];
@@ -247,6 +250,8 @@ export const {
 		if (code) defHandler = { code, type, op };
 	    }
 	}
+	// Guarantee a default "specific" handler for special @init
+	if (op === '@init') return noopHandler;
 	return defHandler;
     }
 
@@ -262,7 +267,7 @@ export const {
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
-	if (ix.init) ix.init(octx, pi, ...params);
+	pi(initSym, unifiedList(params));
 	return pi;
     }
 
@@ -508,7 +513,6 @@ export const {
 	getInstance: coreGetInstance,
 	getInterface,
 	moduleScope,
-	newSCLCode,
 	typeAccepts,
     };
 })();

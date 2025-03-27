@@ -5,18 +5,16 @@
  */
 
 import { getInterface, setRO } from 'syscl/runtime.esm.js';
-// import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-// import { isIndex, NANOS } from 'syscl/nanos.esm.js';
+// import { getInterface, isIndex, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 
 export function installUndefined () {
-    const ix = getInterface('@undefined');
-    ix.set({
+    getInterface('@undefined').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
+	    '@init': d => setRO(d.octx, 'ps', /* NB: */ null),
 	    toString: () => '@u',
 	    valueOf: () => undefined,
 	},
-	init: octx => setRO(octx, 'ps', null),
     });
 }
 
