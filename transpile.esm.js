@@ -5,7 +5,7 @@
  */
 
 import { lex, parse } from 'syscl/lexparse.esm.js';
-import { encode as vlqe } from 'syscl/vlq.esm.js';
+import { encode as vlenc } from 'syscl/vlq.esm.js';
 
 // Generate string escapes for JavaScript
 export function escapeJSStr (s) {
@@ -286,11 +286,11 @@ export function mappingGenerator (segments, loc = {}) {
 	    genSeg = lastGenCol = 0;
 	}
 	if (genSeg++) mappings.push(',');
-	mappings.push(vlqe(genCol - lastGenCol));
+	mappings.push(vlenc(genCol - lastGenCol));
 	if (sloc) {
 	    if (sources[sloc.src] === undefined) sources[sloc.src] = nextSrc++;
 	    const srcNum = sources[sloc.src];
-	    mappings.push(vlqe(srcNum - lastSrcNum), vlqe(sloc.line - lastSrcLine), vlqe(sloc.col - lastSrcCol));
+	    mappings.push(vlenc(srcNum - lastSrcNum), vlenc(sloc.line - lastSrcLine), vlenc(sloc.col - lastSrcCol));
 	    [ lastSrcNum, lastSrcCol, lastSrcLine ] = [ srcNum, sloc.col, sloc.line ];
 	    didSingle = false;
 	} else didSingle = true;

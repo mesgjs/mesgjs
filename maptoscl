@@ -1,0 +1,2 @@
+#!/bin/sh
+exec deno run --allow-read maptoscl-cli.esm.js "$@"
