@@ -4,15 +4,15 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { logInterfaces, getInstance, getInterface, jsToSCL, runIfCode, setRO, typeAccepts } from 'syscl/runtime.esm.js';
+import { getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
 
-// And: false if any not true, else last true result (default true)
+// And: false result if any not true, else last true result (default true)
 function opAnd (d) {
     const { mp } = d;
     let result = true;
     for (const v of mp.values()) {
 	result = runIfCode(v);
-	if (!result) return false;
+	if (!result) return result;
     }
     return result;
 }
@@ -45,14 +45,30 @@ function opIf (d) {
 // function opImport (d) {
 // }
 
-// Or: first true result, else false
+/*
+ * $c(jsfcr object op params=[SCL params])
+ * Returns a JS function-call-relay function. When the generated function
+ * is called, its parameters are relayed via a pre-determined object and
+ * message op (optionally with SCL parameters added in).
+ * The object will receive the message with parameters
+ * js=[JS params] scl=[SCL params].
+ */
+function opJSFCR (d) {
+    const { mp } = d, rr = mp.at(0), rt = rr?.sclType, op = mp.at(1);
+    if (!rr || !rt) return undefined;
+    if (!typeAccepts(rt, op)) throw new TypeError(`No SysCL handler found for ${rt}(${op})`);
+    return function sclJSFCR (...js) { return rr(op, new NANOS().push({ js: new NANOS().push(...js), scl: mp.at('params') })); };
+}
+
+// Or: first true result, else last false result (default false)
 function opOr (d) {
     const { mp } = d;
+    let result = false;
     for (const v of mp.values()) {
-	const r = runIfCode(v);
-	if (r) return r;
+	result = runIfCode(v);
+	if (result) return result;
     }
-    return false;
+    return result;
 }
 
 function opRun (d) {
@@ -67,26 +83,28 @@ export function installCore () {
     getInterface('@core').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
-	    _: d => d.mp.at(0),	// underscore, AKA "basically parentheses"
+	    _: d => d.mp.at(0),		// underscore ("basically parentheses")
 	    and: opAnd,
 	    case: opCase,
+	    get: opGet,			// Get instance
 	    if: opIf,
 	    // import: opImport,
-	    get: opGet,		// Get instance
 	    interface: d => getInterface(d.mp.at(0)),
+	    jsfcr: opJSFCR,
 	    log: d => console.log(...d.mp.values()),
-	    // logDispatch: d => console.log(d),
 	    logInterfaces,
 	    not: d => !d.mp.at(0),
 	    or: opOr,
 	    run: opRun,
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
+	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
 	},
     });
     setRO(globalThis, {
 	$c: getInstance('@core'),
 	$f: false,
+	$gss: new NANOS(),
 	$n: null,
 	$t: true,
 	$u: undefined,

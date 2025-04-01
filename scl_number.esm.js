@@ -8,47 +8,47 @@ import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 
 function opAdd (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a + b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a + b, js);
 }
 
 function opAtInit (d) {
     const { octx, mp } = d, num = mp.at(0), type = typeof num;
-    setRO(octx, 'ps', (type === 'number' || type === 'bigint') ? num : parseFloat(num));
+    setRO(octx, 'js', (type === 'number' || type === 'bigint') ? num : parseFloat(num));
 }
 
 function opDiv (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a / b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a / b, js);
 }
 
 // Is number in the interval defined by the ge, gt, le, lt keys?
 function opInter (d) {
-    const { ps, mp } = d;
-    return (((mp.has('ge') && ps < mp.at('ge')) ||
-      (mp.has('gt') && ps <= mp.at('gt')) ||
-      (mp.has('le') && ps > mp.at('le')) ||
-      (mp.has('lt') && ps >= mp.at('lt'))) ? false : true);
+    const { js, mp } = d;
+    return (((mp.has('ge') && js < mp.at('ge')) ||
+      (mp.has('gt') && js <= mp.at('gt')) ||
+      (mp.has('le') && js > mp.at('le')) ||
+      (mp.has('lt') && js >= mp.at('lt'))) ? false : true);
 }
 
 function opMod (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a % b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a % b, js);
 }
 
 function opMul (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a * b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a * b, js);
 }
 
 function opPow (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a ** b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a ** b, js);
 }
 
 function opSub (d) {
-    const { ps, mp } = d;
-    return [...mp.values()].reduce((a, b) => a - b, ps);
+    const { js, mp } = d;
+    return [...mp.values()].reduce((a, b) => a - b, js);
 }
 
 export function installNumber () {
@@ -58,25 +58,25 @@ export function installNumber () {
 	    '@init': opAtInit,
 	    add: opAdd,
 	    div: opDiv,
-	    eq: d => d.ps === d.mp.at(0),
-	    ge: d => d.ps >= d.mp.at(0),
-	    gt: d => d.ps > d.mp.at(0),
+	    eq: d => d.js === d.mp.at(0),
+	    ge: d => d.js >= d.mp.at(0),
+	    gt: d => d.js > d.mp.at(0),
 	    inter: opInter,
-	    isNan: d => d.ps !== d.ps,
-	    isNegInf: d => d.ps === -Infinity,
-	    isNegZero: d => d.ps === 0 && (1 / d.ps) === -Infinity,
-	    isPosInf: d => d.ps === Infinity,
-	    isPosZero: d => d.ps === 0 && (1 / d.ps) === Infinity,
-	    le: d => d.ps <= d.mp.at(0),
-	    lt: d => d.ps < d.mp.at(0),
+	    isNan: d => d.js !== d.js,
+	    isNegInf: d => d.js === -Infinity,
+	    isNegZero: d => d.js === 0 && (1 / d.js) === -Infinity,
+	    isPosInf: d => d.js === Infinity,
+	    isPosZero: d => d.js === 0 && (1 / d.js) === Infinity,
+	    le: d => d.js <= d.mp.at(0),
+	    lt: d => d.js < d.mp.at(0),
 	    mod: opMod,
 	    mul: opMul,
-	    ne: d => d.ps !== d.mp.at(0),
-	    neg: d => -d.ps,
+	    ne: d => d.js !== d.mp.at(0),
+	    neg: d => -d.js,
 	    pow: opPow,
 	    sub: opSub,
-	    toString: d => d.ps.toString(d.mp.at(0)),
-	    valueOf: d => d.ps,
+	    toString: d => d.js.toString(d.mp.at(0)),
+	    valueOf: d => d.js,
 	},
     });
 }

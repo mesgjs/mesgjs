@@ -14,12 +14,12 @@ const opAF = d => { };
 
 function opAtInit (d) {
     const { octx, mp } = d, list = mp.at(0);
-    setRO(octx, 'ps', (list instanceof NANOS) ? list : new NANOS());
+    setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
 }
 
 function opAt (d) {
     const { mp } = d;
-    let cur = d.ps;
+    let cur = d.js;
     for (const k of mp.values()) {
 	if (cur.has(k)) cur = unifiedList(cur.at(k));
 	else if (mp.has('else')) return runIfCode(mp.at('else'));
@@ -29,15 +29,15 @@ function opAt (d) {
 }
 
 function opNset (d) {
-    const { mp, ps } = d;
-    for (const e of mp.entries()) ps.set(e[0], e[1]);
+    const { mp, js } = d;
+    for (const e of mp.entries()) js.set(e[0], e[1]);
 }
 
 function opSet (d) {
     // Supported key type
     const skt = k => { const t = typeof k; return t === 'string' || t === 'number' || t === 'symbol'; };
     const { mp } = d, path = [...mp.values()].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
-    let cur = d.ps;
+    let cur = d.js;
     for (let i = 0; i < limit; ++i) {
 	const k = path[i];
 	if (!(cur.at(k) instanceof NANOS)) cur.set(k, new NANOS());
@@ -57,24 +57,26 @@ export function installList () {
 	handlers: {
 	    '@init': opAtInit,
 	    at: opAt,
-	    clear: d => d.ps.clear(),
-	    copy: d => new NANOS().fromPairs(d.ps.pairs()),
-	    entries: d => [...d.ps.entries()],
-	    has: d => d.ps.has(d.mp.at(0)),
-	    includes: d => d.ps.includes(d.mp.at(0)),
-	    indexEntries: d => [...d.ps.indexEntries(d.mp.at(0))],
-	    indexes: d => [...d.ps.indexes()],
-	    keys: d => [...d.ps.keys()],
-	    next: d => d.ps.next,
+	    clear: d => d.js.clear(),
+	    copy: d => new NANOS().fromPairs(d.js.pairs()),
+	    entries: d => [...d.js.entries()],
+	    has: d => d.js.has(d.mp.at(0)),
+	    includes: d => d.js.includes(d.mp.at(0)),
+	    indexEntries: d => [...d.js.indexEntries(d.mp.at(0))],
+	    indexes: d => [...d.js.indexes()],
+	    keys: d => [...d.js.keys()],
+	    next: d => d.js.next,
 	    nset: opNset,
-	    pairs: d => d.ps.pairs(d.mp.at(0)),
-	    pop: d => d.ps.pop(),
-	    self: d => d.ps,
+	    pairs: d => d.js.pairs(d.mp.at(0)),
+	    pop: d => d.js.pop(),
+	    push: d => d.js.push(d.mp),
+	    self: d => d.js,
 	    set: opSet,
-	    shift: d => d.ps.shift(),
-	    size: d => d.ps.size,
-	    toJSON: d => d.ps.toJSON(),
-	    toString: d => d.ps.toString(' '),
+	    shift: d => d.js.shift(),
+	    size: d => d.js.size,
+	    toJSON: d => d.js.toJSON(),
+	    toString: d => d.js.toString(' '),
+	    unshift: d => d.js.unshift(d.mp),
 	},
     });
 }

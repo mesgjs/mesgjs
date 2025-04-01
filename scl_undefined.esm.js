@@ -11,7 +11,7 @@ export function installUndefined () {
     getInterface('@undefined').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
-	    '@init': d => setRO(d.octx, 'ps', /* NB: */ null),
+	    '@init': d => setRO(d.octx, 'js', undefined),
 	    toString: () => '@u',
 	    valueOf: () => undefined,
 	},

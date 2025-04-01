@@ -6,13 +6,14 @@
 
 // Split input into lexical tokens
 const lexPats = {
-    ejs: '@js\\{.*?@}',		// Embeded JavaScript
+    ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
     // Number
     num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
+    dbg: '@debug\\{',		// Start debug-mode code
     stok: '!}|[!%#]\\??|[&[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
     oth: '[^\'"!%#&[(={})\\]\\s]+',// Other
@@ -20,7 +21,7 @@ const lexPats = {
 
 // Simple lexical analyzer
 export function lex (input, loc = {}) {
-    const lre = new RegExp('(' + 'ejs mlc slc num sqs dqs stok spc oth'.
+    const lre = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.
       split(' ').map(k => lexPats[k]).join('|') + ')', 's');
     const num = new RegExp('^' + lexPats.num + '$');
     let { col = 0, line = 0, src = undefined } = loc;
@@ -69,6 +70,7 @@ export function lex (input, loc = {}) {
 		if (/^\s/.test(text)) return false;
 		if (num.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
 		if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) };
+		if (text === '@debug{') return { type: 'dbg', loc };
 		return { type: 'wrd', loc, text, staticValue: text };
 	    }
 	}).
@@ -107,13 +109,14 @@ export function parse (tokens) {
 
     // General parsing
 
-    function parseBlock () {
+    function parseBlock (allow = '{') {
 	// { block }
-	if (tokens[read]?.type !== '{') return null;
-	const hit = lookup('{');
+	const type = tokens[read]?.type;
+	if (type !== allow) return null;
+	const hit = lookup(type);
 	if (hit) return hit;
 	const statements = [], read0 = read++, cur = tokens[read0];
-	const node = { type: '{', loc: cur.loc, statements };
+	const node = { type, loc: cur.loc, statements };
 
 	++blkDep;
 	for (let cur; cur = tokens[read]; ) {
@@ -261,7 +264,7 @@ export function parse (tokens) {
     function parseStatement () {
 	const js = parseJS();
 	if (js) return js;
-	const node = parseValue();
+	const node = parseValue() || parseBlock('dbg');
 	if (node) return { type: 'stm', loc: node.loc, node };
     }
 

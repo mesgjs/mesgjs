@@ -75,6 +75,9 @@ export function transpileTree (tree, opts = {}) {
     function generate (node) {	// Generate a single node
 	// console.log(`generating type ${node?.type}`);
 	switch (node?.type) {
+	case 'dbg':	// Debug-mode block
+	    if (!opts.debugBlocks) break;
+	    // Fall through...
 	case '{':	// Block
 	    generateBlock(node);
 	    break;
@@ -95,7 +98,7 @@ export function transpileTree (tree, opts = {}) {
 	    break;
 	case 'stm':	// Statement
 	    generate(node.node);
-	    output(aws ? ';\n' : ';');
+	    if (node.node.type !== 'dbg') output(aws ? ';\n' : ';');
 	    break;
 	case 'txt':	// Text literal
 	    generateText(node);
@@ -117,7 +120,8 @@ export function transpileTree (tree, opts = {}) {
 	    switch (base.type === 'wrd' && base.text) {
 	    case '@c': output('$c'); break;	// core
 	    case '@d': output('d'); break;	// dispatch object
-	    case '@mps':			// module persistent storage
+	    case '@gss': output('$gss'); break;	// global shared storage
+	    case '@mps':			// module private storage
 		if (!usedMods) usedMods = base;
 		output('mps');
 		break;
@@ -133,21 +137,26 @@ export function transpileTree (tree, opts = {}) {
     function generateBlock (node) {
 	const blockNum = nextBlock++;
 
-	// Generate out-of-band (blocks array) content
-	pushOut();
-	// Code template will be assigned a global block id at first binding
-	output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
+	if (node.type !== 'dbg') {
+	    // Generate out-of-band (blocks array) content
+	    pushOut();
+	    // Code template will be assigned a global block id at first binding
+	    output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
+	}
+
 	const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
 	for (let i = 0; i < count; ++i) {
 	    if (i === rtn) output('return ');
 	    generate(node.statements[i]);
 	}
-	output('}}');
-	blocks[blockNum] = popOut();
-	if (blockNum) blocks[blockNum].unshift(',');
 
-	// Generate in-band code content
-	output(`b(c[${blockNum}])`);
+	if (node.type !== 'dbg') {
+	    output('}}');
+	    blocks[blockNum] = popOut();
+	    if (blockNum) blocks[blockNum].unshift(',');
+	    // Generate in-band code content
+	    output(`b(c[${blockNum}])`);
+	}
     }
 
     function generateFinalOutput () {

@@ -13,6 +13,9 @@ textarea { width: 95%; resize: vertical; min-height: 100px; }
 <h2>SysCL</h2>
 <textarea id='inputArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea><br>
 <input type='button' value='Transpile' id='execBtn'>
+<p><input id='addWhiteSpace' type='checkbox' checked> Add white space
+<input id='enableJS' type='checkbox' checked> Enable JS embed
+<input id='debugBlocks' type='checkbox' checked> Debug blocks</p>
 <h2>Errors</h2>
 <textarea id='errors' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <h2>JavaScript</h2>
@@ -23,7 +26,7 @@ textarea { width: 95%; resize: vertical; min-height: 100px; }
 <script type='module'>
 import { transpile, mappingGenerator } from 'syscl/transpile.esm.js';
 function transpileNow () {
-    const tr = transpile(inputArea.value, { addWhiteSpace: true, enableJS: true, location: { src: 'unnamed.scl' } });
+    const tr = transpile(inputArea.value, { addWhiteSpace: addWhiteSpace.checked, enableJS: enableJS.checked, debugBlocks: debugBlocks.checked, location: { src: 'unnamed.scl' } });
     const errs = [];
     codeArea.value = tr.code;
     if (tr.fatal) errs.push("FATAL: " + tr.fatal);

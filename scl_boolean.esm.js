@@ -12,23 +12,22 @@ export function installBoolean () {
     getInterface('@boolean').set({
 	abstract: true, lock: true, pristine: true, // singleton: true,
 	handlers: {
-	    dump: d => console.log(d, d.ps),
-	    toString: d => d.ps ? '@t' : '@f',
-	    valueOf: d => d.ps,
+	    toString: d => d.js ? '@t' : '@f',
+	    valueOf: d => d.js,
 	},
     });
     getInterface('@false').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	chain: [ '@boolean' ],
 	handlers: {
-	    '@init': d => setRO(d.octx, 'ps', false),
+	    '@init': d => setRO(d.octx, 'js', false),
 	},
     });
     getInterface('@true').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	chain: [ '@boolean' ],
 	handlers: {
-	    '@init': d => setRO(d.octx, 'ps', true),
+	    '@init': d => setRO(d.octx, 'js', true),
 	},
     });
 }

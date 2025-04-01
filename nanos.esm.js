@@ -10,6 +10,10 @@ export class NANOS {
     #next;
     #keys;
     #storage;
+    #locked;
+    #lockInd;
+    #lockNew;
+    #redacted;
 
     constructor (...items) {
 	this.clear();
@@ -23,14 +27,17 @@ export class NANOS {
     }
 
     clear () {
+	if (this.#locked) throw new TypeError('NANOS: Cannot clear after locking');
 	this.#next = 0;
 	this.#keys = [];
 	this.#storage = {};
+	this.#lockInd = undefined;
 	return this;
     }
 
     // NOTE: unlike the delete statement, this returns the deleted value!
     delete (key) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot delete after locking');
 	const skey = '' + key;
 	const ret = this.#storage[skey];
 	if (Object.hasOwn(this.#storage, skey)) {
@@ -73,6 +80,8 @@ export class NANOS {
 
     // [ [ key1, value1 ], ... [ keyN, valueN ] ]
     fromEntries (entries, insert = false) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot fromEntries after locking');
+	if (insert && this.#lockInd) throw new TypeError('NANOS: Cannot insert fromEntries after index lock');
 	if (insert) for (const e of [...entries].reverse()) this.set(e[0], e[1], true);
 	else for (const e of entries) this.set(e[0], e[1]);
 	return this;
@@ -83,6 +92,8 @@ export class NANOS {
      * { type: '@NANOS@', next, pairs }
      */
     fromPairs (...pairs) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot fromPairs after locking');
+	if (insert && this.#lockInd) throw new TypeError('NANOS: Cannot insert fromPairs after index lock');
 	if (pairs[0]?.type === '@NANOS@') {
 	    this.fromPairs(pairs[0].pairs);
 	    this.next = pairs[0].next;
@@ -122,9 +133,30 @@ export class NANOS {
 	return this.findLast(v => v === value)?.[0];
     }
 
+    lock (...keys) {
+	for (let key of keys) {
+	    key = this.#wrapKey(key);
+	    if (isIndex(key)) this.#lockInd = true;
+	    if (key !== undefined) Object.defineProperty(this.#storage, key, {
+		value: this.at(key), enumerable: true,
+		writable: false, configurable: false
+	    });
+	}
+	return this;
+    }
+
+    lockKeys () { this.#locked = true; return this; }
+
+    lockValues (andNew = false) {
+	for (const key of this.#keys) this.lock(key);
+	if (andNew) this.#lockNew = true;
+	return this;
+    }
+
     // "Next" index (max index + 1); similar to array.length
     get next () { return this.#next; }
     set next (nn) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot set next after locking');
 	if (!Number.isInteger(nn) || nn < 0) return;
 	for (let i = this.#next; --i >= nn; this.delete(i));
 	this.#next = nn;
@@ -134,6 +166,8 @@ export class NANOS {
 
     // Like Array.pop (only applies to indexed values)
     pop () {
+	if (this.#locked) throw new TypeError('NANOS: Cannot pop after locking');
+	if (this.#lockInd) throw new TypeError('NANOS: Cannot pop after index lock');
 	if (!this.#next) return undefined;
 	return this.delete(--this.#next);
     }
@@ -145,6 +179,7 @@ export class NANOS {
      * Push [ object ] to add the actual object itself.
      */
     push (...items) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot push after locking');
 	items.forEach(value => {
 	    const base = this.#next;
 	    if (value instanceof NANOS) {
@@ -159,6 +194,18 @@ export class NANOS {
 		}
 	    } else this.set(this.#next, value);
 	});
+	return this;
+    }
+
+    // NOTE: Only affects value returned by toString()
+    redact (...keys) {
+	for (const key of keys) {
+	    if (key === true) this.#redacted = true;
+	    if (this.#redacted === true) return;
+	    this.#redacted ||= {};
+	    if (isIndex(key)) this.#redacted[0] = true;
+	    else this.#redacted[key] = true;
+	}
 	return this;
     }
 
@@ -186,6 +233,7 @@ export class NANOS {
 
     // Reverse *in place*
     reverse () {
+	if (this.#locked) throw new TypeError('NANOS: Cannot reverse after locking');
 	const s = this.#storage, nks = [], ns = {}, last = this.#next - 1;
 	for (const ok of this.#keys.toReversed()) {
 	    const nk = isIndex(ok) ? (last - ok) : ok;
@@ -203,7 +251,10 @@ export class NANOS {
      * possible position that maintain increasing-index ordering constraints.
      */
     set (key, value, insert = false) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot set after locking');
 	if (key === undefined) key = this.#next;
+	key = this.#wrapKey(key);
+	if (key === undefined) return;
 	const skey = '' + key;
 	const ind = isIndex(skey) && parseInt(skey);
 	if (!Object.hasOwn(this.#storage, skey)) {
@@ -225,11 +276,14 @@ export class NANOS {
 	    if (ind !== false && ind >= this.#next) this.#next = ind + 1;
 	}
 	this.#storage[skey] = value;
+	if (this.#lockNew) this.lock(skey);
 	return value;
     }
 
     // Like Array.shift (only applies to indexed values)
     shift () {
+	if (this.#locked) throw new TypeError('NANOS: Cannot shift after locking');
+	if (this.#lockInd) throw new TypeError('NANOS: Cannot shift after index lock');
 	if (!this.#next) return undefined;
 	const res = this.delete(0);
 	this.#renumber(1, this.#next, -1);
@@ -249,16 +303,22 @@ export class NANOS {
     toJSON () { return {type:'@NANOS@', next: this.#next, pairs: this.pairs(true)}; }
 
     toString (sep = ',') {
+	if (this.#redacted === true) return 'N[*???*]';
 	const tos = v => (v instanceof NANOS) ? v.toString(sep) : (v?.toString() ?? { null: 'null', undefined: 'undefined' }[v]);
 	const s = this.#storage, parts = [];
 	let nextInd = 0;
 	for (const k of this.#keys) {
 	    if (isIndex(k)) {
+		if (this.#redacted?.[0]) {
+		    parts.push('*?*');
+		    continue;
+		}
 		const ik = parseInt(k);
 		if (ik === nextInd) parts.push(tos(s[k]));
 		else parts.push(k + '=' + tos(s[k]));
 		nextInd = ik + 1;
 	    }
+	    else if (this.#redacted?.[k]) parts.push('*?=?*');
 	    else parts.push(k + '=' + tos(s[k]));
 	}
 	return 'N[' + parts.join(sep) + ']';
@@ -269,6 +329,8 @@ export class NANOS {
      * inserted instead (therefore preserving any gaps).
      */
     unshift (...items) {
+	if (this.#locked) throw new TypeError('NANOS: Cannot unshift after locking');
+	if (this.#lockInd) throw new TypeError('NANOS: Cannot unshift after index lock');
 	items.toReversed().forEach(value => {
 	    if (value instanceof NANOS) {
 		this.#renumber(0, this.#next, value.next);

@@ -84,10 +84,11 @@ export const {
     getInterface,
     moduleScope,
     typeAccepts,
+    typeChains,
 } = (() => {
     let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2;
-    const getCode = Symbol.for('getCode'), initSym = Symbol('@init');
-    const interfaces = Object.create(null), firstInit = [];
+    const getCode = Symbol('getCode'), initSym = Symbol('@init');
+    const interfaces = Object.create(null), firstInit = [], stack = [];
 
     // Bind a code template to a dispatch object and save it
     function bindCode (tpl, disp, cache) {
@@ -160,6 +161,15 @@ export const {
 		// Only accept messages from the original receiver
 		if (sr !== disp.rr || op === undefined) return;
 		switch (op) {
+		case 'log':
+		{
+		    const addht = handler.type === rt ? '' : ('/' + handler.type);
+		    console.log(`[SysCL dispatch] ${st} => ${rt}${addht}(${disp.op})`);
+		    break;
+		}
+		case 'logAll':		// Log entire dispatch to console
+		    console.dir(disp, { depth: null });
+		    return;
 		case 'redis':		// Redispatch
 		{
 		    // Accept either list-op or mp else parameter
@@ -177,6 +187,7 @@ export const {
 		    return newSCLDispatch(rdop, rdmp, redis);
 		}
 		case 'handlerType': return handler.type;
+		case 'js': return disp.js;	// JavaScript state
 		case 'op': return disp.op;
 		case 'return':
 		    capture = true;
@@ -189,7 +200,10 @@ export const {
 		}
 		return runIfCode(elseExpr);
 	    };
-	    Object.defineProperty(disp, 'ps', { get: () => octx?.ps, enumerable: true });
+	    Object.defineProperties(disp, {
+		js: { get: () => octx?.js, enumerable: true },
+		ps: { get: () => octx?.ps, enumerable: true },
+	    });
 	    setRO(disp, { sr, st, rr, rt, octx, op, mp, sm,
 		b: tpl => bindCode(tpl, disp, cache),
 		sclType: '@dispatch',
@@ -215,7 +229,7 @@ export const {
     }
     firstInit.push(() => {
 	getInterface('@dispatch').set({ pristine: true, private: true, lock: true });
-	stub('@dispatch', 'handlerType', 'op', 'redis', 'return', 'self', 'selfType', 'sender', 'senderType');
+	stub('@dispatch', 'handlerType', 'js', 'op', 'redis', 'return', 'self', 'selfType', 'sender', 'senderType');
     });
 
     // Return flattened chain set by interface type
@@ -354,16 +368,18 @@ export const {
     // Return a new SCL code object given code and a dispatch
     function newSCLCode (cd, od) {
 	// Encapsulate the code with a custom receiver function
-	let lock;
+	let lock, ps = false;
 	const code = function sclCode (op, mp) {
 	    const mb = mesgBaton, type = od ? '@code' : '@function';
-	    const { op: cdop, hasElse, elseExpr } = canMesgProps({ rr: code, op });
-	    switch (cdop) {
+	    let hasElse, elseExpr;
+	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: code, op, mp }));
+	    switch (op) {
+	    case initSym: return;
 	    case 'call':		// Call like a function
 	    {
 		if (lock === 'std') return;
 		// Restart the message using a standard dispatch
-		const octx = setRO(Object.create(null), { cd, ps: false });
+		const octx = setRO(Object.create(null), { cd, ps });
 		mesgBaton = mb;
 		return receiveMessage({ octx, rr: code, rt: type, op, mp });
 	    }
@@ -372,15 +388,15 @@ export const {
 		return code;		// NB: the object, not the JS function
 	    case getCode:
 		codeBaton = { code: cd }; // JS function for interface
-		break;
+		return;
 	    case 'fn':			// Lock to function code block
-		if (!lock) [ lock, od ] = [ 'fn', undefined ];
+		if (!lock) [ lock, od, ps ] = [ 'fn', undefined, mp ];
 		return code;		// NB: the object, not the JS function
 	    // Run in original dispatch context
 	    case 'run': return (od ? cd(od) : undefined);
 	    }
 	    if (hasElse) return runIfCode(elseExpr);
-	    throw new TypeError(`No SysCL handler found for "${type}(${cdop})"`);
+	    throw new TypeError(`No SysCL handler found for "${type}(${op})"`);
 	};
 	Object.defineProperty(code, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
 	return code;
@@ -474,7 +490,7 @@ export const {
 	    if (typeof handler === 'function') {
 		if (handler.sclType === '@code') {
 		    codeBaton = undefined;
-		    handler(getGode);
+		    handler(getCode);
 		    if (codeBaton?.code) setRO(ix.handlers[op] = codeBaton.code, 'sclType', '@handler');
 		}
 		else ix.handlers[op] = handler;
@@ -508,6 +524,11 @@ export const {
 	if (handler) return [ handler.type, handler.op === 'defaultHandler' ? 'default': 'specific' ];
     }
 
+    // Return whether the flat-chain for type 1 includes type 2.
+    function typeChains (type1, type2) {
+	return flatChain(type1).has(type2);
+    }
+
     return {
 	initialize,
 	logInterfaces,
@@ -515,6 +536,7 @@ export const {
 	getInterface,
 	moduleScope,
 	typeAccepts,
+	typeChains,
     };
 })();
 //////////////////////////////////////////////////////////////////////
