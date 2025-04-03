@@ -93,7 +93,6 @@ export class NANOS {
      */
     fromPairs (...pairs) {
 	if (this.#locked) throw new TypeError('NANOS: Cannot fromPairs after locking');
-	if (insert && this.#lockInd) throw new TypeError('NANOS: Cannot insert fromPairs after index lock');
 	if (pairs[0]?.type === '@NANOS@') {
 	    this.fromPairs(pairs[0].pairs);
 	    this.next = pairs[0].next;
@@ -119,6 +118,22 @@ export class NANOS {
 
     // Just the index keys
     *indexes () { for (const k of this.#keys) if (isIndex(k)) yield k; }
+
+    // Is a key/value (or, if undef, the key-set) locked?
+    isLocked (key) {
+	if (key === undefined) return this.#locked;	// Key-set locked
+	key = this.#wrapKey(key);
+	if (this.#locked && !Object.hasOwn(this.#storage, key)) return true;
+	return !Object.getOwnPropertyDescriptor(this.#storage, key)?.writable;
+    }
+
+    // Is a key/value redacted?
+    isRedacted (key) {
+	if (this.#redacted === true) return true;
+	key = this.wrapKey(key);
+	if (isIndex(key)) return this.#redacted[0];
+	return this.#redacted[key];
+    }
 
     // Returns first key/index with matching value, or undefined; cf indexOf
     keyOf (value) {

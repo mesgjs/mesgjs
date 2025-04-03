@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
+import { debugConfig, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
 
 // And: false result if any not true, else last true result (default true)
 function opAnd (d) {
@@ -86,6 +86,7 @@ export function installCore () {
 	    _: d => d.mp.at(0),		// underscore ("basically parentheses")
 	    and: opAnd,
 	    case: opCase,
+	    debug: d => debugConfig(d.mp),
 	    get: opGet,			// Get instance
 	    if: opIf,
 	    // import: opImport,

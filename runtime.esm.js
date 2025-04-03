@@ -52,11 +52,35 @@ export class SCLFlow extends Error {
 
 
 export const listFromPairs = pa => new NANOS().fromPairs(pa);
+export function loggedType (v) {
+    if (v?.sclType) return 'S.' + v.sclType;
+    const jt = typeof v;
+    switch (jt) {
+    case 'boolean': return (v ? 'true' : 'false');
+    case 'undefined': return 'undefined';
+    case 'object':
+	if (v === null) return 'null';
+	return 'J.' + (v?.constructor?.name || 'Object');
+    default: return 'J.' + jt;
+    }
+}
 export function namespaceAt  (namespace, key, opt) {
     if (namespace?.has && namespace.has(key)) return namespace.at(key);
     if (!opt) throw new ReferenceError(`Required key "${key}" not found`);
 }
 export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
+// Return a message sender's source file / line / column
+export function senderFLC () {
+    const stack = (new Error().stack || '').split('\n');
+    // Discard stack frames through the object's sclR$ receiver (public i/f fn)
+    while (stack.length) if (/sclR\$/.test(stack.shift())) break;
+    // Also discard sender's sclS$ frames for attributed messages
+    while (/sclS\$/.test(stack[0])) stack.shift();
+    const srFrame = stack[0] || '';
+    const match = srFrame.match(/[@(](.*):(\d+):(\d+)/) ||
+	srFrame.match(/(?:^|\s+)at\s+(.*):(\d+):(\d+)$/);
+    if (match) return { file: match[1], line: parseInt(match[2]), column: parseInt(match[3]) };
+}
 
 // Set a read-only object property or properties
 // setRO(obj, key, value, enumerable = true)
@@ -78,6 +102,7 @@ const hasOwn = Object.hasOwn;
 // START Of Code/Interface/Messaging Protected Zone
 //////////////////////////////////////////////////////////////////////
 export const {
+    debugConfig,
     initialize,
     logInterfaces,
     getInstance,
@@ -86,9 +111,25 @@ export const {
     typeAccepts,
     typeChains,
 } = (() => {
-    let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2;
+    let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2, dispNo = 0;
     const getCode = Symbol('getCode'), initSym = Symbol('@init');
-    const interfaces = Object.create(null), firstInit = [], stack = [];
+    const interfaces = Object.create(null), firstInit = [];
+    const dbgCfg = Object.setPrototypeOf({
+	dispatch: false, dispatchSource: false, dispatchType: false,
+	stack: 0, stackSource: false, stackType: false,
+    }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
+
+    function appendStackTrace (e) {
+	if (!stack.length || !e.stack?.includes || e.stack.includes(hdr)) return;
+	const frames = [], stop = dbgCfg.stack;
+	for (let down = stack.length, up = 0; --down >= 0; ) {
+	    const curFrm = stack[down], disp = curFrm.disp;
+	    frames.push(`${disp.st} => ${disp.rt}(${disp.op}${fmtDispParams(dbgCfg.stackTypes, disp.mp)})${fmtDispSrc(dbgCfg.stackSource,curFrm)}`);
+	    if (++up === stop) break;
+	}
+	if (down >= 0) frames.push('[...]');	// Config stopped us early
+	e.stack += '\n' + hdr + '\n' + frames.join('\n');
+    }
 
     // Bind a code template to a dispatch object and save it
     function bindCode (tpl, disp, cache) {
@@ -132,6 +173,26 @@ export const {
 	if (ix && !ix.private) return getInstance(type, mp || []);
     }
 
+    function debugConfig (set) {
+	set = unifiedList(set);
+	for (const k of Object.keys(dbgCfg)) {
+	    const type = typeof dbgCfg[k];
+	    switch (type) {
+	    case 'boolean':
+		if (set.has(k)) dbgCfg[k] = !!set.at(k);
+		break;
+	    case 'number':
+	    {
+		const v = set.at(k);
+		// deno-lint-ignore valid-typeof
+		if (typeof v === type) dbgCfg[k] = v;
+		break;
+	    }
+	    }
+	}
+	return new NANOS().push(dbgCfg);
+    }
+
     /*
      * Create and dispatch one or more SCL Dispatch objects in response
      * to a message.
@@ -141,12 +202,13 @@ export const {
 	const handler = getHandler(rt, op);
 
 	if (!handler) {
+	    if (dbgCfg.dispatch) console.log(`[SysCl dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
 	    if (hasOwn(d1, 'else')) return runIfCode(d1.else);
 	    throw new TypeError(`No SysCL handler found for "${rt}(${op})"`);
 	}
 
 	// Send-message function (shared across all dispatches)
-	const sm = (obr, op, mp) => sendMessage({ sr: rr, st: rt, rr: obr, op, mp });
+	const sm = function sclS$(obr, op, mp) { return sclS$SendMessage({ sr: rr, st: rt, rr: obr, op, mp }); };
 
 	function newSCLDispatch (op, mp, handler) {
 	    let capture = false;
@@ -156,18 +218,12 @@ export const {
 	     * As part of the messaging pathway, dispatch objects have custom
 	     * receiver functions.
 	     */
-	    const disp = function sclDispatch () {
+	    const disp = function sclR$Dispatch () {
 		const { sr, op, mp, elseExpr } = canMesgProps({ rr: disp });
 		// Only accept messages from the original receiver
 		if (sr !== disp.rr || op === undefined) return;
 		switch (op) {
-		case 'log':
-		{
-		    const addht = handler.type === rt ? '' : ('/' + handler.type);
-		    console.log(`[SysCL dispatch] ${st} => ${rt}${addht}(${disp.op})`);
-		    break;
-		}
-		case 'logAll':		// Log entire dispatch to console
+		case 'log':		// Log entire dispatch to console
 		    console.dir(disp, { depth: null });
 		    return;
 		case 'redis':		// Redispatch
@@ -213,14 +269,25 @@ export const {
 		if (octx.ps === undefined) setRO(octx, 'ps', new NANOS());
 		if (disp.ts === undefined) setRO(disp, 'ts', new NANOS());
 	    }
-	    try { return handler.code(disp); }
+	    const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
+	    try {
+		if (dbgCfg.dispatch) console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${disp.op}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+		if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
+		const result = handler.code(disp);
+		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
+		return result;
+	    }
 	    catch (e) {
 		if (capture && e instanceof SCLFlow) {
 		    capture = false;
+		    if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		    return e.info;
 		}
+		if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`);
+		if (trace && !(e instanceof SCLFlow)) appendStackTrace(e);
 		throw e;
 	    }
+	    finally { if (trace) stack.pop(); }
 	    // Not reached
 	}
 
@@ -243,6 +310,21 @@ export const {
 	    ix.flatChain = fc;
 	}
 	return fc;
+    }
+
+    // Format dispatch message parameter types
+    function fmtDispParams (inc, list) {
+	if (!inc) return '';
+	return [...unifiedList(list).entries()].map(en => (isIndex(en[0]) ? ` ${loggedType(en[1])}` : ` ${en[0]}=${loggedType(en[1])}`)).join('');
+    }
+
+    // Format a dispatched message source file / line / column
+    function fmtDispSrc (inc, flc) {
+	if (inc) {
+	    if (!flc) flc = senderFLC();
+	    if (flc?.line !== undefined) return ` at ${flc.file}:${flc.line}:${flc.column}`;
+	}
+	return '';
     }
 
     /*
@@ -277,7 +359,7 @@ export const {
 	const ix = interfaces[type];
 	if (!ix) throw new TypeError(`Cannot get instance for unknown SysCL interface "${type}"`);
 	if (ix.instance) return ix.instance;
-	const octx = Object.create(null), pi = function sclObject (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
+	const octx = Object.create(null), pi = function sclR$Object (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
@@ -301,7 +383,7 @@ export const {
 	    once: false, pristine: true, singleton: false
 	};
 	if (ix?.once) return;
-	const sif = function sclInterface (op, mp) {
+	const sif = function sclR$Interface (op, mp) {
 	    let hasElse, elseExpr;
 	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: sif, op, mp }));
 	    switch (op) {
@@ -339,19 +421,19 @@ export const {
     function moduleScope () {
 	// Return a module dispatch object
 	if (initPhase) initialize();
-	const d = function sclModule (op) {
+	const m = function sclR$Module () {}, d = function sclR$Dispatch (op) {
 	    ({ op } = canMesgProps({ rr: d, op }));
 	    switch (op) {
 	    case 'op': return 'import';
-	    case 'self': return d;
-	    case 'selfType': return '@module';
-	    case 'senderType': return '@core';
+	    case 'self': case 'sender': return m;
+	    case 'selfType': case 'senderType': return '@module';
+	    // Quietly ignore other messages
 	    }
-	    // Silently ignore other messages (?)
 	};
-	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = (rr, op, mp) => sendMessage({ sr: d, st: '@module', rr, op, mp });
+	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); };
+	setRO(m, { sclType: '@module' });
 	setRO(d, {
-	    sr: $u, st: '@core', rr: d, rt: '@module', sclType: '@module',
+	    sr: m, st: '@module', rr: m, rt: '@module', sclType: '@dispatch',
 	    octx: $u, op: 'import', mp: $u, ps: $u, ts: $u,
 	    b, sm,
 	});
@@ -369,10 +451,10 @@ export const {
     function newSCLCode (cd, od) {
 	// Encapsulate the code with a custom receiver function
 	let lock, ps = false;
-	const code = function sclCode (op, mp) {
+	const code = function sclR$Code (op0, mp) {
 	    const mb = mesgBaton, type = od ? '@code' : '@function';
-	    let hasElse, elseExpr;
-	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: code, op, mp }));
+	    let op, hasElse, elseExpr;
+	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: code, op: op0, mp }));
 	    switch (op) {
 	    case initSym: return;
 	    case 'call':		// Call like a function
@@ -381,7 +463,7 @@ export const {
 		// Restart the message using a standard dispatch
 		const octx = setRO(Object.create(null), { cd, ps });
 		mesgBaton = mb;
-		return receiveMessage({ octx, rr: code, rt: type, op, mp });
+		return receiveMessage({ octx, rr: code, rt: type, op: op0, mp });
 	    }
 	    case 'std':			// Lock to standard code block
 		if (!lock) lock = 'std';
@@ -435,7 +517,7 @@ export const {
      * Promote JS receiver objects to SysCL, if necessary, and deliver an
      * attributed message via the message baton.
      */
-    function sendMessage (ctx) {
+    function sclS$SendMessage (ctx) {
 	const { sr, st, op, mp } = ctx;
 	const rr = ctx.rr?.sclType ? ctx.rr : jsToSCL(ctx.rr);
 	mesgBaton = { sr, st, rr, op, mp };
@@ -520,16 +602,23 @@ export const {
      * the requested type.
      */
     function typeAccepts (type, op) {
+	if (op === undefined) {
+	    const ix = interfaces[type];
+	    return ((ix && !ix.private) ? [...Object.keys(ix.handlers)] : undefined);
+	}
 	const handler = getHandler(type, op);
 	if (handler) return [ handler.type, handler.op === 'defaultHandler' ? 'default': 'specific' ];
     }
 
     // Return whether the flat-chain for type 1 includes type 2.
     function typeChains (type1, type2) {
+	if (interfaces[type1]?.private) return;
+	if (type2 === undefined) return (interfaces[type1] ? Array.from(interfaces[type1].chain) : undefined);
 	return flatChain(type1).has(type2);
     }
 
     return {
+	debugConfig,
 	initialize,
 	logInterfaces,
 	getInstance: coreGetInstance,
