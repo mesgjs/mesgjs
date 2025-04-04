@@ -46,7 +46,7 @@ export function transpile (input, opts = {}) {
 
 // Transpile pre-parsed input to JavaScript code (text)
 export function transpileTree (tree, opts = {}) {
-    let outBuf = [], nextBlock = 0, blocksIP = 0, usedMods;
+    let outBuf = [], nextBlock = 0, blocksIP = 0;
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
     const blocks = [], outStack = [];
     const aws = opts.addWhiteSpace;
@@ -121,10 +121,7 @@ export function transpileTree (tree, opts = {}) {
 	    case '@c': output('$c'); break;	// core
 	    case '@d': output('d'); break;	// dispatch object
 	    case '@gss': output('$gss'); break;	// global shared storage
-	    case '@mps':			// module private storage
-		if (!usedMods) usedMods = base;
-		output('mps');
-		break;
+	    case '@mps': output('mps'); break;	// module private storage
 	    default: return false;
 	    }
 	    return true;
@@ -164,8 +161,7 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=[', ...blocks.flat(1), '];');
 	    blocks.length = 0;
 	}
-	if (usedMods) outBuf.unshift(segment('const mps=ls();', usedMods, true));
-	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,ps,sm,ts}=d;\n`));
+	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,mps,ps,sm,ts}=d;\n`));
     }
 
     function generateJS (node) {

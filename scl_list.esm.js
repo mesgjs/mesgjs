@@ -70,6 +70,7 @@ export function installList () {
 	    pairs: d => d.js.pairs(d.mp.at(0)),
 	    pop: d => d.js.pop(),
 	    push: d => d.js.push(d.mp),
+	    pushFirst: d => d.js.push(d.mp.at(0)),
 	    self: d => d.js,
 	    set: opSet,
 	    shift: d => d.js.shift(),

@@ -56,10 +56,10 @@ export function loggedType (v) {
     if (v?.sclType) return 'S.' + v.sclType;
     const jt = typeof v;
     switch (jt) {
-    case 'boolean': return (v ? 'true' : 'false');
-    case 'undefined': return 'undefined';
+    case 'boolean': return (v ? '@t' : '@f');
+    case 'undefined': return '@u';
     case 'object':
-	if (v === null) return 'null';
+	if (v === null) return '@n';
 	return 'J.' + (v?.constructor?.name || 'Object');
     default: return 'J.' + jt;
     }
@@ -430,11 +430,11 @@ export const {
 	    // Quietly ignore other messages
 	    }
 	};
-	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); };
+	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, mps = new NANOS();
 	setRO(m, { sclType: '@module' });
 	setRO(d, {
 	    sr: m, st: '@module', rr: m, rt: '@module', sclType: '@dispatch',
-	    octx: $u, op: 'import', mp: $u, ps: $u, ts: $u,
+	    octx: $u, op: 'import', mp: $u, mps, ps: mps, ts: $u,
 	    b, sm,
 	});
 	return { d,
@@ -448,55 +448,54 @@ export const {
     });
 
     // Return a new SCL code object given code and a dispatch
-    function newSCLCode (cd, od) {
-	// Encapsulate the code with a custom receiver function
-	let lock, ps = false;
-	const code = function sclR$Code (op0, mp) {
+    function newSCLCode (cd, od, ps) {
+	// Encapsulate the code with a custom receiver function (public i/f)
+	let lock;
+	const pi = function sclR$Code (op0, mp) {
 	    const mb = mesgBaton, type = od ? '@code' : '@function';
 	    let op, hasElse, elseExpr;
-	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: code, op: op0, mp }));
-	    switch (op) {
+	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: pi, op: op0, mp }));
+	    if (od) switch (op) {	// Standard-mode ops
 	    case initSym: return;
-	    case 'call':		// Call like a function
-	    {
-		if (lock === 'std') return;
-		// Restart the message using a standard dispatch
-		const octx = setRO(Object.create(null), { cd, ps });
-		mesgBaton = mb;
-		return receiveMessage({ octx, rr: code, rt: type, op: op0, mp });
-	    }
-	    case 'std':			// Lock to standard code block
-		if (!lock) lock = 'std';
-		return code;		// NB: the object, not the JS function
 	    case getCode:
 		codeBaton = { code: cd }; // JS function for interface
 		return;
-	    case 'fn':			// Lock to function code block
-		if (!lock) [ lock, od, ps ] = [ 'fn', undefined, mp ];
-		return code;		// NB: the object, not the JS function
+	    case 'fn':			// Return new function code block
+		return newSCLCode(cd, undefined, mp);
 	    // Run in original dispatch context
-	    case 'run': return (od ? cd(od) : undefined);
+	    case 'run': return cd(od);
+	    }
+	    else switch (op) {		// Function-mode ops
+	    case 'call':		// Call (only in function mode)
+	    {
+		// Restart the message using a standard dispatch
+		const octx = setRO(Object.create(null), {
+		    cd, ps: ps || false, ts: new NANOS(),
+		});
+		mesgBaton = mb;
+		console.log(op0, op, mp?.toString?.());
+		return receiveMessage({ octx, rr: pi, rt: type, op: op0, mp });
+	    }
+	    case 'jsfn':		// Return a JS wrapper-function
+		return function sclJSFn (...mp) { return pi('call', new NANOS().push([...mp])); };
+	    case 'fn':			// Return new function code block
+		return newSCLCode(cd, undefined, mp);
 	    }
 	    if (hasElse) return runIfCode(elseExpr);
 	    throw new TypeError(`No SysCL handler found for "${type}(${op})"`);
 	};
-	Object.defineProperty(code, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
-	return code;
+	Object.defineProperty(pi, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
+	return pi;
     }
     firstInit.push(() => {
-	/*
-	 * Handle the restarted standard-dispatch (call) and stub for the
-	 * custom receiver.
-	 */
-	const call = d => { setRO(d, 'ts', new NANOS()); return d.octx.cd(d); }, stubs = { std: false, fn: false, run: false };
 	getInterface('@code').set({ pristine: true, private: true, lock: true,
-	    /* @code-in-function-mode */ handlers: {
-		call, ...stubs,
+	    handlers: {
+		run: false, fn: false,
 	    },
 	});
 	getInterface('@function').set({ pristine: true, private: true, lock: true,
-	    /* converted-to-@function */ handlers: {
-		call, ...stubs,
+	    handlers: {
+		call: d => d.octx.cd(d), fn: false,
 	    },
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });

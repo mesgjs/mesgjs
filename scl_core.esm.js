@@ -45,21 +45,6 @@ function opIf (d) {
 // function opImport (d) {
 // }
 
-/*
- * $c(jsfcr object op params=[SCL params])
- * Returns a JS function-call-relay function. When the generated function
- * is called, its parameters are relayed via a pre-determined object and
- * message op (optionally with SCL parameters added in).
- * The object will receive the message with parameters
- * js=[JS params] scl=[SCL params].
- */
-function opJSFCR (d) {
-    const { mp } = d, rr = mp.at(0), rt = rr?.sclType, op = mp.at(1);
-    if (!rr || !rt) return undefined;
-    if (!typeAccepts(rt, op)) throw new TypeError(`No SysCL handler found for ${rt}(${op})`);
-    return function sclJSFCR (...js) { return rr(op, new NANOS().push({ js: new NANOS().push(...js), scl: mp.at('params') })); };
-}
-
 // Or: first true result, else last false result (default false)
 function opOr (d) {
     const { mp } = d;
@@ -91,7 +76,6 @@ export function installCore () {
 	    if: opIf,
 	    // import: opImport,
 	    interface: d => getInterface(d.mp.at(0)),
-	    jsfcr: opJSFCR,
 	    log: d => console.log(...d.mp.values()),
 	    logInterfaces,
 	    not: d => !d.mp.at(0),
