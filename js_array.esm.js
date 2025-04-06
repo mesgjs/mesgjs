@@ -4,35 +4,36 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
 // import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 // import { isIndex, NANOS } from 'syscl/nanos.esm.js';
 
 function opAtInit (d) {
     const { octx, mp } = d, ary = mp.at(0);
-    setRO(octx, 'ps', Array.isArray(ary) ? mp : []);
+    setRO(octx, 'js', Array.isArray(ary) ? mp : []);
 }
 
 export function installJSArray () {
     getInterface('@jsArray').set({
-	final: true, lock: true, pristine: true, // singleton: true,
+	lock: true, pristine: true,
 	handlers: {
 	    '@init': opAtInit,
-	    at: d => d.ps.at(d.mp.at(0)),
-	    concat: d => d.ps.concat(...d.mp.values()),
-	    entries: d => [...d.ps.entries()],
-	    flat: d => d.ps.flat(d.mp.at(0)),
-	    length: d => d.ps.length,
-	    pop: d => d.ps.pop(),
-	    push: d => d.ps.push(...d.mp.values()),
-	    reverse: d => d.ps.reverse(),
-	    setLength: d => d.ps.length = d.mp.at(0),
-	    shift: d => d.ps.shift(),
-	    slice: d => d.ps.slice(d.mp.at(0), d.mp.at(1)),
-	    sort: d => d.ps.sort(d.mp.at(0)),
-	    toReversed: d => d.ps.toReversed(),
-	    toSorted: d => d.ps.toSorted(d.mp.at(0)),
-	    unshift: d => d.ps.unshift(...d.mp.values()),
+	    at: d => d.js.at(d.mp.at(0)),
+	    concat: d => d.js.concat(...d.mp.values()),
+	    entries: d => [...d.js.entries()],
+	    flat: d => d.js.flat(d.mp.at(0)),
+	    length: d => d.js.length,
+	    pop: d => d.js.pop(),
+	    push: d => d.js.push(...d.mp.values()),
+	    reverse: d => d.js.reverse(),
+	    setLength: d => d.js.length = d.mp.at(0),
+	    shift: d => d.js.shift(),
+	    slice: d => d.js.slice(d.mp.at(0), d.mp.at(1)),
+	    sort: d => d.js.sort(d.mp.at(0)),
+	    toList: d => new NANOS().fromEntries(d.js.entries()),
+	    toReversed: d => d.js.toReversed(),
+	    toSorted: d => d.js.toSorted(d.mp.at(0)),
+	    unshift: d => d.js.unshift(...d.mp.values()),
 	},
     });
 }

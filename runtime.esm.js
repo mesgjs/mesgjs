@@ -21,6 +21,7 @@ import { installList } from 'syscl/scl_list.esm.js';
 import { installListIter } from 'syscl/scl_list_iter.esm.js';
 import { installNull } from 'syscl/scl_null.esm.js';
 import { installNumber } from 'syscl/scl_number.esm.js';
+import { installPromise } from 'syscl/scl_promise.esm.js';
 import { installString } from 'syscl/scl_string.esm.js';
 import { installTry } from 'syscl/scl_try.esm.js';
 import { installUndefined } from 'syscl/scl_undefined.esm.js';
@@ -35,6 +36,7 @@ const mainInit = [
     installListIter,
     installNumber,
     installNull,
+    installPromise,
     installString,
     installTry,
     installUndefined,
