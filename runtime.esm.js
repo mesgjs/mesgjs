@@ -8,6 +8,7 @@
  * Defining interfaces and dispatching handlers in response to messages
  */
 import { NANOS, isIndex } from 'syscl/nanos.esm.js';
+import { LRUCache } from 'syscl/lru_cache.esm.js';
 import { unifiedList } from 'syscl/unified_list.esm.js';
 export { NANOS, isIndex, unifiedList };
 import 'syscl/shim.esm.js';
@@ -120,6 +121,7 @@ export const {
 	dispatch: false, dispatchSource: false, dispatchType: false,
 	stack: 0, stackSource: false, stackType: false,
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
+    const handlerCache = new LRUCache(1024);
 
     function appendStackTrace (e) {
 	if (!stack.length || !e.stack?.includes || e.stack.includes(hdr)) return;
@@ -334,23 +336,30 @@ export const {
      * Returns {code, type, op}.
      */
     function getHandler (type0, op, next = false) {
-	const noopHandler = { code: () => {}, type: type0, op };
-	let defHandler;
 	// Only allow initial @init from getInstance
 	if (op === '@init') return noopHandler;
 	if (op === initSym) op = '@init';
-	for (const type of flatChain(type0)) {
-	    if (next && type === type0) continue;
-	    const code = interfaces[type]?.handlers[op];
-	    if (code) return { code, type, op };
-	    if (!defHandler) {
-		const op = 'defaultHandler', code = interfaces[type]?.handlers[op];
-		if (code) defHandler = { code, type, op };
+	const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})`, hit = cacheKey && handlerCache.at(cacheKey);
+	if (hit) return hit;
+
+	const handler = (() => {
+	    const noopHandler = { code: () => {}, type: type0, op };
+	    let defHandler;
+	    for (const type of flatChain(type0)) {
+		if (next && type === type0) continue;
+		const code = interfaces[type]?.handlers[op];
+		if (code) return { code, type, op };
+		if (!defHandler) {
+		    const op = 'defaultHandler', code = interfaces[type]?.handlers[op];
+		    if (code) defHandler = { code, type, op };
+		}
 	    }
-	}
-	// Guarantee a default "specific" handler for special @init
-	if (op === '@init') return noopHandler;
-	return defHandler;
+	    // Guarantee a default "specific" handler for special @init
+	    if (op === '@init') return noopHandler;
+	    return defHandler;
+	})();
+	if (cacheKey && handler) handlerCache.set(cacheKey, handler);
+	return handler;
     }
 
     /*
@@ -452,7 +461,6 @@ export const {
     // Return a new SCL code object given code and a dispatch
     function newSCLCode (cd, od, ps) {
 	// Encapsulate the code with a custom receiver function (public i/f)
-	let lock;
 	const pi = function sclR$Code (op0, mp) {
 	    const mb = mesgBaton, type = od ? '@code' : '@function';
 	    let op, hasElse, elseExpr;
@@ -475,7 +483,6 @@ export const {
 		    cd, ps: ps || false, ts: new NANOS(),
 		});
 		mesgBaton = mb;
-		console.log(op0, op, mp?.toString?.());
 		return receiveMessage({ octx, rr: pi, rt: type, op: op0, mp });
 	    }
 	    case 'jsfn':		// Return a JS wrapper-function

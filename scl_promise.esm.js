@@ -4,12 +4,13 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
 
 const identity = x => x, thrower = x => { throw x; };
 const callable = f => typeof f === 'function' && (!f.sclType || f.sclType === '@function');
 const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
+const dualStatus = status => Object.assign(new NANOS().push(status), status);
 
 function callHandlers (list) {
     const { state, result } = this[privKey], ok = state === 'fulfilled';
@@ -29,7 +30,7 @@ function callHandlers (list) {
 
 const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
-    all (...promises) {
+    all (promises) {
 	if (this[privKey].state !== 'pending') return;
 	const results = [];
 	let remaining = promises.length;
@@ -44,7 +45,7 @@ const proto = Object.setPrototypeOf({
 	return this;
     },
 
-    allSettled (...promises) {
+    allSettled (promises) {
 	if (this[privKey].state !== 'pending') return;
 	const results = [];
 	let remaining = promises.length;
@@ -52,10 +53,10 @@ const proto = Object.setPrototypeOf({
 	if (!remaining) this.resolve(results);
 	promises.forEach((p, idx) => {
 	    p.then(value => {
-		results[idx] = { status: 'fulfilled', value };
+		results[idx] = dualStatus({ status: 'fulfilled', value });
 		if (--remaining === 0) this.resolve(results);
 	    }).catch(reason => {
-		results[idx] = { status: 'rejected', reason };
+		results[idx] = dualStatus({ status: 'rejected', reason });
 		if (--remaining === 0) this.resolve(results);
 	    });
 	});
@@ -63,6 +64,23 @@ const proto = Object.setPrototypeOf({
     },
 
     always (handler) { return this.then(handler, handler); },
+
+    any (promises) {
+	if (this[privKey].state !== 'pending') return;
+	const reasons = [];
+	let remaining = promises.length;
+	const allRejected = () => { throw new AggregateError(reasons, 'All promises were rejected'); };
+
+	if (!remaining) allRejected();
+	promises.forEach((p, idx) => {
+	    p.then(res => this.resolve(res))
+	    .catch(reason => {
+		reasons[idx] = reason;
+		if (--remaining === 0) allRejected();
+	    });
+	});
+	return this;
+    },
 
     catch (onReject) { return this.then(null, onReject); },
 
@@ -74,6 +92,12 @@ const proto = Object.setPrototypeOf({
 	if (priv.state === 'pending') priv.handlers.push(entry);
 	else callHandlers.call(this, [ entry ]);
 	return entry[2];
+    },
+
+    race (promises) {
+	if (this[privKey].state !== 'pending') return;
+	promises.forEach(p => p.then(res => this.resolve(res), err => this.reject(err)));
+	return this;
     },
 
     reject (reason) {
@@ -122,10 +146,12 @@ export function installPromise () {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
-	    all: d => d.rr.all(...[...d.mp.values()]),
-	    allSettled: d => d.rr.allSettled(...[...d.mp.values()]),
+	    all: d => d.rr.all(d.mp.values()),
+	    allSettled: d => d.rr.allSettled(d.mp.values()),
 	    always: d => d.rr.always(d.mp.at(0)),
+	    any: d => d.rr.any(d.mp.values()),
 	    catch: d => d.rr.catch(d.mp.at(0)),
+	    race: d => d.rr.race(d.mp.values()),
 	    reject: d => d.rr.reject(d.mp.at(0)),
 	    resolve: d => d.rr.resolve(d.mp.at(0)),
 	    result: d => d.rr.result,
