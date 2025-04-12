@@ -85,6 +85,11 @@ export function installCore () {
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
 	},
+	cacheHints: {
+	    case: 'pin',
+	    get: 'pin',
+	    if: 'pin',
+	},
     });
     setRO(globalThis, {
 	$c: getInstance('@core'),

@@ -4,6 +4,8 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
+import { unescapeJSString } from 'syscl/escape.esm.js';
+
 // Split input into lexical tokens
 const lexPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
@@ -14,9 +16,9 @@ const lexPats = {
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     dbg: '@debug\\{',		// Start debug-mode code
-    stok: '!}|[!%#]\\??|[&[(={})\\]]',	// Special tokens
+    stok: '!}|[!%#]\\??|[[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
-    oth: '[^\'"!%#&[(={})\\]\\s]+',// Other
+    oth: '[^\'"!%#/[(={})\\]\\s]+',// Other
 };
 
 // Simple lexical analyzer
@@ -48,7 +50,7 @@ export function lex (input, loc = {}) {
 	    case "'": // Text literal
 	    case '"':
 		{
-		const uesl = unescStrLit(text.slice(1, -1));
+		const uesl = unescapeJSString(text.slice(1, -1));
 		return { type: 'txt', loc, text: uesl, staticValue: uesl };
 		}
 	    case '/':
@@ -306,22 +308,6 @@ export function parse (tokens) {
 function tokenLocStr (token) {
     const loc = token?.loc;
     return (loc ? `${loc.src || 'unknown'}:${loc.line + 1}:${loc.col + 1}` : 'end of input');
-}
-
-// Convert an escapped (input) string into a raw (internal) string
-function unescStrLit (input) {
-    return input.replace(/\\[\\bnrt'"]|\\x[\da-fA-F]{2}|\\u[\da-fA-F]{4}/g, e => {
-	switch (e[1]) {
-	case '\\': case "'": case '"':
-	case 'b': case 'n': case 'r': case 't':
-	    return (({
-		'\\': '\\', "'": "'", '"': '"',
-		b: '\b', n: '\n', r: '\r', t: '\t'
-	    })[e[1]]);
-	case 'x': case 'u':
-	    return String.fromCharCode(parseInt(e.substring(2), 16));
-	}
-    });
 }
 
 // END

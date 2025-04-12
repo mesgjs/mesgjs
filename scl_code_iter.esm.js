@@ -14,19 +14,17 @@ function opRun (d) {
     const { mp, js } = d;
     const raw = parseInt(mp.at('times', 1)), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
+    const save = res => { if (collect) result.push([res]); else result = res; };
     js.times = times;
     for (let i = 0; i < times; ++i) {
 	js.capture = false;
 	js.iteration = i;
-	try {
-	    if (collect) result.push(runIfCode(mp.at(0)));
-	    else result = runIfCode(mp.at(0));
-	}
+	try { save(runIfCode(mp.at(0))); }
 	catch (e) {
 	    if (!js.capture) throw e;
+	    const info = e.info;
+	    if (info.has?.('result')) save(info.at('result'));
 	    if (e.message === 'stop') break;
-	    if (collect) result.push(e.info);
-	    else result = e.info;
 	}
     }
     return result;
@@ -44,25 +42,23 @@ function opWhile (d) {
     const main = mp.at(0), xtra = ifc(mp.at(1)), pre = ifc(mp.at('pre')), mid = xtra && ifc(mp.at('mid')), post = ifc(mp.at('post'));
     // At least one of the pre or post code blocks must be present
     if (!pre && !mid && !post) return;
-    const collect = mp.at('collect'), react = e => {
-	if (!js.capture || e.message === 'stop') throw e;
+    const collect = mp.at('collect');
+    let result = collect ? new NANOS() : undefined;
+    const save = res => { if (collect) result.push([res]); else result = res; };
+    const react = e => {
+	if (!js.capture) throw e;
+	const info = e.info;
+	if (info?.has?.('result')) save(info.at('result'));
+	if (e.message === 'stop') throw e;
 	js.capture = false;
     };
-    let result = collect ? new NANOS() : undefined;
     js.times = undefined;
     for (let i = 0; ; ++i) {
 	js.capture = false;
 	js.iteration = i;
 	try {
 	    try { if (pre && !pre('run')) break; } catch (e) { react(e); }
-	    try {
-		if (collect) result.push(runIfCode(main));
-		else result = runIfCode(main);
-	    } catch (e) {
-		react(e);
-		if (collect) result.push(e.info);
-		else result = e.info;
-	    }
+	    try { save(runIfCode(main)); } catch (e) { react(e); }
 	    if (xtra) {
 		try { if (mid && !mid('run')) break; } catch (e) { react(e); }
 		try { xtra('run'); } catch (e) { react(e); }
@@ -96,9 +92,12 @@ export function installCodeIter () {
 	    remaining0: d => d.js.times ? (d.js.times - d.js.iteration) : undefined,
 	    remaining1: d => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
 	    run: opRun,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop'); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
 	    times: d => d.js.times,
 	    while: opWhile,
+	},
+	cacheHints: {
+	    while: 'pin',
 	},
     });
 }

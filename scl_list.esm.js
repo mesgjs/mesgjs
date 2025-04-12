@@ -79,6 +79,13 @@ export function installList () {
 	    toString: d => d.js.toString(' '),
 	    unshift: d => d.js.unshift(d.mp),
 	},
+	cacheHints: {
+	    '@init': 'pin',
+	    at: 'pin',
+	    has: 'pin',
+	    nset: 'pin',
+	    set: 'pin',
+	},
     });
 }
 

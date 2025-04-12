@@ -6,26 +6,7 @@
 
 import { lex, parse } from 'syscl/lexparse.esm.js';
 import { encode as vlenc } from 'syscl/vlq.esm.js';
-
-// Generate string escapes for JavaScript
-export function escapeJSStr (s) {
-    return s.replace(/[\x00-\x1f'"\\\u0200-\uffff]/g, c => {
-	switch (c) {
-	case '\b': return '\\b';
-	case '\n': return '\\n';
-	case '\r': return '\\r';
-	case '\t': return '\\t';
-	case "'": return "\\'";
-	case '"': return '\\"';
-	case '\\': return '\\\\';
-	}
-	const cc = c.charCodeAt(), ccs = cc.toString(16);
-	if (cc < 0x10) return '\\x0' + ccs;
-	if (cc < 0x100) return '\\x' + ccs;
-	if (cc < 0x1000) return '\\u0' + ccs;
-	return '\\u' + ccs;
-    });
-}
+import { escapeJSString } from 'syscl/escape.esm.js';
 
 class Segment {
     constructor (gen, src, pending) {
@@ -203,7 +184,7 @@ export function transpileTree (tree, opts = {}) {
     }
 
     function generateText (node) {
-	output(`'${escapeJSStr(node.text)}'`);
+	output(`'${escapeJSString(node.text)}'`);
     }
 
     function generateVar (node) {
@@ -216,7 +197,7 @@ export function transpileTree (tree, opts = {}) {
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) outseg(`na(${space},'${escapeJSStr(node.name.text)}'${opt})`, node, true);
+	if (node.name) outseg(`na(${space},'${escapeJSString(node.name.text)}'${opt})`, node, true);
 	else output(space);
     }
 

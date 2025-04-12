@@ -47,6 +47,9 @@ export function installString () {
 	    toUpper: d => d.js.toUpperCase(),
 	    valueOf: d => d.js,
 	},
+	cacheHints: {
+	    '@init': 'pin',
+	},
     });
 }
 

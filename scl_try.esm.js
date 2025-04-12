@@ -9,19 +9,22 @@ import { getInterface, runIfCode, SCLFlow } from 'syscl/runtime.esm.js';
 // @try(try code... catch=code always=code)
 function opTry (d) {
     const { mp, js } = d;
-    delete js.result;
     delete js.exception;
+    delete js.result;
+    const save = ex => {
+	const info = ex.info;
+	if (info?.has?.('result')) js.result = e.info.at('result');
+    };
     try {
 	for (const v of mp.values()) {
 	    js.capture = false;
 	    try { js.result = runIfCode(v); }
-	    catch (e) {
-		if (!js.capture) throw e;
-		if (e.message === 'stop') break;
-		js.result = e.info;
+	    catch (ex) {
+		if (!js.capture) throw ex;
+		save(ex);
+		if (ex.message === 'stop') break;
 	    }
 	}
-	return js.result;
     }
     catch (ex) {
 	if (ex instanceof SCLFlow) throw ex;
@@ -32,7 +35,10 @@ function opTry (d) {
 	    if (en[1]?.sclType !== '@code') return en[1];
 	    js.capture = false;
 	    try { en[1]('run'); }
-	    catch (ex) { if (!js.capture) throw ex; }
+	    catch (ex) {
+		if (!js.capture) throw ex;
+		save(e);
+	    }
 	    return js.result;
 	}
 	if (!mp.has('catch')) throw ex;
@@ -40,12 +46,15 @@ function opTry (d) {
 	if (cv?.sclType !== '@code') return cv;
 	js.capture = false;
 	try { cv('run'); }
-	catch (ex) { if (!js.capture) throw ex; }
-	return js.result;
+	catch (ex) {
+	    if (!js.capture) throw ex;
+	    save(ex);
+	}
     }
     finally {
 	runIfCode(mp.at('always'));
     }
+    return js.result;
 }
 
 export function installTry () {
@@ -57,7 +66,7 @@ export function installTry () {
 	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp.at(0)); },
 	    result: d => d.js.result,
 	    return: d => { d.js.result = d.mp.at(0); },
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop'); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
 	    try: opTry,
 	},
     });

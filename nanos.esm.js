@@ -4,17 +4,12 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
+import { escapeJSString, unescapeJSString } from 'syscl/escape.esm.js';
+
 export const isIndex = key => /^(?:0|[1-9]\d*)$/.test(key);
+export const isNegIndex = key => /^-[1-9]\d*$/.test(key);
 
 export class NANOS {
-    #next;
-    #keys;
-    #storage;
-    #locked;
-    #lockInd;
-    #lockNew;
-    #redacted;
-
     constructor (...items) {
 	this.clear();
 	this.push(...items);
@@ -23,26 +18,27 @@ export class NANOS {
     // Get value at key or index (negative index relative to end)
     at (key, defVal) {
 	key = this.#wrapKey(key);
-	return Object.hasOwn(this.#storage, key) ? this.#storage[key] : defVal;
+	return Object.hasOwn(this._storage, key) ? this._storage[key] : defVal;
     }
 
     clear () {
-	if (this.#locked) throw new TypeError('NANOS: Cannot clear after locking');
-	this.#next = 0;
-	this.#keys = [];
-	this.#storage = {};
-	this.#lockInd = undefined;
+	if (this._locked) throw new TypeError('NANOS: Cannot clear after locking');
+	this._next = 0;
+	this._keys = [];
+	this._storage = {};
+	this._lockInd = undefined;
+	delete this._redacted;
 	return this;
     }
 
     // NOTE: unlike the delete statement, this returns the deleted value!
     delete (key) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot delete after locking');
+	if (this._locked) throw new TypeError('NANOS: Cannot delete after locking');
 	const skey = '' + key;
-	const ret = this.#storage[skey];
-	if (Object.hasOwn(this.#storage, skey)) {
-	    delete this.#storage[skey];
-	    this.#keys = this.#keys.filter(k => k !== skey);
+	const ret = this._storage[skey];
+	if (Object.hasOwn(this._storage, skey)) {
+	    delete this._storage[skey];
+	    this._keys = this._keys.filter(k => k !== skey);
 	}
 	return ret;
     }
@@ -53,8 +49,8 @@ export class NANOS {
      * (e.g. 0 instead of '0').
      */
     *entries (compact = false) {
-	const ik = compact ? (k => isIndex(k) ? parseInt(k) : k) : (k => k);
-	for (const k of this.#keys) yield [ ik(k), this.#storage[k] ];
+	const ik = compact ? (k => isIndex(k) ? parseInt(k, 10) : k) : (k => k);
+	for (const k of this._keys) yield [ ik(k), this._storage[k] ];
     }
 
     // Returns a shallow copy of elements for which f(value, key) is true
@@ -64,24 +60,24 @@ export class NANOS {
 
     // Returns first [key, value] where f(value, key) is true; cf find, findIndex
     find (f) {
-	const s = this.#storage;
-	for (const k of this.#keys) if (f(s[k], k, this)) return [k, s[k]];
+	const s = this._storage;
+	for (const k of this._keys) if (f(s[k], k, this)) return [k, s[k]];
     }
 
     // Returns last [key, value] where f(value, key) is true; cf findLast, findLastIndex
     findLast (f) {
-	const s = this.#storage;
-	for (const k of this.#keys.toReversed()) if (f(s[k], k, this)) return [k, s[k]];
+	const s = this._storage;
+	for (const k of this._keys.toReversed()) if (f(s[k], k, this)) return [k, s[k]];
     }
 
     forEach (f) {
-	for (const k of this.#keys) f(this.#storage[k], k, this);
+	for (const k of this._keys) f(this._storage[k], k, this);
     }
 
     // [ [ key1, value1 ], ... [ keyN, valueN ] ]
     fromEntries (entries, insert = false) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot fromEntries after locking');
-	if (insert && this.#lockInd) throw new TypeError('NANOS: Cannot insert fromEntries after index lock');
+	if (this._locked) throw new TypeError('NANOS: Cannot fromEntries after locking');
+	if (insert && this._lockInd) throw new TypeError('NANOS: Cannot insert fromEntries after index lock');
 	if (insert) for (const e of [...entries].reverse()) this.set(e[0], e[1], true);
 	else for (const e of entries) this.set(e[0], e[1]);
 	return this;
@@ -92,7 +88,7 @@ export class NANOS {
      * { type: '@NANOS@', next, pairs }
      */
     fromPairs (...pairs) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot fromPairs after locking');
+	if (this._locked) throw new TypeError('NANOS: Cannot fromPairs after locking');
 	if (pairs[0]?.type === '@NANOS@') {
 	    this.fromPairs(pairs[0].pairs);
 	    this.next = pairs[0].next;
@@ -101,14 +97,14 @@ export class NANOS {
 	if (Array.isArray(pairs[0])) pairs = pairs[0];
 	const end = pairs.length - 1;
 	for (let i = 0; i < end; i += 2) {
-	    if (pairs[i] === undefined && !(i + 1 in pairs)) ++this.#next;
+	    if (pairs[i] === undefined && !(i + 1 in pairs)) ++this._next;
 	    else this.set(pairs[i], pairs[i + 1]);
 	}
 	return this;
     }
 
     // Instead of "key in NANOS"
-    has (key) { return Object.hasOwn(this.#storage, this.#wrapKey(key)); }
+    has (key) { return Object.hasOwn(this._storage, this.#wrapKey(key)); }
 
     includes (value) { return this.keyOf(value) !== undefined; }
 
@@ -117,22 +113,22 @@ export class NANOS {
     }
 
     // Just the index keys
-    *indexes () { for (const k of this.#keys) if (isIndex(k)) yield k; }
+    *indexes () { for (const k of this._keys) if (isIndex(k)) yield k; }
 
     // Is a key/value (or, if undef, the key-set) locked?
     isLocked (key) {
-	if (key === undefined) return this.#locked;	// Key-set locked
+	if (key === undefined) return this._locked;	// Key-set locked
 	key = this.#wrapKey(key);
-	if (this.#locked && !Object.hasOwn(this.#storage, key)) return true;
-	return !Object.getOwnPropertyDescriptor(this.#storage, key)?.writable;
+	if (this._locked && !Object.hasOwn(this._storage, key)) return true;
+	return !Object.getOwnPropertyDescriptor(this._storage, key)?.writable;
     }
 
     // Is a key/value redacted?
     isRedacted (key) {
-	if (this.#redacted === true) return true;
-	key = this.wrapKey(key);
-	if (isIndex(key)) return this.#redacted[0];
-	return this.#redacted[key];
+	if (this._redacted === true) return true;
+	key = this.#wrapKey(key);
+	if (isIndex(key)) return this._redacted?.[0];
+	return this._redacted?.[key];
     }
 
     // Returns first key/index with matching value, or undefined; cf indexOf
@@ -141,7 +137,7 @@ export class NANOS {
     }
 
     // keys iterator
-    keys () { return this.#keys.values(); }
+    keys () { return this._keys.values(); }
 
     // Returns last key/index with matchien value, or undefined; cf lastIndexOf
     lastKeyOf (value) {
@@ -151,8 +147,8 @@ export class NANOS {
     lock (...keys) {
 	for (let key of keys) {
 	    key = this.#wrapKey(key);
-	    if (isIndex(key)) this.#lockInd = true;
-	    if (key !== undefined) Object.defineProperty(this.#storage, key, {
+	    if (isIndex(key)) this._lockInd = true;
+	    if (key !== undefined) Object.defineProperty(this._storage, key, {
 		value: this.at(key), enumerable: true,
 		writable: false, configurable: false
 	    });
@@ -160,54 +156,54 @@ export class NANOS {
 	return this;
     }
 
-    lockKeys () { this.#locked = true; return this; }
+    lockKeys () { this._locked = true; return this; }
 
     lockValues (andNew = false) {
-	for (const key of this.#keys) this.lock(key);
-	if (andNew) this.#lockNew = true;
+	for (const key of this._keys) this.lock(key);
+	if (andNew) this._lockNew = true;
 	return this;
     }
 
     // "Next" index (max index + 1); similar to array.length
-    get next () { return this.#next; }
+    get next () { return this._next; }
     set next (nn) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot set next after locking');
+	if (this._locked) throw new TypeError('NANOS: Cannot set next after locking');
 	if (!Number.isInteger(nn) || nn < 0) return;
-	for (let i = this.#next; --i >= nn; this.delete(i));
-	this.#next = nn;
+	for (let i = this._next; --i >= nn; this.delete(i));
+	this._next = nn;
     }
 
     pairs (compact = false) { return [...this.entries(compact)].flat(1); }
 
     // Like Array.pop (only applies to indexed values)
     pop () {
-	if (this.#locked) throw new TypeError('NANOS: Cannot pop after locking');
-	if (this.#lockInd) throw new TypeError('NANOS: Cannot pop after index lock');
-	if (!this.#next) return undefined;
-	return this.delete(--this.#next);
+	if (this._locked) throw new TypeError('NANOS: Cannot pop after locking');
+	if (this._lockInd) throw new TypeError('NANOS: Cannot pop after index lock');
+	if (!this._next) return undefined;
+	return this.delete(--this._next);
     }
 
     /*
      * When pushing an object (array, NANOS, object), named keys are set
-     * directly and index keys are appended as an offset from #next
+     * directly and index keys are appended as an offset from _next
      * (therefore preserving any gaps).
      * Push [ object ] to add the actual object itself.
      */
     push (...items) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot push after locking');
+	if (this._locked) throw new TypeError('NANOS: Cannot push after locking');
 	items.forEach(value => {
-	    const base = this.#next;
+	    const base = this._next;
 	    if (value instanceof NANOS) {
 		for (const e of value.entries()) {
-		    if (isIndex(e[0])) this.set(base + parseInt(e[0]), e[1]);
+		    if (isIndex(e[0])) this.set(base + parseInt(e[0], 10), e[1]);
 		    else this.set(e[0], e[1]);
 		}
 	    } else if (typeof value === 'object') {
 		for (const k of Object.keys(value)) {
-		    if (isIndex(k)) this.set(base + parseInt(k), value[k]);
+		    if (isIndex(k)) this.set(base + parseInt(k, 10), value[k]);
 		    else this.set(k, value[k]);
 		}
-	    } else this.set(this.#next, value);
+	    } else this.set(this._next, value);
 	});
 	return this;
     }
@@ -215,32 +211,32 @@ export class NANOS {
     // NOTE: Only affects value returned by toString()
     redact (...keys) {
 	for (const key of keys) {
-	    if (key === true) this.#redacted = true;
-	    if (this.#redacted === true) return;
-	    this.#redacted ||= {};
-	    if (isIndex(key)) this.#redacted[0] = true;
-	    else this.#redacted[key] = true;
+	    if (key === true) this._redacted = true;
+	    if (this._redacted === true) return;
+	    this._redacted ||= {};
+	    if (isIndex(key)) this._redacted[0] = true;
+	    else this._redacted[key] = true;
 	}
 	return this;
     }
 
     #renumber (from, to, by) {
 	const move = (k, by) => {
-	    if (Object.hasOwn(this.#storage, k)) {
-		this.#storage[k + by] = this.#storage[k];
-		delete this.#storage[k];
+	    if (Object.hasOwn(this._storage, k)) {
+		this._storage[k + by] = this._storage[k];
+		delete this._storage[k];
 	    }
 	};
 
 	if (by > 0) {
-	    if (to + by > this.#next) this.#next = to + by;
+	    if (to + by > this._next) this._next = to + by;
 	    for (let k = to; --k >= from; ) move(k, by);
 	} else if (by < 0) {
-	    if (to >= this.#next) this.#next += by;
+	    if (to >= this._next) this._next += by;
 	    for (let k = from; k < to; ++k) move(k, by);
 	}
-	if (by) this.#keys = this.#keys.map(key => {
-	    const ind = isIndex(key) && parseInt(key);
+	if (by) this._keys = this._keys.map(key => {
+	    const ind = isIndex(key) && parseInt(key, 10);
 	    if (ind !== false && ind >= from && ind < to) return ind + by + '';
 	    return key;
 	});
@@ -248,15 +244,15 @@ export class NANOS {
 
     // Reverse *in place*
     reverse () {
-	if (this.#locked) throw new TypeError('NANOS: Cannot reverse after locking');
-	const s = this.#storage, nks = [], ns = {}, last = this.#next - 1;
-	for (const ok of this.#keys.toReversed()) {
+	if (this._locked) throw new TypeError('NANOS: Cannot reverse after locking');
+	const s = this._storage, nks = [], ns = {}, last = this._next - 1;
+	for (const ok of this._keys.toReversed()) {
 	    const nk = isIndex(ok) ? (last - ok) : ok;
 	    ns[nk] = s[ok];
 	    nks.push(nk);
 	}
-	this.#storage = ns;
-	this.#keys = nks;
+	this._storage = ns;
+	this._keys = nks;
 	return this;
     }
 
@@ -266,77 +262,104 @@ export class NANOS {
      * possible position that maintain increasing-index ordering constraints.
      */
     set (key, value, insert = false) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot set after locking');
-	if (key === undefined) key = this.#next;
+	if (this._locked) throw new TypeError('NANOS: Cannot set after locking');
+	if (key === undefined) key = this._next;
 	key = this.#wrapKey(key);
 	if (key === undefined) return;
 	const skey = '' + key;
-	const ind = isIndex(skey) && parseInt(skey);
-	if (!Object.hasOwn(this.#storage, skey)) {
+	const ind = isIndex(skey) && parseInt(skey, 10);
+	if (!Object.hasOwn(this._storage, skey)) {
 	    if (insert) {
-		if (ind === false || !this.#next) this.#keys.unshift(skey);
+		if (ind === false || !this._next) this._keys.unshift(skey);
 		else {
-		    let ki = this.#keys.length;
-		    while (ki > 0 && (!isIndex(this.#keys[ki - 1]) || ind < this.#keys[ki - 1])) --ki;
-		    this.#keys.splice(ki, 0, skey);
+		    let ki = this._keys.length;
+		    while (ki > 0 && (!isIndex(this._keys[ki - 1]) || ind < this._keys[ki - 1])) --ki;
+		    this._keys.splice(ki, 0, skey);
 		}
 	    } else { // append
-		if (ind === false || ind >= this.#next) this.#keys.push(skey);
+		if (ind === false || ind >= this._next) this._keys.push(skey);
 		else {
 		    let ki = 0;
-		    while (ki < this.#keys.length && (!isIndex(this.#keys[ki]) || ind > this.#keys[ki])) ++ki;
-		    this.#keys.splice(ki, 0, skey);
+		    while (ki < this._keys.length && (!isIndex(this._keys[ki]) || ind > this._keys[ki])) ++ki;
+		    this._keys.splice(ki, 0, skey);
 		}
 	    }
-	    if (ind !== false && ind >= this.#next) this.#next = ind + 1;
+	    if (ind !== false && ind >= this._next) this._next = ind + 1;
 	}
-	this.#storage[skey] = value;
-	if (this.#lockNew) this.lock(skey);
+	this._storage[skey] = value;
+	if (this._lockNew) this.lock(skey);
 	return value;
     }
 
     // Like Array.shift (only applies to indexed values)
     shift () {
-	if (this.#locked) throw new TypeError('NANOS: Cannot shift after locking');
-	if (this.#lockInd) throw new TypeError('NANOS: Cannot shift after index lock');
-	if (!this.#next) return undefined;
+	if (this._locked) throw new TypeError('NANOS: Cannot shift after locking');
+	if (this._lockInd) throw new TypeError('NANOS: Cannot shift after index lock');
+	if (!this._next) return undefined;
 	const res = this.delete(0);
-	this.#renumber(1, this.#next, -1);
+	this.#renumber(1, this._next, -1);
 	return res;
     }
 
     // Size of list (# of keys / indexes)
-    get size () { return this.#keys.length; }
+    get size () { return this._keys.length; }
 
-    get storage () { return this.#storage; }
+    get storage () { return this._storage; }
 
     toReversed () {
 	return new NANOS().fromPairs(this.toJSON()).reverse();
     }
 
     // Might be the best we can do
-    toJSON () { return {type:'@NANOS@', next: this.#next, pairs: this.pairs(true)}; }
+    toJSON () { return {type:'@NANOS@', next: this._next, pairs: this.pairs(true)}; }
 
-    toString (sep = ',') {
-	if (this.#redacted === true) return 'N[*???*]';
-	const tos = v => (v instanceof NANOS) ? v.toString(sep) : (v?.toString() ?? { null: 'null', undefined: 'undefined' }[v]);
-	const s = this.#storage, parts = [];
-	let nextInd = 0;
-	for (const k of this.#keys) {
-	    if (isIndex(k)) {
-		if (this.#redacted?.[0]) {
-		    parts.push('*?*');
-		    continue;
-		}
-		const ik = parseInt(k);
-		if (ik === nextInd) parts.push(tos(s[k]));
-		else parts.push(k + '=' + tos(s[k]));
-		nextInd = ik + 1;
+    // Generate SLID (SysCL List Data)-format string
+    toSLID ({ redact = false } = {}) {
+	const escape = str => escapeJSString(str).replace(/\)]/g, ')\\]');
+	function valueToStr (value) {
+	    switch (value) {
+	    case false: return '@f';
+	    case null: return '@n';
+	    case true: return '@t';
+	    case undefined: return '@u';
 	    }
-	    else if (this.#redacted?.[k]) parts.push('*?=?*');
-	    else parts.push(k + '=' + tos(s[k]));
-	}
-	return 'N[' + parts.join(sep) + ']';
+	    switch (typeof value) {
+	    case 'bigint': return value.toString() + 'n';
+	    case 'number': return value.toString();
+	    case 'string':
+		// Word-literal or quoted string
+		if (/^[A-Z_][A-Z0-9_-]*$/i.test(value)) return value;
+		return "'" + escape(value) + "'";
+	    }
+	    if (value instanceof NANOS) return '[' + itemsToStr(value) + ']';
+	    return '@u/*??*/';
+	};
+	function itemsToStr (node) {
+	    let expInd = 0;			// Expected next index
+	    if (redact && node._redacted === true) return ((redact === 'comment') ? '/*???*/' : '');
+	    const items = [];
+	    for (const en of node.entries()) {
+		if (isIndex(en[0])) {
+		    if (redact && node.isRedacted(0)) {
+			items.push(redact === 'comment' ? '@e/*?*/' : '@e');
+			continue;
+		    }
+		    const ind = parseInt(en[0], 10);
+		    items.push(((ind === expInd) ? '' : `${ind}=`) + valueToStr(en[1]));
+		    expInd = ind + 1;
+		} else {
+		    if (redact && node.isRedacted(en[0])) {
+			if (redact === 'comment') items.push('/*?=?*/');
+		    } else items.push(valueToStr(en[0]) + '=' + valueToStr(en[1]));
+		}
+	    }
+	    return items.join(' ');
+	};
+	return '[(' + itemsToStr(this) + ')]';
+    }
+
+    toString (options = {}) {
+	return this.toSLID({ redact: true, ...options });
     }
 
     /*
@@ -344,35 +367,109 @@ export class NANOS {
      * inserted instead (therefore preserving any gaps).
      */
     unshift (...items) {
-	if (this.#locked) throw new TypeError('NANOS: Cannot unshift after locking');
-	if (this.#lockInd) throw new TypeError('NANOS: Cannot unshift after index lock');
+	if (this._locked) throw new TypeError('NANOS: Cannot unshift after locking');
+	if (this._lockInd) throw new TypeError('NANOS: Cannot unshift after index lock');
 	items.toReversed().forEach(value => {
 	    if (value instanceof NANOS) {
-		this.#renumber(0, this.#next, value.next);
+		this.#renumber(0, this._next, value.next);
 		this.fromEntries(value.entries(), true);
 	    } else if (typeof value === 'object') {
 		const next = Array.isArray(value) ? value.length : Object.keys(value).filter(k => isIndex(k)).reduce((acc, cur) => Math.max(acc, cur), -1) + 1;
-		this.#renumber(0, this.#next, next);
+		this.#renumber(0, this._next, next);
 		this.fromEntries(Object.entries(value), true);
 	    } else this.unshift([value]);
 	});
 	return this;
     }
 
-    // Return a (non-sparse) iterator of *indexed* values [0..#next-1]
+    // Return a (non-sparse) iterator of *indexed* values [0.._next-1]
     *values () {
-	for (let i = 0; i < this.#next; ++i) yield this.at(i);
+	for (let i = 0; i < this._next; ++i) yield this.at(i);
     }
 
     #wrapKey (key) {
-	if (/^-[1-9]\d*$/.test(key)) {
-	    key = parseInt(key) + this.#next;
+	if (isNegIndex(key)) {
+	    key = parseInt(key, 10) + this._next;
 	    if (key < 0) return;
 	}
 	return key;
     }
 }
 
+// Alias .get() to .at()
+NANOS.prototype.get = NANOS.prototype.at;
+
 export { NANOS as default };
+
+//////////////////////////////////////////////////////////////////////
+// SLID Parsing Section
+//////////////////////////////////////////////////////////////////////
+
+// Subset of SysCL lexical tokens
+const slidPats = {
+    mlc: '/\\*.*?\\*/',		// Multi-line comment
+    num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
+    sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
+    dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
+    stok: '[[=\\]]',		// Special tokens
+    spc: '\\s+',		// Space
+    oth: '[^\'"/[=\\]\\s]+',	// Other
+};
+const slidRE = new RegExp('(' + 'mlc num sqs dqs stok spc oth'.split(' ').map(k => slidPats[k]).join('|') + ')', 's');
+const slidNum = new RegExp('^' + slidPats.num + '$');
+
+// Parse SLID-format data, returning (potentially nested) NANOS
+export function parseSLID (str) {
+    let match = str.match(/\[\((.*?)\)\]/s);
+    if (!match) throw new SyntaxError('SLID boundary marker(s) not found');
+    const tokens = match[1].split(slidRE).filter(t => !/^(\s*|\/\*.*\*\/)$/.test(t));
+    match = undefined;
+    const parseLeft = () => {	// Can be left of = (numbers, strings)
+	const token = tokens.shift();
+	if (slidNum.test(token)) {
+	    if (/n$/i.test(token)) return BigInt(token.slice(0, -1));
+	    if (/^[+-]?0b/i.test(token)) return parseInt(token.replace(/0b/i, ''), 2);
+	    if (/^[+-]?0o/i.test(token)) return parseInt(token.replace(/0o/i, ''), 8);
+	    if (/^[+-]?0x/i.test(token)) return parseInt(token.replace(/0x/i, ''), 16);
+	    return parseFloat(token);
+	}
+	if (token[0] !== "'" && token[0] !== '"') return token;
+	return unescapeJSString(token.slice(1, -1));
+    }
+    const parseRight = () => {	// More that can be right of =
+	if (tokens[0] !== '[') {
+	    switch (tokens[0]) {// Special values
+	    case '@f': tokens.shift(); return false;
+	    case '@n': tokens.shift(); return null;
+	    case '@t': tokens.shift(); return true;
+	    case '@u': tokens.shift(); return undefined;
+	    }
+	    return parseLeft();	// Everything OK on the left
+	}
+	tokens.shift();
+	return parseItems();	// Nested lists
+    }
+    function parseItems () {
+	const result = new NANOS();
+	while (tokens.length && tokens[0] !== ']') {
+	    let key;			// Default: positional
+	    if (tokens[1] === '=') {	// Named value
+		key = parseLeft();
+		tokens.shift();
+	    } else if (tokens[0] === '@e') {	// Empty
+		tokens.shift();
+		++result.next;
+		continue;
+	    }
+	    result.set(key, parseRight());
+	}
+	if (tokens[0] === ']') tokens.shift();
+	return result;
+    }
+    const result = parseItems();
+    // SLID was malformed if any tokens are left
+    if (tokens.length) throw new SyntaxError('Malformed SLID');
+    return result;
+}
 
 // END

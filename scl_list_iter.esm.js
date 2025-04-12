@@ -7,12 +7,16 @@
 import { getInterface, isIndex, NANOS, runIfCode, SCLFlow, setRO, unifiedList } from 'syscl/runtime.esm.js';
 
 function common (d, keys) {
-    const { mp, js } = d, collect = mp.at('collect'), list = js.list, react = e => {
-	if (!js.capture || e.message === 'stop') throw e;
-	js.capture = false;
-    };
+    const { mp, js } = d, collect = mp.at('collect'), list = js.list;
     let result = collect ? new NANOS() : undefined;
     const save = r => { if (collect) result.push(r); else result = r; };
+    const react = e => {
+	if (!js.capture) throw e;
+	const info = e.info;
+	if (info?.has?.('result')) save(info.at('result'));
+	if (e.message === 'stop') throw e;
+	js.capture = false;
+    };
     const onIndex = mp.at('index'), onNamed = mp.at('named'), onBoth = mp.at(1);
     try {
 	for (const k of keys) {
@@ -53,9 +57,9 @@ export function installListIter () {
 	    for: opFor,
 	    isIndex: d => d.js.isIndex,
 	    key: d => d.js.key,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next'); },
+	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp.at(0)); },
 	    rev: opRev,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop'); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
 	    value: d => d.js.value,
 	},
     });

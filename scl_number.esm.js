@@ -78,6 +78,9 @@ export function installNumber () {
 	    toString: d => d.js.toString(d.mp.at(0)),
 	    valueOf: d => d.js,
 	},
+	cacheHints: {
+	    '@init': 'pin',
+	},
     });
 }
 

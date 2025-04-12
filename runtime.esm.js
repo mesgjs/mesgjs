@@ -8,7 +8,7 @@
  * Defining interfaces and dispatching handlers in response to messages
  */
 import { NANOS, isIndex } from 'syscl/nanos.esm.js';
-import { LRUCache } from 'syscl/lru_cache.esm.js';
+import { SieveCache } from 'syscl/sieve_cache.esm.js';
 import { unifiedList } from 'syscl/unified_list.esm.js';
 export { NANOS, isIndex, unifiedList };
 import 'syscl/shim.esm.js';
@@ -121,7 +121,7 @@ export const {
 	dispatch: false, dispatchSource: false, dispatchType: false,
 	stack: 0, stackSource: false, stackType: false,
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
-    const handlerCache = new LRUCache(1024);
+    const handlerCache = new SieveCache(1024);
 
     function appendStackTrace (e) {
 	if (!stack.length || !e.stack?.includes || e.stack.includes(hdr)) return;
@@ -287,7 +287,7 @@ export const {
 		    if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		    return e.info;
 		}
-		if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`);
+		if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`, e);
 		if (trace && !(e instanceof SCLFlow)) appendStackTrace(e);
 		throw e;
 	    }
@@ -339,7 +339,7 @@ export const {
 	// Only allow initial @init from getInstance
 	if (op === '@init') return noopHandler;
 	if (op === initSym) op = '@init';
-	const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})`, hit = cacheKey && handlerCache.at(cacheKey);
+	const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})`, hit = cacheKey && handlerCache.get(cacheKey);
 	if (hit) return hit;
 
 	const handler = (() => {
@@ -358,7 +358,12 @@ export const {
 	    if (op === '@init') return noopHandler;
 	    return defHandler;
 	})();
-	if (cacheKey && handler) handlerCache.set(cacheKey, handler);
+	const cacheable = () => {
+	    if (!cacheKey || !handler || !interfaces[handler.type].locked) return;
+	    if (handler.code.cache !== undefined) return handler.code.cache;
+	    return (handler.op !== op || handler.type !== type0);
+	}, pinnable = () => handler.cache === 'pin' && handler.type === type0;
+	if (cacheable()) handlerCache.set(cacheKey, handler, pinnable());
 	return handler;
     }
 
@@ -587,6 +592,15 @@ export const {
 	    } else if (handler === false) ix.handlers[op] = false;
 	}
 	codeBaton = undefined;
+
+	const cacheHints = mp.cacheHints || {};
+	for (const [ op, hint ] of (cacheHints instanceof NANOS) ? cacheHints.entries() : Object.entries(cacheHints)) {
+	    switch (hint) {
+	    case true: case false: case 'pin':
+		if (ix.handlers[op]) ix.handlers[op].cache = hint;
+		break;
+	    }
+	}
 
 	if (mp.init) ix.init = mp.init;	// JS instance-init function
 	if (mp.abstract) ix.abstract = true;
