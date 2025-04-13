@@ -21,16 +21,17 @@ const segment = (gen, src, pdg) => new Segment(gen, src, pdg);
 // Split raw text input into tokens, parse, and transpile
 export function transpile (input, opts = {}) {
     const loc = opts.location || {};
-    const { tree, errors } = parse(lex(input, loc).tokens);
-    return transpileTree(tree, { ...opts, errors });
+    const { poundBang, configSLID, tokens } = lex(input, loc);
+    const { tree, errors } = parse(tokens);
+    return { poundBang, configSLID, ...transpileTree(tree, { ...opts, errors }) };
 }
 
 // Transpile pre-parsed input to JavaScript code (text)
 export function transpileTree (tree, opts = {}) {
-    let outBuf = [], nextBlock = 0, blocksIP = 0;
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
-    const blocks = [], outStack = [];
+    const outBuf = [], blocks = [], outStack = [];
     const aws = opts.addWhiteSpace;
+    let nextBlock = 0, blocksIP = 0;
 
     const error = (message, fatal = false) => {
 	    if (fatal) throw new Error(message);
@@ -71,6 +72,7 @@ export function transpileTree (tree, opts = {}) {
 	case '=':	// Named value(!)
 	    // This should only occur in a list or message
 	    error(`Error: Named-value outside of list/message at ${tls(node)}`, true);
+	    break;
 	case 'js':	// Embedded JavaScript
 	    generateJS(node);
 	    break;
@@ -139,7 +141,7 @@ export function transpileTree (tree, opts = {}) {
 
     function generateFinalOutput () {
 	if (blocks.length) {
-	    outBuf.splice(blocksIP, 0, 'const c=[', ...blocks.flat(1), '];');
+	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
 	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,mps,ps,sm,ts}=d;\n`));
@@ -225,11 +227,9 @@ export function transpileTree (tree, opts = {}) {
 	const { fileName: file, lineNumber: line, columnNumber: col } = e;
 	let mesg = e.message;
 	if (e.stack) mesg = e.stack;
-	else if (file) {
-	    if (line) {
-		mesg += ` at ${file}:${line}`;
-		if (col !== undefined) mesg += ':' + col;
-	    }
+	else if (file && line) {
+	    mesg += ` at ${file}:${line}`;
+	    if (col !== undefined) mesg += ':' + col;
 	}
 	generateFinalOutput();
 	// Return partial result on fatal error
@@ -237,7 +237,7 @@ export function transpileTree (tree, opts = {}) {
     }
 }
 
-export function mappingGenerator (segments, loc = {}) {
+export function mappingGenerator (segments) {
     let nextSrc = 0, genCol = 0, genLine = 0, genSeg = 0;
     let lastGenCol = 0, lastGenLine = 0;
     let lastSrcCol = 0, lastSrcLine = 0, lastSrcNum = 0;

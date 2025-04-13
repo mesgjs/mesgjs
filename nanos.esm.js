@@ -355,7 +355,7 @@ export class NANOS {
 	    }
 	    return items.join(' ');
 	};
-	return '[(' + itemsToStr(this) + ')]';
+	return '[(' + itemsToStr(this).replace(/\)\]/g, ')\\]') + ')]';
     }
 
     toString (options = {}) {
@@ -405,7 +405,7 @@ export { NANOS as default };
 // SLID Parsing Section
 //////////////////////////////////////////////////////////////////////
 
-// Subset of SysCL lexical tokens
+// SysCL List Data lexical token regexps
 const slidPats = {
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?(?![0-9a-zA-Z])',
@@ -422,7 +422,7 @@ const slidNum = new RegExp('^' + slidPats.num + '$');
 export function parseSLID (str) {
     let match = str.match(/\[\((.*?)\)\]/s);
     if (!match) throw new SyntaxError('SLID boundary marker(s) not found');
-    const tokens = match[1].split(slidRE).filter(t => !/^(\s*|\/\*.*\*\/)$/.test(t));
+    const tokens = match[1].replace(/\)\\\]/g, ')]').split(slidRE).filter(t => !/^(\s*|\/\*.*\*\/)$/.test(t));
     match = undefined;
     const parseLeft = () => {	// Can be left of = (numbers, strings)
 	const token = tokens.shift();

@@ -6,8 +6,8 @@
 
 import { unescapeJSString } from 'syscl/escape.esm.js';
 
-// Split input into lexical tokens
-const lexPats = {
+// SysCL lexical token regexps
+const SCLPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
@@ -21,12 +21,12 @@ const lexPats = {
     oth: '[^\'"!%#/[(={})\\]\\s]+',// Other
 };
 
+const SCLRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.split(' ').map(k => SCLPats[k]).join('|') + ')', 's');
+const SCLNum = new RegExp('^' + SCLPats.num + '$');
+
 // Simple lexical analyzer
 export function lex (input, loc = {}) {
-    const lre = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.
-      split(' ').map(k => lexPats[k]).join('|') + ')', 's');
-    const num = new RegExp('^' + lexPats.num + '$');
-    let { col = 0, line = 0, src = undefined } = loc;
+    let { src = undefined, line = 0, col = 0 } = loc;
 
     // Advance input position based on input
     function adv (str) {
@@ -40,8 +40,17 @@ export function lex (input, loc = {}) {
 	});
     }
 
-    return { tokens: input.split(lre).map(text => {
-	    const loc = { col, line, src };
+    let match = input.match(/^(#![^\n]*\n)?(\[\(.*?\)\])?/s);
+    const poundBang = match[1] || '', configSLID = match[2] || '';
+    match = undefined;
+    if (poundBang || configSLID) {
+	input = input.slice(poundBang.length + configSLID.length);
+	adv(poundBang);
+	adv(configSLID);
+    }
+
+    return { poundBang, configSLID, tokens: input.split(SCLRE).map(text => {
+	    const loc = { src, line, col };
 	    adv(text);
 
 	    switch (text[0]) {		// Check *FIRST CHAR* of token
@@ -70,13 +79,13 @@ export function lex (input, loc = {}) {
 		return { type: text, loc };
 	    default:
 		if (/^\s/.test(text)) return false;
-		if (num.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
+		if (SCLNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
 		if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) };
 		if (text === '@debug{') return { type: 'dbg', loc };
 		return { type: 'wrd', loc, text, staticValue: text };
 	    }
 	}).
-	filter(t => t), loc: { col, line, src } };
+	filter(t => t), loc: { src, line, col } };
 }
 
 // Generate parse tree from lexical tokens
@@ -121,6 +130,7 @@ export function parse (tokens) {
 	const node = { type, loc: cur.loc, statements };
 
 	++blkDep;
+	// deno-lint-ignore no-cond-assign
 	for (let cur; cur = tokens[read]; ) {
 	    if (cur.type === '}') {
 		++read; --blkDep;
@@ -147,6 +157,7 @@ export function parse (tokens) {
 	const read0 = read, base = parseVar() || parseLiteral();
 	if (!base) return null;
 	const messages = [], node = { type: 'chn', loc: base.loc, base, messages };
+	// deno-lint-ignore no-cond-assign
 	for (let message; message = parseMessage(); ) messages.push(message);
 	if (messages.length) return save(read0, node);
 	read = read0;
@@ -171,6 +182,7 @@ export function parse (tokens) {
 	    node = { type: '[', loc: cur.loc, items };
 
 	++lstDep;
+	// deno-lint-ignore no-cond-assign
 	for (let cur; cur = tokens[read]; ) {
 	    if (cur.type === ']') {
 		++read; --lstDep;
@@ -212,6 +224,7 @@ export function parse (tokens) {
 	};
 
 	++msgDep;
+	// deno-lint-ignore no-cond-assign
 	for (let cur; cur = tokens[read]; ) {
 	    if (cur.type === ')') {
 		++read; --msgDep;
