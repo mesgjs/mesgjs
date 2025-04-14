@@ -314,8 +314,18 @@ export class NANOS {
     toJSON () { return {type:'@NANOS@', next: this._next, pairs: this.pairs(true)}; }
 
     // Generate SLID (SysCL List Data)-format string
-    toSLID ({ redact = false } = {}) {
+    toSLID ({ compact = false, redact = false } = {}) {
 	const escape = str => escapeJSString(str).replace(/\)]/g, ')\\]');
+	function squished (items) {
+	    const parts = [];
+	    for (const item of items) {
+		const tail = parts.length ? parts.slice(-1).slice(-1) : '';
+		const joint = tail + (item[0] || '')/* head */;
+		if (tail && !/['"\[\]]/.test(joint)) parts.push(' ');
+		parts.push(item);
+	    }
+	    return parts.join('');
+	}
 	function valueToStr (value) {
 	    switch (value) {
 	    case false: return '@f';
@@ -328,7 +338,7 @@ export class NANOS {
 	    case 'number': return value.toString();
 	    case 'string':
 		// Word-literal or quoted string
-		if (/^[A-Z_][A-Z0-9_-]*$/i.test(value)) return value;
+		if (/^[!()*.,:;<>?A-Z{}_][!()*.,0-9:;<>?@A-Z{}_-]*$/i.test(value)) return value;
 		return "'" + escape(value) + "'";
 	    }
 	    if (value instanceof NANOS) return '[' + itemsToStr(value) + ']';
@@ -353,7 +363,7 @@ export class NANOS {
 		    } else items.push(valueToStr(en[0]) + '=' + valueToStr(en[1]));
 		}
 	    }
-	    return items.join(' ');
+	    return (compact ? squished(items) : items.join(' '));
 	};
 	return '[(' + itemsToStr(this).replace(/\)\]/g, ')\\]') + ')]';
     }
