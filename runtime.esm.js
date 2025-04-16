@@ -101,7 +101,8 @@ export const {
 	const frames = [], stop = dbgCfg.stack;
 	for (let down = stack.length, up = 0; --down >= 0; ) {
 	    const curFrm = stack[down], disp = curFrm.disp;
-	    frames.push(`${disp.st} => ${disp.rt}(${disp.op}${fmtDispParams(dbgCfg.stackTypes, disp.mp)})${fmtDispSrc(dbgCfg.stackSource,curFrm)}`);
+	    const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
+	    frames.push(`${disp.st} => ${disp.rt}(${dispOp}${fmtDispParams(dbgCfg.stackTypes, disp.mp)})${fmtDispSrc(dbgCfg.stackSource,curFrm)}`);
 	    if (++up === stop) break;
 	}
 	if (down >= 0) frames.push('[...]');	// Config stopped us early
