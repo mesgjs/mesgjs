@@ -14,34 +14,7 @@ export { NANOS, isIndex, unifiedList };
 import 'syscl/shim.esm.js';
 
 // Foundational-class installers
-import { installBoolean } from 'syscl/scl_boolean.esm.js';
-import { installCodeIter } from 'syscl/scl_code_iter.esm.js';
-import { installCore } from 'syscl/scl_core.esm.js';
-import { installJSArray } from 'syscl/js_array.esm.js';
-import { installList } from 'syscl/scl_list.esm.js';
-import { installListIter } from 'syscl/scl_list_iter.esm.js';
-import { installNull } from 'syscl/scl_null.esm.js';
-import { installNumber } from 'syscl/scl_number.esm.js';
-import { installPromise } from 'syscl/scl_promise.esm.js';
-import { installString } from 'syscl/scl_string.esm.js';
-import { installTry } from 'syscl/scl_try.esm.js';
-import { installUndefined } from 'syscl/scl_undefined.esm.js';
-
-// Main runtime initializers (after first init in protected zone)
-const mainInit = [
-    installCore,	// ** Core FIRST **
-    installBoolean,
-    installCodeIter,
-    installJSArray,
-    installList,
-    installListIter,
-    installNumber,
-    installNull,
-    installPromise,
-    installString,
-    installTry,
-    installUndefined,
-];
+import { installCoreExtensions } from 'syscl/scl_core_extensions.esm.js';
 
 // Flow exception, e.g. @d(return value) throws SCLFlow('return', value)
 export class SCLFlow extends Error {
@@ -118,8 +91,8 @@ export const {
     const getCode = Symbol('getCode'), initSym = Symbol('@init');
     const interfaces = Object.create(null), firstInit = [];
     const dbgCfg = Object.setPrototypeOf({
-	dispatch: false, dispatchSource: false, dispatchType: false,
-	stack: 0, stackSource: false, stackType: false,
+	dispatch: false, dispatchSource: false, dispatchTypes: false,
+	stack: 0, stackSource: false, stackTypes: false,
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
 
@@ -171,10 +144,10 @@ export const {
     }
 
     // Core version of getInstance (works with public interfaces)
-    function coreGetInstance (type, mp) {
+    function coreGetInstance (type, ...mp) {
 	if (initPhase === 2) initialize();
 	const ix = interfaces[type];
-	if (ix && !ix.private) return getInstance(type, mp || []);
+	if (ix && !ix.private) return getInstance(type, ...mp);
     }
 
     function debugConfig (set) {
@@ -275,7 +248,8 @@ export const {
 	    }
 	    const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
 	    try {
-		if (dbgCfg.dispatch) console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${disp.op}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+		const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
+		if (dbgCfg.dispatch) console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
 		if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
 		const result = handler.code(disp);
 		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
@@ -422,20 +396,20 @@ export const {
 	stub('@interface', 'instance', 'name', 'set');
     });
 
-    // Initialize the runtime environment (e.g. load foundations)
+    // Initialize the runtime environment (e.g. load core, core extensions)
     function initialize () {
 	if (initPhase === 2) {		// Only initialize once
 	    initPhase = 1;
 	    firstInit.forEach(cb => cb());
-	    mainInit.forEach(cb => cb());
+	    installCoreExtensions();
 	    initPhase = 0;
 	}
     }
 
     function logInterfaces () { console.log(interfaces); }
 
+    // Return a module dispatch object
     function moduleScope () {
-	// Return a module dispatch object
 	if (initPhase) initialize();
 	const m = function sclR$Module () {}, d = function sclR$Dispatch (op) {
 	    ({ op } = canMesgProps({ rr: d, op }));
@@ -490,10 +464,10 @@ export const {
 		mesgBaton = mb;
 		return receiveMessage({ octx, rr: pi, rt: type, op: op0, mp });
 	    }
-	    case 'jsfn':		// Return a JS wrapper-function
-		return function sclJSFn (...mp) { return pi('call', new NANOS().push([...mp])); };
 	    case 'fn':			// Return new function code block
 		return newSCLCode(cd, undefined, mp);
+	    case 'jsfn':		// Return a JS wrapper-function
+		return function sclJSFn (...mp) { return pi('call', new NANOS().push([...mp])); };
 	    }
 	    if (hasElse) return runIfCode(elseExpr);
 	    throw new TypeError(`No SysCL handler found for "${type}(${op})"`);

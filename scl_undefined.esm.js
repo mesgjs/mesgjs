@@ -7,7 +7,7 @@
 import { getInterface, setRO } from 'syscl/runtime.esm.js';
 // import { getInterface, isIndex, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 
-export function installUndefined () {
+export function install () {
     getInterface('@undefined').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {

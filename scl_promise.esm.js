@@ -1,5 +1,7 @@
 /*
  * SysCL @promise interface
+ * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
+ *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -141,8 +143,8 @@ function opInit (d) {
     });
 }
 
-export function installPromise () {
-    getInterface('@promise').set({
+export function install (name) {
+    getInterface(name).set({
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,

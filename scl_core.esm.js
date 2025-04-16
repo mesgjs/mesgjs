@@ -6,6 +6,7 @@
 
 import { debugConfig, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
 
+// (and value...)
 // And: false result if any not true, else last true result (default true)
 function opAnd (d) {
     const { mp } = d;
@@ -25,12 +26,13 @@ function opCase (d) {
     return runIfCode(mp.at('else'));
 }
 
+// (get type init=params)
 function opGet (d) {
-    const { mp } = d, instance = getInstance(mp.at(0));
-    if (instance && mp.has('init')) instance('init', mp.at('init'));
-    return instance;
+    const { mp } = d;
+    return (mp.has('init') ? getInstance(mp.at(0), mp.at('init')) : getInstance(mp.at(0)));
 }
 
+// (if cond1 then1 cond2 then2 ... else=value)
 function opIf (d) {
     const { mp } = d, end = mp.next - 1;
     for (let i = 0; i < end; i += 2) if (runIfCode(mp.at(i))) return runIfCode(mp.at(i + 1));
@@ -45,6 +47,7 @@ function opIf (d) {
 // function opImport (d) {
 // }
 
+// (or value...)
 // Or: first true result, else last false result (default false)
 function opOr (d) {
     const { mp } = d;
@@ -56,6 +59,7 @@ function opOr (d) {
     return result;
 }
 
+// (run value... collect=@f)
 function opRun (d) {
     const { mp } = d, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
@@ -64,8 +68,21 @@ function opRun (d) {
     return result;
 }
 
-export function installCore () {
-    getInterface('@core').set({
+function opXor (d) {
+    const { mp } = d;
+    let result = false;
+    for (const v of mp.values()) {
+	const curRes = runIfCode(v);
+	if (curRes) {
+	    if (result) return false;
+	    result = curRes;
+	}
+    }
+    return result;
+}
+
+export function install (name) {
+    getInterface(name).set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    _: d => d.mp.at(0),		// underscore ("basically parentheses")
@@ -78,12 +95,13 @@ export function installCore () {
 	    interface: d => getInterface(d.mp.at(0)),
 	    log: d => console.log(...d.mp.values()),
 	    logInterfaces,
-	    not: d => !d.mp.at(0),
+	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
 	    run: opRun,
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
+	    xor: opXor,
 	},
 	cacheHints: {
 	    case: 'pin',
@@ -91,7 +109,8 @@ export function installCore () {
 	    if: 'pin',
 	},
     });
-    setRO(globalThis, {
+    // @core is also responsible for these...
+    if (name === '@core') setRO(globalThis, {
 	$c: getInstance('@core'),
 	$f: false,
 	$gss: new NANOS(),

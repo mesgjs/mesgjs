@@ -13,8 +13,8 @@ function opAtInit (d) {
     setRO(octx, 'js', Array.isArray(ary) ? mp : []);
 }
 
-export function installJSArray () {
-    getInterface('@jsArray').set({
+export function install (name) {
+    getInterface(name).set({
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opAtInit,

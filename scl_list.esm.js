@@ -51,8 +51,8 @@ function opSet (d) {
     }
 }
 
-export function installList () {
-    getInterface('@list').set({
+export function install (name) {
+    getInterface(name).set({
 	/* final: true, */ lock: true, pristine: true, // singleton: true,
 	handlers: {
 	    '@init': opAtInit,

@@ -1,5 +1,5 @@
 /*
- * SysCL @codeIter interface
+ * SysCL @loop interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -12,7 +12,7 @@ import { getInterface, NANOS, runIfCode, SCLFlow, setRO } from 'syscl/runtime.es
  */
 function opRun (d) {
     const { mp, js } = d;
-    const raw = parseInt(mp.at('times', 1)), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
+    const raw = parseInt(mp.at('times', 1), 10), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
     const save = res => { if (collect) result.push([res]); else result = res; };
     js.times = times;
@@ -73,26 +73,26 @@ function opWhile (d) {
 }
 
 /*
- * (interation0) - 0-based iteration number (# completed at start)
- * (interation1) - 1-based iteration number (# completed at end)
- * (remaining0) - # iterations remaining at start
- * (remaining1) - # iterations remaining at end
+ * (num) - 0-based loop number (# completed at start; first: 0)
+ * (num1) - 1-based loop number (# completed at end; first: 1)
+ * (rem) - # loops remaining at end (last: 0)
+ * (rem1) - # loops remaining at start (last: 1)
  * (times) - total # of iterations
  * (next) - skip to the next (step in the) iteration
  * (stop) - stop without further iterations
  */
-export function installCodeIter () {
-    getInterface('@codeIter').set({
-	final: true, lock: true, pristine: true,
+export function install (name) {
+    getInterface(name).set({
+	lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', {}),
-	    iteration0: d => d.js.iteration,
-	    iteration1: d => d.js.iteration + 1,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp.at(0)); },
-	    remaining0: d => d.js.times ? (d.js.times - d.js.iteration) : undefined,
-	    remaining1: d => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
+	    num: d => d.js.iteration,
+	    num1: d => d.js.iteration + 1,
+	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
+	    rem: d => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
+	    rem1: d => d.js.times ? (d.js.times - d.js.iteration) : undefined,
 	    run: opRun,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
 	    times: d => d.js.times,
 	    while: opWhile,
 	},

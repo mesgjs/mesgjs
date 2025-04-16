@@ -51,7 +51,7 @@ function opSub (d) {
     return [...mp.values()].reduce((a, b) => a - b, js);
 }
 
-export function installNumber () {
+export function install () {
     getInterface('@number').set({
 	final: true, lock: true, pristine: true,
 	handlers: {

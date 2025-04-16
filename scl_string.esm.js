@@ -28,7 +28,7 @@ function opJoining (d) {
     return parts.join(js);
 }
 
-export function installString () {
+export function install () {
     getInterface('@string').set({
 	final: true, lock: true, pristine: true,
 	handlers: {

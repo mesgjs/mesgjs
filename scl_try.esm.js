@@ -57,16 +57,16 @@ function opTry (d) {
     return js.result;
 }
 
-export function installTry () {
-    getInterface('@try').set({
-	final: true, lock: true, pristine: true,
+export function install (name) {
+    getInterface(name).set({
+	lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d, 'js', {}),
 	    exception: d => d.js.exception,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp.at(0)); },
+	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
 	    result: d => d.js.result,
 	    return: d => { d.js.result = d.mp.at(0); },
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
 	    try: opTry,
 	},
     });

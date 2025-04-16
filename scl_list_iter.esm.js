@@ -49,17 +49,17 @@ function opRev (d) {
     return common(d, [...list.keys()].reverse().values());
 }
 
-export function installListIter () {
-    getInterface('@listIter').set({
-	final: true, lock: true, pristine: true,
+export function install (name) {
+    getInterface(name).set({
+	lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', {}),
 	    for: opFor,
 	    isIndex: d => d.js.isIndex,
 	    key: d => d.js.key,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp.at(0)); },
+	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
 	    rev: opRev,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp.at(0)); },
+	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
 	    value: d => d.js.value,
 	},
     });

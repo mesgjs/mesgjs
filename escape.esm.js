@@ -4,7 +4,7 @@
 
 // Generate string escapes for JavaScript
 export function escapeJSString (s) {
-    return s.replace(/[\x00-\x1f'"\\\u0200-\uffff]/g, c => {
+    return s.replace(/[\x00-\x1f'"\\\x7f-\uffff]/g, c => {
 	switch (c) {
 	case '\b': return '\\b';
 	case '\n': return '\\n';
