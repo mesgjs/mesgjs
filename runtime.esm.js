@@ -61,13 +61,19 @@ export function senderFLC () {
 // Set a read-only object property or properties
 // setRO(obj, key, value, enumerable = true)
 // setRO(obj, { map }, enumerable = true)
+const sROProp = { writable: false, configurable: false };
 export const setRO = (o, ...a) => {
     if (typeof a[0] === 'object') {
 	const [map, enumerable = true] = a;
-	for (const k of Object.keys(map)) setRO(o, k, map[k], enumerable);
+	sROProp.enumerable = enumerable;
+	for (const k of Object.keys(map)) {
+	    sROProp.value = map[k];
+	    Object.defineProperty(o, k, sROProp);
+	}
     } else {
-	const [k, value, enumerable = true] = a;
-	Object.defineProperty(o, k, {value, enumerable, writable: false, configurable: false});
+	const [key, value, enumerable = true] = a;
+	[ sROProp.value, sROProp.enumerable ] = [ value, enumerable ];
+	Object.defineProperty(o, key, sROProp);
     }
     return o;
 };
@@ -96,10 +102,12 @@ export const {
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
 
+    // Add some or all of our SysCL stack trace to the JS one
     function appendStackTrace (e) {
 	if (!stack.length || !e.stack?.includes || e.stack.includes(hdr)) return;
 	const frames = [], stop = dbgCfg.stack;
-	for (let down = stack.length, up = 0; --down >= 0; ) {
+	let down = stack.length;
+	for (let up = 0; --down >= 0; ) {
 	    const curFrm = stack[down], disp = curFrm.disp;
 	    const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
 	    frames.push(`${disp.st} => ${disp.rt}(${dispOp}${fmtDispParams(dbgCfg.stackTypes, disp.mp)})${fmtDispSrc(dbgCfg.stackSource,curFrm)}`);
@@ -177,7 +185,8 @@ export const {
      */
     function dispatchMessage (ctx, d1) {
 	const { sr, st, rr, rt, octx, op, mp } = ctx;
-	const handler = getHandler(rt, op);
+	if (d1.handler) console.log('got a d1 handler');
+	const { handler = getHandler(rt, op) } = d1;
 
 	if (!handler) {
 	    if (dbgCfg.dispatch) console.log(`[SysCl dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
@@ -442,9 +451,9 @@ export const {
     function newSCLCode (cd, od, ps) {
 	// Encapsulate the code with a custom receiver function (public i/f)
 	const pi = function sclR$Code (op0, mp) {
-	    const mb = mesgBaton, type = od ? '@code' : '@function';
-	    let op, hasElse, elseExpr;
-	    ({ op, mp, hasElse, elseExpr } = canMesgProps({ rr: pi, op: op0, mp }));
+	    const type = od ? '@code' : '@function';
+	    let sr, st, op, hasElse, elseExpr;
+	    ({ sr, st, op, mp, hasElse, elseExpr } = canMesgProps({ rr: pi, op: op0, mp }));
 	    if (od) switch (op) {	// Standard-mode ops
 	    case initSym: return;
 	    case getCode:
@@ -462,8 +471,7 @@ export const {
 		const octx = setRO(Object.create(null), {
 		    cd, ps: ps || false, ts: new NANOS(),
 		});
-		mesgBaton = mb;
-		return receiveMessage({ octx, rr: pi, rt: type, op: op0, mp });
+		return dispatchMessage({ sr, st, rr: pi, rt: type, op, mp, octx }, { handler: { code: cd, type, op } });
 	    }
 	    case 'fn':			// Return new function code block
 		return newSCLCode(cd, undefined, mp);

@@ -68,6 +68,12 @@ function opRun (d) {
     return result;
 }
 
+// (throw error)
+function opThrow (d) {
+    const { mp } = d, err = mp.at(0);
+    throw ((err instanceof Error) ? err : new Error(err));
+}
+
 function opXor (d) {
     const { mp } = d;
     let result = false;
@@ -98,6 +104,7 @@ export function install (name) {
 	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
 	    run: opRun,
+	    throw: opThrow,
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
