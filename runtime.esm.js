@@ -133,7 +133,7 @@ export const {
      * - Processes (NANOS or plain JS object) list-op messages
      */
     function canMesgProps (ctx, checkBaton = true) {
-	let sr, st, { rr, op, mp } = ctx, hasElse = false, elseExpr;
+	let sr, st, { rr, rt, op, mp } = ctx, hasElse = false, elseExpr;
 	if (checkBaton) {
 	    const mb = mesgBaton;
 	    mesgBaton = undefined;
@@ -146,10 +146,10 @@ export const {
 	    if (hp('params')) mp = op.params;
 	    if (hp('op')) op = op.op;
 	    else if (hp('0')) op = op[0];
-	    else throw new Error('Missing operation in SysCL list-op message');
+	    else throw new SyntaxError('Missing operation in SysCL list-op message');
 	}
 	mp = unifiedList(mp, true);	// Use unified mp interface
-	return { sr, st, rr, op, mp, hasElse, elseExpr };
+	return { sr, st, rr, rt, op, mp, hasElse, elseExpr };
     }
 
     // Core version of getInstance (works with public interfaces)
@@ -179,112 +179,123 @@ export const {
 	return new NANOS().push(dbgCfg);
     }
 
-    /*
-     * Create and dispatch one or more SCL Dispatch objects in response
-     * to a message.
-     */
-    function dispatchMessage (ctx, d1) {
-	const { sr, st, rr, rt, octx, op, mp } = ctx;
-	if (d1.handler) console.log('got a d1 handler');
-	const { handler = getHandler(rt, op) } = d1;
+    // Dispatch a handler, passing it a fresh @dispatch object
+    function dispatchHandler (mctx, xctx) {
+	const { sr, st, rr, rt } = mctx; // message context
+	const { octx, op, mp, handler, sm } = xctx; // inbound dH context
+	const dhctx = { capture: false, handler }; // running dH context
+	const cache = Object.create(null), enumerable = true;
+	/*
+	 * As part of the messaging pathway, dispatch objects have custom
+	 * receiver functions.
+	 */
+	const disp = function sclR$Dispatch () { return dispatchReceiver.call(disp, mctx, dhctx); };
+	Object.defineProperties(disp, {
+	    js: { get: () => octx?.js, enumerable },
+	    // JIT persistent storage
+	    p: { get: () => (octx.ps ??= new NANOS()), enumerable },
+	    // JIT transient (scratch) storage
+	    t: { get: () => (dhctx.ts ??= new NANOS()), enumerable },
+	});
+	disp.sclType = '@dispatch';
+	disp.b = tpl => bindCode(tpl, disp, cache);
+	disp.mp = mp;
+	disp.octx = octx;
+	disp.op = op;
+	disp.rr = rr;
+	disp.rt = rt;
+	disp.sm = sm;
+	disp.sr = sr;
+	disp.st = st;
+	Object.freeze(disp);
+
+	const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
+	try {
+	    if (dbgCfg.dispatch) {
+		const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
+		console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+	    }
+	    if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
+	    const result = handler.code(disp);
+	    if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
+	    return result;
+	}
+	catch (e) {
+	    if (dhctx.capture && e instanceof SCLFlow) {
+		dhctx.capture = false;
+		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
+		return e.info;
+	    }
+	    if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`, e);
+	    if (trace && !(e instanceof SCLFlow)) appendStackTrace(e);
+	    throw e;
+	}
+	finally {
+	    if (trace) stack.pop();
+	}
+	// Not reached
+    }
+
+    // Handle an incoming message's first dispatch
+    function dispatchMessage (mctx, dctx) {
+	const cmp = canMesgProps(mctx), { st, rr, rt, op, mp, hasElse, elseExpr } = cmp;
+	const { octx, handler = getHandler(rt, op) } = dctx;
 
 	if (!handler) {
 	    if (dbgCfg.dispatch) console.log(`[SysCl dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
-	    if (hasOwn(d1, 'else')) return runIfCode(d1.else);
+	    if (hasElse) return runIfCode(elseExpr);
 	    throw new TypeError(`No SysCL handler found for "${rt}(${op})"`);
 	}
 
 	// Send-message function (shared across all dispatches)
-	const sm = function sclS$(obr, op, mp) { return sclS$SendMessage({ sr: rr, st: rt, rr: obr, op, mp }); };
+	const sm = function sclS$(to, op, mp) { return sclS$SendMessage({ sr: rr, st: rt, rr: to, op, mp }); };
 
-	function newSCLDispatch (op, mp, handler) {
-	    let capture = false;
-	    // Each dispatch has its own code bindings
-	    const cache = Object.create(null);
-	    /*
-	     * As part of the messaging pathway, dispatch objects have custom
-	     * receiver functions.
-	     */
-	    const disp = function sclR$Dispatch () {
-		const { sr, op, mp, elseExpr } = canMesgProps({ rr: disp });
-		// Only accept messages from the original receiver
-		if (sr !== disp.rr || op === undefined) return;
-		switch (op) {
-		case 'log':		// Log entire dispatch to console
-		    console.dir(disp, { depth: null });
-		    return;
-		case 'redis':		// Redispatch
-		{
-		    // Accept either list-op or mp else parameter
-		    const dispElse = mp.has('else') ? mp.at('else') : elseExpr;
-		    // Optionally choose a specific type from the chain
-		    const type = mp.at('type') || handler.type;
-		    // The type must be in *current* handler's chain
-		    if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
-		    // Optionally change op and/or mp
-		    const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = mp.has('params') ? unifiedList(mp.at('params')) : mp, redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
-		    // Don't allow switch to default if not changing op
-		    // console.log(`Looking for "${type}(${rdop})"; found`, redis);
-		    if (!redis || (!mp.has('op') && redis.op !== rdop)) return runIfCode(dispElse);
-		    // Looks good; fire the redispatch
-		    return newSCLDispatch(rdop, rdmp, redis);
-		}
-		case 'handlerType': return handler.type;
-		case 'js': return disp.js;	// JavaScript state
-		case 'op': return disp.op;
-		case 'return':
-		    capture = true;
-		    throw new SCLFlow('return', mp.at(0));
-		    // Not reached
-		case 'self': return disp.rr;
-		case 'selfType': return disp.rt;
-		case 'sender': return disp.sr;
-		case 'senderType': return disp.st;
-		}
-		return runIfCode(elseExpr);
-	    };
-	    Object.defineProperties(disp, {
-		js: { get: () => octx?.js, enumerable: true },
-		ps: { get: () => octx?.ps, enumerable: true },
-	    });
-	    setRO(disp, { sr, st, rr, rt, octx, op, mp, sm,
-		b: tpl => bindCode(tpl, disp, cache),
-		sclType: '@dispatch',
-	    });
-	    if (handler.code.sclType === '@handler') {
-		// Persistent storage per object; transient (scratch) per dispatch
-		if (octx.ps === undefined) setRO(octx, 'ps', new NANOS());
-		if (disp.ts === undefined) setRO(disp, 'ts', new NANOS());
-	    }
-	    const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
-	    try {
-		const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
-		if (dbgCfg.dispatch) console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
-		if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
-		const result = handler.code(disp);
-		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
-		return result;
-	    }
-	    catch (e) {
-		if (capture && e instanceof SCLFlow) {
-		    capture = false;
-		    if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
-		    return e.info;
-		}
-		if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`, e);
-		if (trace && !(e instanceof SCLFlow)) appendStackTrace(e);
-		throw e;
-	    }
-	    finally { if (trace) stack.pop(); }
-	    // Not reached
+	// Dispatch the initial handler and return its result
+	return dispatchHandler(cmp, { octx, op, mp, handler, sm });
+    }
+
+    // Custom receiver for light-weight @dispatch objects
+    function dispatchReceiver (cmp, dhctx) {
+	const { sr, op, mp, elseExpr } = canMesgProps({ rr: this });
+	const { octx, handler, sm } = dhctx;
+	// Only accept attributed messages sent by the original receiver
+	if (sr !== this.rr || op === undefined) return;
+	switch (op) {
+	case 'log':		// Log the entire dispatch to the console
+	    console.dir(this, { depth: null });
+	    return;
+	case 'redis':		// Redispatch
+	{
+	    // Accept either list-op or mp else parameter
+	    const dispElse = mp.has('else') ? mp.at('else') : elseExpr;
+	    // Optionally choose a specific type from the chain
+	    const type = mp.at('type') || handler.type;
+	    // The type must be in *current* handler's chain
+	    if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
+	    // Optionally change op and/or mp
+	    const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = mp.has('params') ? unifiedList(mp.at('params')) : mp, redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
+	    // Don't allow switch to default if not changing op
+	    if (!redis || (!mp.has('op') && redis.op !== rdop)) return runIfCode(dispElse);
+	    // Looks good; fire the redispatch
+	    return dispatchHandler(cmp, { octx, op: redop, mp: rdmp, handler: redis, sm });
 	}
-
-	// Fire the initial dispatch
-	return newSCLDispatch(op, mp, handler);
+	case 'ht': return handler.type;
+	case 'js': return this.js;	// JavaScript state
+	case 'op': return this.op;
+	case 'return':
+	    ctx.capture = true;
+	    throw new SCLFlow('return', mp.at(0));
+	    // Not reached
+	case 'rr': return this.rr;
+	case 'rt': return this.rt;
+	case 'sr': return this.sr;
+	case 'st': return this.st;
+	}
+	return runIfCode(elseExpr);
     }
     firstInit.push(() => {
 	getInterface('@dispatch').set({ pristine: true, private: true, lock: true });
-	stub('@dispatch', 'handlerType', 'js', 'op', 'redis', 'return', 'self', 'selfType', 'sender', 'senderType');
+	stub('@dispatch', 'ht', 'js', 'op', 'redis', 'return', 'rr', 'rt', 'sr', 'st');
     });
 
     // Return flattened chain set by interface type
@@ -359,7 +370,7 @@ export const {
 	const ix = interfaces[type];
 	if (!ix) throw new TypeError(`Cannot get instance for unknown SysCL interface "${type}"`);
 	if (ix.instance) return ix.instance;
-	const octx = Object.create(null), pi = function sclR$Object (op, mp) { return receiveMessage({ octx, rr: pi, rt: type, op, mp }); };
+	const octx = Object.create(null), pi = function sclR$Object (op, mp) { return dispatchMessage({ rr: pi, rt: type, op, mp }, { octx }); };
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
@@ -425,19 +436,22 @@ export const {
 	    ({ op } = canMesgProps({ rr: d, op }));
 	    switch (op) {
 	    case 'op': return 'import';
-	    case 'self': case 'sender': return m;
-	    case 'selfType': case 'senderType': return '@module';
+	    case 'rr': case 'sr': return m;
+	    case 'rt': case 'st': return '@module';
 	    // Quietly ignore other messages
 	    }
 	};
-	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, mps = new NANOS();
+	let mps;
+	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, getMPS = () => (mps ??= new NANOS());
 	setRO(m, { sclType: '@module' });
+	Object.defineProperty(m, 'p', { get: getMPS, enumerable: true });
 	setRO(d, {
 	    sr: m, st: '@module', rr: m, rt: '@module', sclType: '@dispatch',
-	    octx: $u, op: 'import', mp: $u, mps, ps: mps, ts: $u,
+	    octx: $u, op: 'import', mp: $u, ts: $u,
 	    b, sm,
 	});
-	return { d,
+	Object.defineProperty(d, 'p', { get: getMPS, enumerable: true });
+	return { d, m,
 	    ls: listFromPairs,
 	    na: namespaceAt,
 	};
@@ -449,11 +463,13 @@ export const {
 
     // Return a new SCL code object given code and a dispatch
     function newSCLCode (cd, od, ps) {
+	const octx = setRO({}, 'cd', cd), type = od ? '@code' : '@function';
+	const fnctx = !od && { octx, handler: { code: cd, type, op: 'call' } };
+	if (ps !== undefined) setRO(octx, 'ps', ps);
 	// Encapsulate the code with a custom receiver function (public i/f)
-	const pi = function sclR$Code (op0, mp) {
-	    const type = od ? '@code' : '@function';
-	    let sr, st, op, hasElse, elseExpr;
-	    ({ sr, st, op, mp, hasElse, elseExpr } = canMesgProps({ rr: pi, op: op0, mp }));
+	const pi = function sclR$Code (op0, mp0) {
+	    const cmp = canMesgProps({ rr: pi, rt: type, op: op0, mp: mp0 }), { sr, st, op, mp, hasElse, elseExpr } = cmp;
+	    // console.log('sclR$Code', type, op);
 	    if (od) switch (op) {	// Standard-mode ops
 	    case initSym: return;
 	    case getCode:
@@ -466,23 +482,17 @@ export const {
 	    }
 	    else switch (op) {		// Function-mode ops
 	    case 'call':		// Call (only in function mode)
-	    {
-		// Restart the message using a standard dispatch
-		const octx = setRO(Object.create(null), {
-		    cd, ps: ps || false, ts: new NANOS(),
-		});
-		return dispatchMessage({ sr, st, rr: pi, rt: type, op, mp, octx }, { handler: { code: cd, type, op } });
-	    }
-	    case 'fn':			// Return new function code block
+		return dispatchHandler(cmp, fnctx);
+	    case 'fn':			// Return a new function code block
 		return newSCLCode(cd, undefined, mp);
 	    case 'jsfn':		// Return a JS wrapper-function
-		return function sclJSFn (...mp) { return pi('call', new NANOS().push([...mp])); };
+		octx.jsFn ||= function sclJSFn (...mp) { return pi('call', new NANOS([...mp])); };
+		return octx.jsFn;
 	    }
 	    if (hasElse) return runIfCode(elseExpr);
 	    throw new TypeError(`No SysCL handler found for "${type}(${op})"`);
 	};
-	Object.defineProperty(pi, 'sclType', { get: () => od ? '@code' : '@function', enumerable: true });
-	return pi;
+	return setRO(pi, 'sclType', type);
     }
     firstInit.push(() => {
 	getInterface('@code').set({ pristine: true, private: true, lock: true,
@@ -497,17 +507,6 @@ export const {
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
     });
-
-    /*
-     * Receive and dispatch a message (either an anonmyous message via
-     * parameters to the interface function, or an attributed message via
-     * the message baton.
-     */
-    function receiveMessage (ctx) {
-	const { rr, rt, octx } = ctx, { sr, st, op, mp, hasElse, elseExpr } = canMesgProps(ctx);
-	const d1 = hasElse ? { else: elseExpr } : {};
-	return dispatchMessage({ sr, st, rr, rt, op, mp, octx }, d1);
-    }
 
     /*
      * Promote JS receiver objects to SysCL, if necessary, and deliver an

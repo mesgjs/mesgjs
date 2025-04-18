@@ -104,7 +104,7 @@ export function transpileTree (tree, opts = {}) {
 	    case '@c': output('$c'); break;	// core
 	    case '@d': output('d'); break;	// dispatch object
 	    case '@gss': output('$gss'); break;	// global shared storage
-	    case '@mps': output('mps'); break;	// module private storage
+	    case '@mps': output('m.p'); break;	// module private storage
 	    default: return false;
 	    }
 	    return true;
@@ -121,7 +121,7 @@ export function transpileTree (tree, opts = {}) {
 	    // Generate out-of-band (blocks array) content
 	    pushOut();
 	    // Code template will be assigned a global block id at first binding
-	    output(`{cd:d=>{const{b,mp,ps,sm,ts}=d;`);
+	    output(`{cd:d=>{const{b,mp,sm}=d;`);
 	}
 
 	const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
@@ -144,7 +144,7 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,na}=moduleScope(), {b,mp,mps,ps,sm,ts}=d;\n`));
+	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,m,na}=moduleScope(), {b,mp,sm}=d;\n`));
     }
 
     function generateJS (node) {
@@ -194,8 +194,8 @@ export function transpileTree (tree, opts = {}) {
 	let space;
 	switch (node.space) {
 	case '!': space = 'mp'; break;	// Mespar (message parameters)
-	case '%': space = 'ps'; break;	// Persto (persistent storage)
-	case '#': space = 'ts'; break;	// Scratch (transient storage)
+	case '%': space = 'd.p'; break;	// Persto (persistent storage)
+	case '#': space = 'd.t'; break;	// Scratch (transient storage)
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
