@@ -121,7 +121,7 @@ export function transpileTree (tree, opts = {}) {
 	    // Generate out-of-band (blocks array) content
 	    pushOut();
 	    // Code template will be assigned a global block id at first binding
-	    output(`{cd:d=>{const{b,mp,sm}=d;`);
+	    output(`{cd:d=>{const{mp,sm}=d;`);
 	}
 
 	const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
@@ -135,7 +135,7 @@ export function transpileTree (tree, opts = {}) {
 	    blocks[blockNum] = popOut();
 	    if (blockNum) blocks[blockNum].unshift(',');
 	    // Generate in-band code content
-	    output(`b(c[${blockNum}])`);
+	    output(`d.b(c[${blockNum}])`);
 	}
     }
 
@@ -144,7 +144,7 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,m,na}=moduleScope(), {b,mp,sm}=d;\n`));
+	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';const {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
     }
 
     function generateJS (node) {

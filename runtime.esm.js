@@ -118,9 +118,9 @@ export const {
     }
 
     // Bind a code template to a dispatch object and save it
-    function bindCode (tpl, disp, cache) {
+    function bindCode (tpl, disp) {
 	if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
-	return (cache[tpl.ucid] ||= newSCLCode(tpl.cd, disp));
+	return ((disp._bc ||= [])[tpl.ucid] ||= newSCLCode(tpl.cd, disp));
     }
 
     /*
@@ -177,28 +177,29 @@ export const {
 	return new NANOS(dbgCfg);
     }
 
+    // Shared JS getters & methods for @dispatch interface functions
+    const dispProto = Object.setPrototypeOf({
+	// Return code bound to this dispatch
+	b (tpl) { return bindCode(tpl, this); },
+	get js () { return this.octx.js; },
+	// JIT persistent storage NANOS
+	get p () { return this.octx.ps ??= new NANOS(); },
+	get sclType () { return '@dispatch'; },
+	// JIT transient (scratch) storage NANOS
+	get t () { return this._ts ??= new NANOS(); },
+    }, Object.getPrototypeOf(Function));
+
     // Dispatch a handler, passing it a fresh @dispatch object
     function dispatchHandler (mctx, xctx) {
 	const { sr, st, rr, rt } = mctx; // message context
 	const { octx, op, mp, handler, sm } = xctx; // inbound dH context
-	const dhctx = { capture: false, handler }; // running dH context
-	const cache = {}, enumerable = true;
+	const dhctx = { octx, capture: false, handler }; // running dH context
 
 	/*
 	 * As part of the messaging pathway, dispatch objects have custom
 	 * receiver functions.
 	 */
-	const disp = function sclR$Dispatch () { return dispatchReceiver.call(disp, mctx, dhctx); };
-	octx.getPS ||= { get: () => (octx.ps ??= new NANOS()), enumerable };
-	Object.defineProperties(disp, {
-	    // JIT persistent storage
-	    p: octx.getPS,
-	    // JIT transient (scratch) storage
-	    t: { get: () => (dhctx.ts ??= new NANOS()), enumerable },
-	});
-	disp.sclType = '@dispatch';
-	disp.b = tpl => bindCode(tpl, disp, cache);
-	disp.js = octx.js;
+	const disp = Object.setPrototypeOf(function sclR$Dispatch () { return dispatchReceiver.call(disp, mctx, dhctx); }, dispProto);
 	disp.mp = mp;
 	disp.octx = octx;
 	disp.op = op;
@@ -207,7 +208,6 @@ export const {
 	disp.sm = sm;
 	disp.sr = sr;
 	disp.st = st;
-	// Object.freeze(disp);
 
 	const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
 	try {
@@ -221,8 +221,8 @@ export const {
 	    return result;
 	}
 	catch (e) {
-	    if (dhctx.capture && e instanceof SCLFlow) {
-		dhctx.capture = false;
+	    if (disp._capture && e instanceof SCLFlow) {
+		disp._capture = false;
 		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		return e.info;
 	    }
@@ -281,7 +281,7 @@ export const {
 	case 'js': return this.js;	// JavaScript state
 	case 'op': return this.op;
 	case 'return':
-	    dhctx.capture = true;
+	    this._capture = true;
 	    throw new SCLFlow('return', mp.at(0));
 	    // Not reached
 	case 'rr': return this.rr;
@@ -440,7 +440,8 @@ export const {
 	    }
 	};
 	let mps;
-	const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, getMPS = () => (mps ??= new NANOS());
+	// const cache = Object.create(null), b = tpl => bindCode(tpl, d, cache), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, getMPS = () => (mps ??= new NANOS());
+	const b = tpl => bindCode(tpl, d), sm = function sclS$ (rr, op, mp) { return sclS$SendMessage({ sr: m, st: '@module', rr, op, mp }); }, getMPS = () => (mps ??= new NANOS());
 	setRO(m, 'sclType', '@module');
 	Object.defineProperty(m, 'p', { get: getMPS, enumerable: true });
 	setRO(d, {
