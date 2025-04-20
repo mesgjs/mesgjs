@@ -12,7 +12,7 @@ const identity = x => x, thrower = x => { throw x; };
 const callable = f => typeof f === 'function' && (!f.sclType || f.sclType === '@function');
 const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
-const dualStatus = status => Object.assign(new NANOS().push(status), status);
+const dualStatus = status => Object.assign(new NANOS(status), status);
 
 function callHandlers (list) {
     const { state, result } = this[privKey], ok = state === 'fulfilled';
