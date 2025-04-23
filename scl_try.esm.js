@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, SCLFlow } from 'syscl/runtime.esm.js';
+import { getInterface, runIfCode, SCLFlow, setRO } from 'syscl/runtime.esm.js';
 
 // @try(try code... catch=code always=code)
 function opTry (d) {
@@ -37,7 +37,7 @@ function opTry (d) {
 	    try { en[1]('run'); }
 	    catch (ex) {
 		if (!js.capture) throw ex;
-		save(e);
+		save(ex);
 	    }
 	    return js.result;
 	}
@@ -61,8 +61,10 @@ export function install (name) {
     getInterface(name).set({
 	lock: true, pristine: true,
 	handlers: {
-	    '@init': d => setRO(d, 'js', {}),
-	    exception: d => d.js.exception,
+	    '@init': d => setRO(d.octx, 'js', {}),
+	    error: d => d.js.exception,
+	    message: d => d.js.exception?.message,
+	    name: d => d.js.exception?.name,
 	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
 	    result: d => d.js.result,
 	    return: d => { d.js.result = d.mp.at(0); },

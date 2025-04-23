@@ -664,13 +664,13 @@ export const $f = false, $n = null, $t = true, $u = undefined;
 
 // Promote a JS object to a SCL object for messaging
 const sclInstance = Symbol.for('sclInstance');
+const setJTSInstance = (type, jsv) => {
+    const inst = getInstance(type, jsv);
+    setRO(jsv, sclInstance, inst, false);
+    return inst;
+};
 export function jsToSCL (jsv) {
     if (jsv?.sclType) return jsv;
-    const setInstance = (type, jsv) => {
-	const inst = getInstance(type, jsv);
-	setRO(jsv, sclInstance, inst, false);
-	return inst;
-    };
     switch (typeof jsv) {
     case 'boolean':
 	return getInstance(jsv ? '@true' : '@false');
@@ -680,8 +680,8 @@ export function jsToSCL (jsv) {
     case 'object':
 	if (jsv === null) return getInstance('@null');
 	if (jsv[sclInstance]) return jsv[sclInstance];
-	if (jsv instanceof NANOS) return setInstance('@list', jsv);
-	if (Array.isArray(jsv)) return setInstance('@jsArray', jsv);
+	if (jsv instanceof NANOS) return setJTSInstance('@list', jsv);
+	if (Array.isArray(jsv)) return setJTSInstance('@jsArray', jsv);
 	return getInstance('@undefined');
     case 'string':
 	return getInstance('@string', jsv);

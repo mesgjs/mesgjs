@@ -15,6 +15,7 @@ test('Check first interface name', () => {
 test('Configure first interface', () => {
     aif1.set({
 	handlers: {
+	    both: d => [ d, 'both', msgd(d, 'redis') ],
 	    getD: d => [ d, 'getD' ],
 	    redis: d => msgd(d, { op: 'redis', params: d.mp }),
 	    defaultHandler: d => [ d, 'default' ],
@@ -24,7 +25,7 @@ test('Configure first interface', () => {
 
 let inst1;
 test('Get first interface instance', () => { inst1 = getInstance(aif1.ifName) });
-testReturns('Verify first instance type', () => inst1.sclType, aif1.ifName);
+testReturns('Verify first instance type', () => inst1.sclType, res => res === aif1.ifName);
 
 let aif2;
 test('Create second anonymous interface', () => { aif2 = getInterface('?'); });
@@ -39,13 +40,16 @@ test('Configure second interface', () => {
     aif2.set({
 	chain: [ aif1.ifName ],
 	handlers: {
+	    both: d => [ d, 'both', msgd(d, 'redis') ],
+	    only2: d => [ d, 'only2', msgd(d, 'redis') ],
+	    defaultHandler: d => [ d, 'default', msgd(d, 'redis') ],
 	},
     });
 });
 
 let inst2;
 test('Get second interface instance', () => { inst2 = getInstance(aif2.ifName) });
-testReturns('Verify second instance type', () => inst2.sclType, aif2.ifName);
+testReturns('Verify second instance type', () => inst2.sclType, res => res === aif2.ifName);
 
 console.log('[****] Check basic dispatch (getD)');
 (() => {
@@ -53,10 +57,10 @@ console.log('[****] Check basic dispatch (getD)');
     testReturns('getD handler', () => d[1], 'getD');
     testReturns('getD .rr', () => d[0].rr, res => res === inst1);
     testReturns('getD (rr)', () => msgd(d[0],'rr'), res => res === inst1);
-    testReturns('getD .rt', () => d[0].rt, inst1.sclType);
-    testReturns('getD (rt)', () => msgd(d[0],'rt'), inst1.sclType);
-    testReturns('getD .ht', () => d[0].ht, inst1.sclType);
-    testReturns('getD (ht)', () => msgd(d[0],'ht'), inst1.sclType);
+    testReturns('getD .rt', () => d[0].rt, res => res === inst1.sclType);
+    testReturns('getD (rt)', () => msgd(d[0],'rt'), res => res === inst1.sclType);
+    testReturns('getD .ht', () => d[0].ht, res => res === inst1.sclType);
+    testReturns('getD (ht)', () => msgd(d[0],'ht'), res => res === inst1.sclType);
     testReturns('getD .dop', () => d[0].dop, 'getD');
     testReturns('getD (dop)', () => msgd(d[0],'dop'), 'getD');
     testReturns('getD .mop', () => d[0].mop, 'getD');
@@ -90,11 +94,43 @@ console.log('[****] Chained dispatches');
 (() => {
     let d;
     if (test('if2/if1(getD)', () => d = inst2('getD'))) {
-	testReturns('getD .ht if1', () => d[0].ht, aif1.ifName);
-	testReturns('getD .rr', () => d[0].rr, () => inst2);
-	testReturns('getD .rt if2', () => d[0].rt, aif2.ifName);
+	testReturns('getD .ht if1', () => d[0].ht, res => res === aif1.ifName);
+	testReturns('getD (ht) if1', () => msgd(d[0],'ht'), res => res === aif1.ifName);
+	testReturns('getD .rr', () => d[0].rr, res => res === inst2);
+	testReturns('getD .rt if2', () => d[0].rt, res => res === aif2.ifName);
+	testReturns('getD (rt) if2', () => msgd(d[0],'rt'), res => res === aif2.ifName);
 	testReturns('getD .dop', () => d[0].dop, 'getD');
+	testReturns('getD (dop)', () => msgd(d[0],'dop'), 'getD');
 	testReturns('getD .mop', () => d[0].mop, 'getD');
+	testReturns('getD (mop)', () => msgd(d[0],'mop'), 'getD');
+    }
+})();
+
+(() => {
+    let d;
+    if (test('if2(only2)', () => d = inst2('only2'))) {
+	testReturns('only2 dispatch 1', () => d[1], 'only2');
+	testReturns('only2 dispatch 2', () => d[2], undefined);
+    }
+})();
+
+(() => {
+    let d;
+    if (test('if2(both)', () => d = inst2('both'))) {
+	testReturns('both dispatch 1', () => d[1], 'both');
+	if (testReturns('both dispatch 2', () => d[2][1], 'both')) {
+	    testReturns('both dispatch 3', () => d[2][2], undefined);
+	}
+    }
+})();
+
+(() => {
+    let d;
+    if (test('if2(noSuchMessage)', () => d = inst2('noSuchMessage'))) {
+	testReturns('noSuchMessage dispatch 1', () => d[1], 'default');
+	if (testReturns('noSuchMessage dispatch 2', () => d[2][1], 'default')) {
+	    testReturns('noSuchMessage dispatch 3', () => d[2][2], undefined);
+	}
     }
 })();
 
