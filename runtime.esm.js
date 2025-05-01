@@ -400,16 +400,21 @@ export const {
 	    // Quietly ignore other messages
 	    }
 	};
-	let mps;
-	const b = tpl => bindCode(tpl, d), sm = sclS$SendMessage.bind({ sr: m, st: '@module' }), getMPS = () => (mps ??= new NANOS());
+	let per, tra;	// JIT persistent, transient storage
+	const b = tpl => bindCode(tpl, d), sm = sclS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
 	setRO(m, 'sclType', '@module');
-	Object.defineProperty(m, 'p', { get: getMPS, enumerable: true });
+	Object.defineProperties(m, {
+	    p: { get: getPer, enumerable: true },
+	    t: { get: getTra, enumerable: true },
+	});
 	setRO(d, {
 	    sr: m, st: '@module', rr: m, rt: '@module', sclType: '@dispatch',
-	    octx: $u, op: 'load', mp: $u, ts: $u,
-	    b, sm,
+	    octx: $u, op: 'load', mp: $u, b, sm,
 	});
-	Object.defineProperty(d, 'p', { get: getMPS, enumerable: true });
+	Object.defineProperties(d, {
+	    p: { get: getPer, enumerable: true },
+	    t: { get: getTra, enumerable: true },
+	});
 	return { d, m,
 	    ls: listFromPairs,
 	    na: namespaceAt,

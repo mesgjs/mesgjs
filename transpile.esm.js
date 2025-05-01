@@ -21,9 +21,9 @@ const segment = (gen, src, pdg) => new Segment(gen, src, pdg);
 // Split raw text input into tokens, parse, and transpile
 export function transpile (input, opts = {}) {
     const loc = opts.location || {};
-    const { poundBang, configSLID, tokens } = lex(input, loc);
+    const { shebang, configSLID, tokens } = lex(input, loc);
     const { tree, errors } = parse(tokens);
-    return { poundBang, configSLID, ...transpileTree(tree, { ...opts, errors }) };
+    return { shebang, configSLID, ...transpileTree(tree, { ...opts, errors }) };
 }
 
 // Transpile pre-parsed input to JavaScript code (text)

@@ -4,6 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
+// deno-lint-ignore-file
+
 import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 // import { isIndex, NANOS } from 'syscl/nanos.esm.js';
 

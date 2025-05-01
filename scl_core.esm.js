@@ -5,6 +5,7 @@
  */
 
 import { debugConfig, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
+import { parseSLID } from 'syscl/nanos.esm.js';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)
@@ -104,6 +105,7 @@ export function install (name) {
 	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
 	    run: opRun,
+	    slid: d => parseSLID(d.mp.at(0, '')),
 	    throw: opThrow,
 	    type: d => jsToSCL(d.mp.at(0))?.sclType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),

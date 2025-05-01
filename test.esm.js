@@ -28,6 +28,19 @@ export function test (label, fn) {
     }
 }
 
+export async function testAsync (label, fn) {
+    try {
+	await fn();
+	console.log(  `[Passed] ${label}`);
+	++passed;
+	return true;
+    } catch (e) {
+	console.error(`[FAILED] ${label}: ${e.message}`);
+	++failed;
+	return false;
+    }
+}
+
 export function testRejects (label, fn, expect) {
     return fn().then(_res => {
 	console.error(`[FAILED] ${label}: Resolved instead of rejecting`)
@@ -140,10 +153,10 @@ export function testTranspile (label, src) {
 
 export function transpile (src, opts = {}) {
     const { tokens } = lex(src);
-    const { poundBang, configSLID, tree, errors: parserErrors } = parse(tokens);
+    const { shebang, configSLID, tree, errors: parserErrors } = parse(tokens);
     if (parserErrors?.length) return { parserErrors };
     const { code, errors: transpilerErrors, fatal } = transpileTree(tree, { debugBlocks: true, enableJS: true, ...opts });
-    return { poundBang, configSLID, code, transpilerErrors, fatal };
+    return { shebang, configSLID, code, transpilerErrors, fatal };
 }
 
 // END

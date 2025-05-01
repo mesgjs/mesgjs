@@ -41,15 +41,15 @@ export function lex (input, loc = {}) {
     }
 
     let match = input.match(/^(#![^\n]*\n)?(\[\(.*?\)\])?/s);
-    const poundBang = match[1] || '', configSLID = match[2] || '';
+    const shebang = match[1] || '', configSLID = match[2] || '';
     match = undefined;
-    if (poundBang || configSLID) {
-	input = input.slice(poundBang.length + configSLID.length);
-	adv(poundBang);
+    if (shebang || configSLID) {
+	input = input.slice(shebang.length + configSLID.length);
+	adv(shebang);
 	adv(configSLID);
     }
 
-    return { poundBang, configSLID, tokens: input.split(SCLRE).map(text => {
+    return { shebang, configSLID, tokens: input.split(SCLRE).map(text => {
 	    const loc = { src, line, col };
 	    adv(text);
 

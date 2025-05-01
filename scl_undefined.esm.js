@@ -12,6 +12,7 @@ export function install () {
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', undefined),
+	    has: () => undefined,
 	    toString: () => '@u',
 	    valueOf: () => undefined,
 	},

@@ -14,7 +14,7 @@ function opRun (d) {
     const { mp, js } = d;
     const raw = parseInt(mp.at('times', 1), 10), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
-    const save = res => { if (collect) result.push([res]); else result = res; };
+    const save = res => { if (collect) result.push(res); else result = res; };
     js.times = times;
     for (let i = 0; i < times; ++i) {
 	js.capture = false;
@@ -23,7 +23,7 @@ function opRun (d) {
 	catch (e) {
 	    if (!js.capture) throw e;
 	    const info = e.info;
-	    if (info.has?.('result')) save(info.at('result'));
+	    if (info?.has?.('result')) save(info.at('result'));
 	    if (e.message === 'stop') break;
 	}
     }
@@ -44,7 +44,7 @@ function opWhile (d) {
     if (!pre && !mid && !post) return;
     const collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
-    const save = res => { if (collect) result.push([res]); else result = res; };
+    const save = res => { if (collect) result.push(res); else result = res; };
     const react = e => {
 	if (!js.capture) throw e;
 	const info = e.info;
