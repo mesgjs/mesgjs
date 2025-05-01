@@ -158,10 +158,10 @@ export const {
     }
 
     // Core version of getInstance (works with public interfaces)
-    function coreGetInstance (type, ...mp) {
+    function coreGetInstance (type, mp) {
 	if (initPhase === 2) initialize();
 	const ix = interfaces[type];
-	if (ix && !ix.private) return getInstance(type, ...mp);
+	if (ix && !ix.private) return getInstance(type, mp);
     }
 
     // Optionally set, and then return, debugging configuration
@@ -335,7 +335,7 @@ export const {
      * Return a new object instance of the specified type.
      * The JS initializer is called if one is configured in the interface.
      */
-    function getInstance (type, ...params) {
+    function getInstance (type, mp) {
 	const ix = interfaces[type];
 	if (!ix) throw new TypeError(`Cannot get instance for unknown SysCL interface "${type}"`);
 	if (ix.instance) return ix.instance;
@@ -343,7 +343,7 @@ export const {
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
-	pi(initSym, unifiedList(params));
+	pi(initSym, unifiedList(mp, true));
 	return pi;
     }
 

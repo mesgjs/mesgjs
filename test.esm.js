@@ -108,6 +108,7 @@ export function testReturns (label, fn, expect) {
 export function testSummary () {
     console.log('[****] SUMMARY');
     console.log(`[SUMMARY] Tests run: ${passed+failed} Passed: ${passed} FAILED: ${failed}`);
+    if (failed) console.log('[SUMMARY] ******** TEST(S) FAILED ********');
 }
 
 export function testThrows (label, fn, expect) {

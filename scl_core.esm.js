@@ -30,7 +30,7 @@ function opCase (d) {
 // (get type init=params)
 function opGet (d) {
     const { mp } = d;
-    return (mp.has('init') ? getInstance(mp.at(0), mp.at('init')) : getInstance(mp.at(0)));
+    return getInstance(mp.at(0), mp.at('init'));
 }
 
 // (if cond1 then1 cond2 then2 ... else=value)

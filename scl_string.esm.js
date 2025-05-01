@@ -76,7 +76,7 @@ export function install () {
 	    padEnd: d => d.js.padEnd(d.mp.at(0, 0), d.mp.at(1, ' ')),
 	    padStart: d => d.js.padStart(d.mp.at(0, 0), d.mp.at(1, ' ')),
 	    reEscape: d => RegExp.escape(d.js),	// regex-escaped version
-	    regex: d => getInstance('@regex', d.js, d.mp.at(0, '')),
+	    regex: d => getInstance('@regex', [ d.js, d.mp.at(0, '') ]),
 	    repeat: d => d.js.repeat(d.mp.at(0, 0)),
 	    replace: d => opReplace(d),
 	    replaceAll: d => opReplace(d, true),
