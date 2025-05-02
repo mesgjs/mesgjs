@@ -29,24 +29,26 @@ function opJoining (d) {
 }
 
 function opReplace (d, all = false) {
-    const rawPat = d.mp.at(0, ''), pat = (rawPat?.sclType === '@regex')? rawPat.re : rawPat;
+    const rawPat = d.mp.at(0, ''), pat = (rawPat?.sclType === '@regex')? rawPat.jsv : rawPat;
     const rawRep = d.mp.at(1, ''), rep = (rawRep?.sclType === '@function') ? replWrapper.bind({ sclfn: rawRep }) : rawRep;
     return (all ? d.js.replaceAll(pat, rep) : d.js.replace(pat, rep));
 }
 
 function opSplit (d) {
-    const rawSep = d.mp.at(0, ''), sep = (rawSep?.sclType === '@regex') ? rawSep.re : rawSep;
+    const rawSep = d.mp.at(0, ''), sep = (rawSep?.sclType === '@regex') ? rawSep.jsv : rawSep;
     return d.js.split(sep, d.mp.at(1, Infinity));
 }
 
 // JS-to-SCL replacement-function wrapper
 function replWrapper (...args) {
     /*
-     * Transform this hideous JS signature to a nice, clean SCL one!
-     * (match, p1, p2, ..., pN, offset, string, groups)
+     * Transform this rather awkward JS signature to a nice, clean SCL one
+     * (match, p1, p2, ..., pN, offset, string, groups?)
      */
-    const match = shift(args), [ offset, string, groups ] = splice(args, -3);
-    return this.sclfn('call', new NANOS(args, { match, offset, string, groups: groups && new NANOS(groups) }));
+    const match = args.shift(), [ groups ] = args.slice(-1), hasG = typeof groups === 'object';
+    const [ offset, string ] = args.splice(hasG ? -3 : -2);
+    const mp = new NANOS(args, { match, offset, string }, hasG ? { groups: new NANOS(groups) } : []);
+    return this.sclfn('call', mp);
 }
 
 export function install () {
@@ -54,12 +56,14 @@ export function install () {
 	final: true, lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', d.mp.at(0, '').toString()),
+	    '@jsv': d => d.js,
 	    at: d => d.js.at(d.mp.at(0, 0)),
 	    charAt: d => d.js.charAt(d.mp.at(0, 0)),
 	    charCodeAt: d => d.js.charCodeAt(d.mp.at(0, 0)),
 	    codePointAt: d => d.js.codePointAt(d.mp.at(0, 0)),
 	    endsWith: d => d.js.endsWith(d.mp.at(0, ''), d.mp.at(1, d.js.length)),
 	    eq: d => d.js === d.mp.at(0),
+	    escRE: d => RegExp.escape(d.js),	// regex-escaped version
 	    ge: d => d.js >= d.mp.at(0),
 	    gt: d => d.js > d.mp.at(0),
 	    includes: d => d.js.includes(d.mp.at(0, '')),
@@ -75,7 +79,6 @@ export function install () {
 	    normalize: d => d.js.normalize(d.mp.at(0, 'NFC')),
 	    padEnd: d => d.js.padEnd(d.mp.at(0, 0), d.mp.at(1, ' ')),
 	    padStart: d => d.js.padStart(d.mp.at(0, 0), d.mp.at(1, ' ')),
-	    reEscape: d => RegExp.escape(d.js),	// regex-escaped version
 	    regex: d => getInstance('@regex', [ d.js, d.mp.at(0, '') ]),
 	    repeat: d => d.js.repeat(d.mp.at(0, 0)),
 	    replace: d => opReplace(d),

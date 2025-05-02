@@ -39,13 +39,13 @@ function common (d, keys) {
 
 // (for list bothCode index=indexCode named=namedCode collect=boolean)
 function opFor (d) {
-    const list = d.js.list = unifiedList(d.mp.at(0));
+    const list = d.js.list = unifiedList(d.mp.at(0), true);
     return common(d, list.keys());
 }
 
 // (rev list bothCode index=indexCode named=namedCode)
 function opRev (d) {
-    const list = d.js.list = unifiedList(d.mp.at(0));
+    const list = d.js.list = unifiedList(d.mp.at(0), true);
     return common(d, [...list.keys()].reverse().values());
 }
 

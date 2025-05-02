@@ -17,6 +17,7 @@ export function install () {
 	chain: [ '@boolean' ],
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', false),
+	    '@jsv': () => false,
 	    toString: () => '@f',
 	    valueOf: () => false,
 	},
@@ -26,6 +27,7 @@ export function install () {
 	chain: [ '@boolean' ],
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', true),
+	    '@jsv': () => true,
 	    toString: () => '@t',
 	    valueOf: () => true,
 	},

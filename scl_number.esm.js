@@ -56,6 +56,7 @@ export function install () {
 	final: true, lock: true, pristine: true,
 	handlers: {
 	    '@init': opAtInit,
+	    '@jsv': d => d.js,
 	    add: opAdd,
 	    div: opDiv,
 	    eq: d => d.js === d.mp.at(0),

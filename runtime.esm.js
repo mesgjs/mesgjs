@@ -153,7 +153,7 @@ export const {
 	    else if (hp('0')) op = op[0];
 	    else throw new SyntaxError('Missing operation in SysCL list-op message');
 	}
-	mp = unifiedList(mp, true);	// Use unified mp interface
+	if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
 	return { sr, st, rr, rt, op, mp, hasElse, elseExpr };
     }
 
@@ -198,15 +198,15 @@ export const {
     }, Object.getPrototypeOf(Function));
 
     // Dispatch a handler, passing it a fresh @dispatch object
-    function dispatchHandler (mctx, dhctx) {
+    function dispatchHandler (mctx, dhctx, mp) {
 	const { sr, st, rr, rt } = mctx; // message context
-	const { octx, op, mp, handler, sm } = dhctx; // dH context
+	const { op, octx, handler, sm } = dhctx; // dH context
 
 	/*
 	 * As part of the messaging pathway, dispatch objects have custom
 	 * receiver functions.
 	 */
-	const bfnThis = {}, disp = bfnThis.bfn = Object.setPrototypeOf(sclR$Dispatch.bind(bfnThis, mctx, dhctx), dispProto);
+	const bfnThis = {}, disp = bfnThis.bfn = Object.setPrototypeOf(sclR$Dispatch.bind(bfnThis, mctx, dhctx, mp), dispProto);
 	disp.dop = op;
 	disp.ht = handler.type;
 	disp.mop = mctx.op;
@@ -247,7 +247,8 @@ export const {
 
     // Handle an incoming message's first dispatch
     function dispatchMessage (mctx, dctx) {
-	const cmp = canMesgProps(mctx), { st, rr, rt, op, mp, hasElse, elseExpr } = cmp;
+	const cmp = canMesgProps(mctx);
+	const { st, rr, rt, op, mp, hasElse, elseExpr } = cmp;
 	const { octx, handler = getHandler(rt, op) } = dctx;
 
 	if (!handler) {
@@ -260,7 +261,7 @@ export const {
 	const sm = sclS$SendMessage.bind({ sr: rr, st: rt });
 
 	// Dispatch the initial handler and return its result
-	return dispatchHandler(cmp, { octx, op, mp, handler, sm });
+	return dispatchHandler(cmp, { octx, op, handler, sm }, mp);
     }
     firstInit.push(() => {
 	getInterface('@dispatch').set({ pristine: true, private: true, lock: true });
@@ -322,7 +323,7 @@ export const {
 	    const code = interfaces[type]?.handlers[op];
 	    if (code) return { code, type, op };
 	    if (!defHandler) {
-		const op = 'defaultHandler', code = interfaces[type]?.handlers[op];
+		const op = '@default', code = interfaces[type]?.handlers[op];
 		if (code) defHandler = { code, type, op };
 	    }
 	}
@@ -343,7 +344,8 @@ export const {
 	setRO(pi, 'sclType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
-	pi(initSym, unifiedList(mp, true));
+	if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
+	pi(initSym, mp);
 	return pi;
     }
 
@@ -375,6 +377,12 @@ export const {
 	getInterface('@interface').set({ pristine: true, private: true, lock: true });
 	stub('@interface', 'instance', 'name', 'set');
     });
+
+    // Determine next-level message params for redispatch
+    function getRDMP (mp) {
+	const raw = mp.at('params', mp);
+	return ((raw instanceof NANOS) ? raw : new NANOS(raw ?? []));
+    }
 
     // Initialize the runtime environment (e.g. load core, core extensions)
     function initialize () {
@@ -433,7 +441,8 @@ export const {
 
     // Return a new SCL @function object given code and state
     function newSCLFunction (cd, ps) {
-	const type = '@function', octx = {}, bfnThis = { octx, handler: { code: cd, type, op: 'call' } };
+	const type = '@function', octx = {};
+	const bfnThis = { octx, op: 'call', handler: { code: cd, type, op: 'call' } };
 	if (ps !== undefined) setRO(octx, 'ps', ps);
 	const bfn = bfnThis.bfn = sclR$Function.bind(bfnThis);
 	bfnThis.sm = sclS$SendMessage.bind({ sr: bfn, st: type });
@@ -447,7 +456,7 @@ export const {
 	});
 	getInterface('@function').set({ pristine: true, private: true, lock: true,
 	    handlers: {
-		call: d => d.octx.cd(d), fn: false,
+		call: false, fn: false,
 	    },
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
@@ -470,18 +479,23 @@ export const {
 	throw new TypeError(`No SysCL handler found for "@code(${op})"`);
     }
 
-    // Prototype @dispatch receiver
-    function sclR$Dispatch (cmp, dhctx) {
+    /*
+     * Prototype @dispatch receiver
+     * Accepts original message context, dispatch context, and
+     * dispatched message params.
+     */
+    function sclR$Dispatch (mctx, dhctx, _dmp) {
+	// Note: op/mp here is for the d(message), not the original (mctx)
 	const { op, mp, elseExpr } = canMesgProps({ rr: this.bfn });
 	const { octx, handler, sm } = dhctx;
 	switch (op) {
-	case 'dop': return dhctx.op;	// Current dispatch requested op
+	case 'dop': return dhctx.op;	// Current dispatch REQUESTED op
 	case 'ht': return handler.type;
 	case 'js': return octx.js;	// JavaScript state
 	case 'log':		// Log the entire dispatch to the console
 	    console.dir(this.bfn, { depth: null });
 	    return;
-	case 'mop': return cmp.op;	// Original message requested op
+	case 'mop': return mctx.op;	// Original message requested op
 	case 'redis':		// Redispatch
 	{
 	    // Accept either list-op or mp else parameter
@@ -491,30 +505,31 @@ export const {
 	    // The type must be in *current* handler's chain
 	    if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
 	    // Optionally change op and/or mp
-	    const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = mp.has('params') ? unifiedList(mp.at('params')) : mp, redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
+	    const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = getRDMP(mp), redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
 	    // Don't allow switch to default if not changing op
 	    if (!redis || (!mp.has('op') && redis.op !== rdop)) return runIfCode(dispElse);
 	    // Looks good; fire the redispatch
-	    return dispatchHandler(cmp, { octx, op: rdop, mp: rdmp, handler: redis, sm });
+	    return dispatchHandler(mctx, { octx, op: rdop, handler: redis, sm }, rdmp);
 	}
 	case 'return':
 	    this.bfn._capture = true;
 	    throw new SCLFlow('return', mp.at(0));
 	    // Not reached
-	case 'rr': return cmp.rr;
-	case 'rt': return cmp.rt;
-	case 'sr': return cmp.sr;
-	case 'st': return cmp.st;
+	case 'rr': return mctx.rr;
+	case 'rt': return mctx.rt;
+	case 'sr': return mctx.sr;
+	case 'st': return mctx.st;
 	}
 	return runIfCode(elseExpr);
     }
 
     // Prototype @function receiver
-    function jsFnCall (...mp) { return this.bfn('call', [...mp]); }
+    function jsFnCall (...mp) { return this.bfn('call', new NANOS([...mp])); }
     function sclR$Function (op0, mp0) {
-	const cmp = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 }), { op, mp, hasElse, elseExpr } = cmp;
+	const cmp = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
+	const { op, mp, hasElse, elseExpr } = cmp;
 	// Fast-track (call) message
-	if (op === 'call') return dispatchHandler(cmp, this);
+	if (op === 'call') return dispatchHandler(cmp, this, mp);
 	switch (op) {		// Function-mode ops
 	case 'fn':			// Return a new function code block
 	    return newSCLFunction(cd, mp);
@@ -557,14 +572,14 @@ export const {
      * Parameters:
      * - abstract - The interface is incomplete and cannot be instantiated
      * - chain - Sets an ordered chain of super-class interfaces
-     * - final - The interface is final and cannot be sub-classed
-     * - handlers - Add message operation handlers
-     * - lock - Locks the interface to any further changes
+     * - final - The interface is final and cannot be chained
+     * - handlers - Message operation handlers to be added
+     * - lock - Lock out future setInterface calls
      * - once - Prevents returning the interface again and throws an
-     *   exception if returned before
-     * - pristine - Throw an exception if not the first configuration
+     *       error if returned before
+     * - pristine - Throw an error if not the first configuration
      * - private - The interface is private (instances may only be generated
-     *   via the interface object, not through the core)
+     *       via the interface object, not through the core)
      */
     function setInterface (name, mp, isFirst) {
 	if (name[0] === '@' && initPhase !== 1) throw new TypeError(`Cannot configure SysCL interface "${name}" after runtime initialization`);
@@ -640,7 +655,7 @@ export const {
 	    return ((ix && !ix.private) ? [...Object.keys(ix.handlers)] : undefined);
 	}
 	const handler = getHandler(type, op);
-	if (handler) return [ handler.type, handler.op === 'defaultHandler' ? 'default': 'specific' ];
+	if (handler) return [ handler.type, handler.op === '@default' ? 'default': 'specific' ];
     }
 
     // Return whether the flat-chain for type 1 includes type 2.
@@ -670,7 +685,7 @@ export const $f = false, $n = null, $t = true, $u = undefined;
 // Promote a JS object to a SCL object for messaging
 const sclInstance = Symbol.for('sclInstance');
 const setJTSInstance = (type, jsv) => {
-    const inst = getInstance(type, jsv);
+    const inst = getInstance(type, [jsv]);
     setRO(jsv, sclInstance, inst, false);
     return inst;
 };
@@ -687,6 +702,7 @@ export function jsToSCL (jsv) {
 	if (jsv[sclInstance]) return jsv[sclInstance];
 	if (jsv instanceof NANOS) return setJTSInstance('@list', jsv);
 	if (Array.isArray(jsv)) return setJTSInstance('@jsArray', jsv);
+	if (jsv instanceof RegExp) return setJTSInstance('@regex', jsv);
 	return getInstance('@undefined');
     case 'string':
 	return getInstance('@string', jsv);

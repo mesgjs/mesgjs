@@ -33,9 +33,10 @@ function opNset (d) {
     for (const e of mp.entries()) js.set(e[0], e[1]);
 }
 
+// Supported key types
+const skt = k => { const t = typeof k; return t === 'string' || t === 'number' || t === 'symbol'; };
+
 function opSet (d) {
-    // Supported key type
-    const skt = k => { const t = typeof k; return t === 'string' || t === 'number' || t === 'symbol'; };
     const { mp } = d, path = [...mp.values()].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
     let cur = d.js;
     for (let i = 0; i < limit; ++i) {
@@ -43,7 +44,6 @@ function opSet (d) {
 	if (!(cur.at(k) instanceof NANOS)) cur.set(k, new NANOS());
 	cur = cur.at(k);
     }
-    console.log('set', path, limit);
     if (mp.has('to')) cur.set(path[limit], mp.at('to'));
     else {
 	if (mp.has('first')) cur.unshift(mp.at('first'));
@@ -56,6 +56,7 @@ export function install (name) {
 	/* final: true, */ lock: true, pristine: true, // singleton: true,
 	handlers: {
 	    '@init': opAtInit,
+	    '@jsv': d => d.js,
 	    at: opAt,
 	    clear: d => d.js.clear(),
 	    copy: d => new NANOS().fromPairs(d.js.pairs()),

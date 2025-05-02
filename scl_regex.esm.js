@@ -9,8 +9,8 @@ import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
 export const listize = res => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
 function opInit (d) {
-    const re = new RegExp(d.mp.at(0, ''), d.mp.at(1, ''));
-    setRO(d.rr, 're', re);
+    const raw = d.mp.at(0, ''), re = (raw instanceof RegExp) ? raw : new RegExp(raw, d.mp.at(1, ''));
+    setRO(d.rr, 'jsv', re);
     setRO(d.octx, 'js', { re });
 }
 
@@ -52,6 +52,7 @@ export function install () {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
+	    '@jsv': d => d.js.re,
 	    exec: d => listize(d.js.re.exec(d.mp.at(0, ''))),
 	    flags: d => d.js.re.flags,
 	    last: d => d.js.re.lastIndex,
