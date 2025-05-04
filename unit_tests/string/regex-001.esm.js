@@ -10,10 +10,10 @@ console.log('[****] @regex');
     }, () => re?.sclType === '@regex')) {
 	testReturns('@regex (source)', () => re('source'), '(foo)?(bar)?');
 	testReturns('@regex (flags)', () => re('flags'), 'gi');
-	if (testReturns('@regex .re type', () => typeof re.re, 'object')) {
-	    if (testReturns('@regex .re cons name', () => re.re.constructor.name, 'RegExp')) {
-		testReturns('@regex .re.source', () => re.re.source, '(foo)?(bar)?');
-		testReturns('@regex .re.flags', () => re.re.flags, 'gi');
+	if (testReturns('@regex .jsv type', () => typeof re.jsv, 'object')) {
+	    if (testReturns('@regex .jsv cons name', () => re.jsv.constructor.name, 'RegExp')) {
+		testReturns('@regex .jsv.source', () => re.jsv.source, '(foo)?(bar)?');
+		testReturns('@regex .jsv.flags', () => re.jsv.flags, 'gi');
 	    }
 	}
     }
@@ -29,10 +29,10 @@ console.log('[****] @regex');
 	}, () => re?.sclType === '@regex')) {
 	    testReturns('@s(re) (source)', () => re('source'), '(foo)?(bar)?');
 	    testReturns('@s(re) (flags)', () => re('flags'), 'gi');
-	    if (testReturns('@s(re) .re type', () => typeof re.re, 'object')) {
-		if (testReturns('@s(re) .re cons name', () => re.re.constructor.name, 'RegExp')) {
-		    testReturns('@s(re) .re.source', () => re.re.source, '(foo)?(bar)?');
-		    testReturns('@s(re) .re.flags', () => re.re.flags, 'gi');
+	    if (testReturns('@s(re) .jsv type', () => typeof re.jsv, 'object')) {
+		if (testReturns('@s(re) .jsv cons name', () => re.jsv.constructor.name, 'RegExp')) {
+		    testReturns('@s(re) .jsv.source', () => re.jsv.source, '(foo)?(bar)?');
+		    testReturns('@s(re) .jsv.flags', () => re.jsv.flags, 'gi');
 		}
 	    }
 	}

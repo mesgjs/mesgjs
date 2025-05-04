@@ -14,7 +14,8 @@ export { NANOS, isIndex, unifiedList };
 import 'syscl/shim.esm.js';
 
 // Foundational-class installers
-import { installCoreExtensions } from 'syscl/scl_core_extensions.esm.js';
+import { installCoreExtensions, jsToSCL, sclInstance } from 'syscl/runtime_local.esm.js';
+export { jsToSCL, sclInstance };
 
 // Flow exception, e.g. @d(return value) throws SCLFlow('return', value)
 export class SCLFlow extends Error {
@@ -680,36 +681,9 @@ export const {
 // END Of Code/Interface/Messaging Protected Zone
 //////////////////////////////////////////////////////////////////////
 
-export const $f = false, $n = null, $t = true, $u = undefined;
-
-// Promote a JS object to a SCL object for messaging
-const sclInstance = Symbol.for('sclInstance');
-const setJTSInstance = (type, jsv) => {
-    const inst = getInstance(type, [jsv]);
-    setRO(jsv, sclInstance, inst, false);
-    return inst;
-};
-export function jsToSCL (jsv) {
-    if (jsv?.sclType) return jsv;
-    switch (typeof jsv) {
-    case 'boolean':
-	return getInstance(jsv ? '@true' : '@false');
-    case 'bigint':
-    case 'number':
-	return getInstance('@number', jsv);
-    case 'object':
-	if (jsv === null) return getInstance('@null');
-	if (jsv[sclInstance]) return jsv[sclInstance];
-	if (jsv instanceof NANOS) return setJTSInstance('@list', jsv);
-	if (Array.isArray(jsv)) return setJTSInstance('@jsArray', jsv);
-	if (jsv instanceof RegExp) return setJTSInstance('@regex', jsv);
-	return getInstance('@undefined');
-    case 'string':
-	return getInstance('@string', jsv);
-    default:
-	return getInstance('@undefined');
-    }
-}
+setRO(globalThis, {
+    $f: false, $gss: new NANOS(), $n: null, $t: true, $u: undefined,
+});
 
 // Send a message anonymously (promoting JS receiver objects as necessary)
 export function sendAnonymousMessage (rr, op, mp) {

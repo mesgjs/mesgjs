@@ -18,7 +18,7 @@ test('Configure first interface', () => {
 	    both: d => [ d, 'both', msgd(d, 'redis') ],
 	    getD: d => [ d, 'getD' ],
 	    redis: d => msgd(d, { op: 'redis', params: d.mp }),
-	    defaultHandler: d => [ d, 'default' ],
+	    '@default': d => [ d, 'default' ],
 	},
     });
 });
@@ -42,7 +42,7 @@ test('Configure second interface', () => {
 	handlers: {
 	    both: d => [ d, 'both', msgd(d, 'redis') ],
 	    only2: d => [ d, 'only2', msgd(d, 'redis') ],
-	    defaultHandler: d => [ d, 'default', msgd(d, 'redis') ],
+	    '@default': d => [ d, 'default', msgd(d, 'redis') ],
 	},
     });
 });

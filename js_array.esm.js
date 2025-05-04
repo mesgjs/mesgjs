@@ -4,13 +4,12 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
-// import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-// import { isIndex, NANOS } from 'syscl/nanos.esm.js';
+import { getInterface, NANOS, sclInstance, setRO } from 'syscl/runtime.esm.js';
 
 function opAtInit (d) {
     const { octx, mp } = d, ary = mp.at(0);
-    setRO(octx, 'js', Array.isArray(ary) ? mp : []);
+    setRO(octx, 'js', Array.isArray(ary) ? ary : []);
+    setRO(d.js, sclInstance, d.rr, false);
 }
 
 export function install (name) {
@@ -18,6 +17,7 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opAtInit,
+	    '@jsv': d => d.js,
 	    at: d => d.js.at(d.mp.at(0)),
 	    concat: d => d.js.concat(...d.mp.values()),
 	    entries: d => [...d.js.entries()],

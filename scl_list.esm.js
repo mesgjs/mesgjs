@@ -4,17 +4,13 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, runIfCode, sclInstance, setRO } from 'syscl/runtime.esm.js';
 import { unifiedList } from 'syscl/unified_list.esm.js';
-/*
-import { getInterface, isIndex, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
 
-const opAF = d => { };
-*/
-
-function opAtInit (d) {
+function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
     setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
+    setRO(d.js, sclInstance, d.rr, false);
 }
 
 function opAt (d) {
@@ -31,6 +27,15 @@ function opAt (d) {
 function opNset (d) {
     const { mp, js } = d;
     for (const e of mp.entries()) js.set(e[0], e[1]);
+}
+
+function opReactive (d) {
+    const { js, mp } = d;
+    if (mp.has(0)) {
+	js.reactive = mp.at(0);
+	return d.rr;
+    }
+    return !!js.reactive;
 }
 
 // Supported key types
@@ -55,11 +60,13 @@ export function install (name) {
     getInterface(name).set({
 	/* final: true, */ lock: true, pristine: true, // singleton: true,
 	handlers: {
-	    '@init': opAtInit,
+	    '@init': opInit,
 	    '@jsv': d => d.js,
 	    at: opAt,
 	    clear: d => d.js.clear(),
 	    copy: d => new NANOS().fromPairs(d.js.pairs()),
+	    delete: d => d.js.delete(d.mp.at(0)),
+	    depend: d => d.js.depend(),
 	    entries: d => [...d.js.entries()],
 	    has: d => d.js.has(d.mp.at(0)),
 	    includes: d => d.js.includes(d.mp.at(0)),
@@ -72,6 +79,7 @@ export function install (name) {
 	    pop: d => d.js.pop(),
 	    push: d => d.js.push(d.mp),
 	    push1: d => d.js.push(d.mp.at(0)),
+	    reactive: opReactive,
 	    self: d => d.js,
 	    set: opSet,
 	    shift: d => d.js.shift(),

@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, sclInstance, setRO } from 'syscl/runtime.esm.js';
 
 export const listize = res => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
@@ -12,6 +12,7 @@ function opInit (d) {
     const raw = d.mp.at(0, ''), re = (raw instanceof RegExp) ? raw : new RegExp(raw, d.mp.at(1, ''));
     setRO(d.rr, 'jsv', re);
     setRO(d.octx, 'js', { re });
+    setRO(d.js, sclInstance, d.rr, false);
 }
 
 // regex(matchAll string each={block!} else={block!} collect=@f)

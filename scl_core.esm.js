@@ -5,7 +5,7 @@
  */
 
 import { debugConfig, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
-import { parseSLID } from 'syscl/nanos.esm.js';
+import { parseQJSON, parseSLID } from 'syscl/nanos.esm.js';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)
@@ -104,6 +104,7 @@ export function install (name) {
 	    logInterfaces,
 	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
+	    qjson: d => parseQJSON(d.mp.at(0, '')),
 	    run: opRun,
 	    slid: d => parseSLID(d.mp.at(0, '')),
 	    throw: opThrow,
@@ -118,15 +119,7 @@ export function install (name) {
 	    if: 'pin',
 	},
     });
-    // @core is also responsible for these...
-    if (name === '@core') setRO(globalThis, {
-	$c: getInstance('@core'),
-	$f: false,
-	$gss: new NANOS(),
-	$n: null,
-	$t: true,
-	$u: undefined,
-    });
+    if (name === '@core') setRO(globalThis, '$c', getInstance('@core'));
 }
 
 // END
