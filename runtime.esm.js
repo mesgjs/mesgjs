@@ -53,6 +53,12 @@ export function namespaceAt  (namespace, key, opt) {
 // Get the return value if @code, or the raw value otherwise
 export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
 
+// Send an anonymous message (promoting JS receiver objects as necessary)
+export function sendAnonMessage (rr, op, mp) {
+    if (!rr?.sclType) rr = jsToSCL(rr);
+    return rr(op, mp);
+}
+
 // Return a message sender's source file/line/column
 export function senderFLC () {
     const stack = (new Error().stack || '').split('\n');
@@ -109,6 +115,7 @@ export const {
 	stack: 0, stackSource: false, stackTypes: false,
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
+    const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
 
     // Add some or all of our SysCL stack trace to the JS one
     function appendStackTrace (e) {
@@ -318,19 +325,25 @@ export const {
 	return handler;
     }
     function getHandler2 (type0, op, next, noopHandler) {
-	let defHandler;
+	let dacHand, defHand;
 	for (const type of flatChain(type0)) {
 	    if (next && type === type0) continue;
-	    const code = interfaces[type]?.handlers[op];
+	    const ix = interfaces[type], code = ix?.handlers[op];
 	    if (code) return { code, type, op };
-	    if (!defHandler) {
-		const op = '@default', code = interfaces[type]?.handlers[op];
-		if (code) defHandler = { code, type, op };
+	    if (ix && !defHand) {
+		if (!dacHand) {
+		    const op = '@defacc', code = ix.handlers[op];
+		    if (code) dacHand = { code, type, op };
+		}
+		const op = '@default', code = ix.handlers[op];
+		if (code) defHand = { code, type, op };
 	    }
 	}
 	// Use no-op as the special default for @init
 	if (op === '@init') return noopHandler;
-	return defHandler;
+	// @defacc can moderate what @default accepts
+	if (defHand && dacHand && !dispatchHandler(dacHandMctx, { op: '@defacc', octx: {}, handler: dacHand }, { op, type: defHand.type })) return;
+	return defHand;
     }
 
     /*
@@ -392,6 +405,7 @@ export const {
 	    firstInit.forEach(cb => cb());
 	    installCoreExtensions();
 	    initPhase = 0;
+	    dacHandMctx.sr = dacHandMctx.rr = $c;
 	}
     }
 
@@ -684,12 +698,6 @@ export const {
 setRO(globalThis, {
     $f: false, $gss: new NANOS(), $n: null, $t: true, $u: undefined,
 });
-
-// Send a message anonymously (promoting JS receiver objects as necessary)
-export function sendAnonymousMessage (rr, op, mp) {
-    if (!rr?.sclType) rr = jsToSCL(rr);
-    return rr(op, mp);
-}
 
 /*
 vim:syntax=javascript:sw=4

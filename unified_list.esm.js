@@ -20,10 +20,13 @@ class Proxy {
     }
 
     // Get value for key
-    at (k, d) {
+    at (k, def) {
 	k = this.wrapIndex(k);
-	return Object.hasOwn(this._list, k) ? this._list[k] : d;
+	return Object.hasOwn(this._list, k) ? this._list[k] : def;
     }
+
+    // Alias for at
+    get (k, def) { return this.at(k, def); }
 
     // Return with a key is present
     has (k) { return Object.hasOwn(this._list, this.wrapIndex(k)); }

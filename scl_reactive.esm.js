@@ -8,8 +8,18 @@
 import { getInterface, runIfCode, sclInstance, setRO } from 'syscl/runtime.esm.js';
 import { reactive } from 'syscl/reactive.esm.js';
 
+let instType;
+
+function jsdef (def) {
+    switch (def?.sclType) {
+    case '@code':	return () => def('run');
+    case '@function':	return def('jsfn');
+    case instType:	return def('@jsv').getter;
+    }
+}
+
 function jsfn (fn) {
-    switch (fn.sclType) {
+    switch (fn?.sclType) {
     case '@code':	return fn('fn')('jsfn');
     case '@function':	return fn('jsfn');
     default:		return fn;
@@ -23,7 +33,7 @@ function opInit (d) {
     else {
 	const cmp = mp.at('cmp'), def = mp.at('def');
 	if (typeof cmp === 'function') mp.set('cmp', jsfn(cmp));
-	if (typeof def === 'function') mp.set('def', jsfn(def));
+	if (typeof def === 'function') mp.set('def', jsdef(def));
 	if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
 	setRO(d.octx, 'js', reactive(mp?.storage || {}));
     }
@@ -37,7 +47,7 @@ function opSet (d) {
     for (const en of mp.entries()) {
 	switch (en[0]) {
 	case 'def':
-	    if (typeof en[1] === 'function') js.def = jsfn(en[1]);
+	    if (typeof en[1] === 'function') js.def = jsdef(en[1]);
 	    break;
 	case 'eager': case 'eager1': case 'eager2':
 	    js.eager = en[1];
@@ -52,18 +62,19 @@ function opSet (d) {
 
 function opUntr (d) { return reactive.untracked(() => runIfCode(d.mp.at(0))); }
 
-// Return a reactive-list object
-function relist (r) {
+// Return a reactive-interface object
+function rio (r) {
     if (!r) r = reactive();
     return {
 	batch: reactive.batch,
-	create: relist,
+	changed: () => r.ripple(),
+	create: rio,
 	depend: () => r.rv,
-	trigger: () => r.ripple(),
     };
 }
 
 export function install (name) {
+    instType = name;
     getInterface(name).set({
 	lock: true, pristine: true,
 	handlers: {
@@ -74,7 +85,7 @@ export function install (name) {
 	    eager: d => d.js.eager,
 	    error: d => d.js.error,
 	    fv: d => reactive.fv(d.js),
-	    list: d => relist(d.js),
+	    rio: d => rio(d.js),
 	    rv: d => d.js.rv,
 	    set: opSet,
 	    untr: opUntr,

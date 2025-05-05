@@ -14,9 +14,9 @@ function opInit (d) {
 }
 
 function opAt (d) {
-    const { mp } = d;
+    const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
     let cur = d.js;
-    for (const k of mp.values()) {
+    for (const k of path) {
 	if (cur.has(k)) cur = unifiedList(cur.at(k));
 	else if (mp.has('else')) return runIfCode(mp.at('else'));
 	else throw new Error('Key path not found');
@@ -24,32 +24,41 @@ function opAt (d) {
     return cur;
 }
 
+function opNext (d) {
+    if (d.mp.has(0)) {
+	d.js.next = d.mp.at(0);
+	return d.rr;
+    }
+    return d.js.next;
+}
+
 function opNset (d) {
     const { mp, js } = d;
     for (const e of mp.entries()) js.set(e[0], e[1]);
 }
 
-function opReactive (d) {
+function opRIO (d) {
     const { js, mp } = d;
     if (mp.has(0)) {
-	js.reactive = mp.at(0);
+	js.rio = mp.at(0);
 	return d.rr;
     }
-    return !!js.reactive;
+    return !!js.rio;
 }
 
 // Supported key types
 const skt = k => { const t = typeof k; return t === 'string' || t === 'number' || t === 'symbol'; };
 
 function opSet (d) {
-    const { mp } = d, path = [...mp.values()].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
+    const { mp } = d, psrc = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
+    const path = [...psrc].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
     let cur = d.js;
     for (let i = 0; i < limit; ++i) {
 	const k = path[i];
-	if (!(cur.at(k) instanceof NANOS)) cur.set(k, new NANOS());
+	if (!(cur.at(k) instanceof NANOS)) cur.set(k, cur.similar());
 	cur = cur.at(k);
     }
-    if (mp.has('to')) cur.set(path[limit], mp.at('to'));
+    if (mp.has('to')) cur.set(path[limit], mp.at('to'), mp.at('insert'));
     else {
 	if (mp.has('first')) cur.unshift(mp.at('first'));
 	if (mp.has('next')) cur.push(mp.at('next'));
@@ -58,36 +67,56 @@ function opSet (d) {
 
 export function install (name) {
     getInterface(name).set({
-	/* final: true, */ lock: true, pristine: true, // singleton: true,
+	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
 	    '@jsv': d => d.js,
 	    at: opAt,
+	    // autoPromote
 	    clear: d => d.js.clear(),
 	    copy: d => new NANOS().fromPairs(d.js.pairs()),
 	    delete: d => d.js.delete(d.mp.at(0)),
 	    depend: d => d.js.depend(),
-	    entries: d => [...d.js.entries()],
+	    entries: d => new NANOS([...d.js.entries()]),
+	    // filter: use @kvIter
+	    // find: use @kvIter
+	    // findLast: use @kvIter
+	    // forEach: use @kvIter
+	    get: opAt,
 	    has: d => d.js.has(d.mp.at(0)),
 	    includes: d => d.js.includes(d.mp.at(0)),
-	    indexEntries: d => [...d.js.indexEntries(d.mp.at(0))],
-	    indexes: d => [...d.js.indexes()],
-	    keys: d => [...d.js.keys()],
-	    next: d => d.js.next,
+	    indexEntries: d => new NANOS([...d.js.indexEntries(d.mp.at(0))]),
+	    indexKeys: d => new NANOS([...d.js.indexKeys()]),
+	    isLocked: d => d.js.isLocked(d.mp.at(0)),
+	    isRedacted: d => d.js.isRedacted(d.mp.at(0)),
+	    keyOf: d => d.js.keyOf(d.mp.at(0)),
+	    keyIter: d => d.js.keys(),
+	    keys: d => new NANOS([...d.js.keys()]),
+	    lastKeyOf: d => d.js.lastKeyOf(d.mp.at(0)),
+	    lock: d => d.js.lock(...d.mp.indexValues()),
+	    lockAll: d => d.js.lockAll(d.mp.at(0)),
+	    lockKeys: d => d.js.lockKeys(),
+	    namedEntries: d => new NANOS([...d.js.namedEntries()]),
+	    namedKeys: d => new NANOS([...d.js.namedKeys()]),
+	    next: opNext,
 	    nset: opNset,
-	    pairs: d => d.js.pairs(d.mp.at(0)),
+	    pairs: d => new NANOS(d.js.pairs(d.mp.at(0))),
 	    pop: d => d.js.pop(),
 	    push: d => d.js.push(d.mp),
 	    push1: d => d.js.push(d.mp.at(0)),
-	    reactive: opReactive,
+	    redact: d => d.js.redact(...d.mp.indexValues()),
+	    reverse: d => d.js.reverse(),
+	    rio: opRIO,
 	    self: d => d.js,
 	    set: opSet,
 	    shift: d => d.js.shift(),
 	    size: d => d.js.size,
 	    toJSON: d => d.js.toJSON(),
+	    toReversed: d => d.js.toReversed(),
 	    toSLID: d => d.js.toSLID(d.mp?.storage || {}),
 	    toString: d => d.js.toString(d.mp?.storage || {}),
 	    unshift: d => d.js.unshift(d.mp),
+	    values: d => new NANOS([...d.js.values()]),
 	},
 	cacheHints: {
 	    '@init': 'pin',

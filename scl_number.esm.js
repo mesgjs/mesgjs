@@ -4,12 +4,20 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from 'syscl/runtime.esm.js';
-// import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
+
+function toNum (v, def) {
+    const st = v?.sclType;
+    if (st && typeAccepts(st, 'toNumber')) v = v('toNumber');
+    const t = typeof v;
+    if (t === 'number' || t === 'bigint') return v;
+    return def;
+}
 
 function opAdd (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a + b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values()) js += toNum(v, 0);
+    return js;
 }
 
 function opAtInit (d) {
@@ -18,8 +26,9 @@ function opAtInit (d) {
 }
 
 function opDiv (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a / b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values) js /= toNum(v, 1);
+    return js;
 }
 
 // Is number in the interval defined by the ge, gt, le, lt keys?
@@ -32,23 +41,27 @@ function opInter (d) {
 }
 
 function opMod (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a % b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values()) js %= toNum(v, NaN);
+    return js;
 }
 
 function opMul (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a * b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values()) js *= toNum(v, 1);
+    return js;
 }
 
 function opPow (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a ** b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values()) js **= toNum(v, 1);
+    return js;
 }
 
 function opSub (d) {
-    const { js, mp } = d;
-    return [...mp.values()].reduce((a, b) => a - b, js);
+    const mp = d.mp; let js = d.js;
+    for (const v of mp.values()) js -= toNum(v, 0);
+    return js;
 }
 
 export function install () {
@@ -76,6 +89,7 @@ export function install () {
 	    neg: d => -d.js,
 	    pow: opPow,
 	    sub: opSub,
+	    toNumber: d => d.js,
 	    toString: d => d.js.toString(d.mp.at(0)),
 	    valueOf: d => d.js,
 	},
