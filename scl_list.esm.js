@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, runIfCode, sclInstance, setRO } from 'syscl/runtime.esm.js';
+import { getInstance, getInterface, NANOS, runIfCode, sclInstance, setRO } from 'syscl/runtime.esm.js';
 import { unifiedList } from 'syscl/unified_list.esm.js';
 
 function opInit (d) {
@@ -40,7 +40,9 @@ function opNset (d) {
 function opRIO (d) {
     const { js, mp } = d;
     if (mp.has(0)) {
-	js.rio = mp.at(0);
+	let rio = mp.at(0);
+	if (rio === true) rio = getInstance('@reactive')('rio');
+	js.rio = rio;		// NANOS will validate
 	return d.rr;
     }
     return !!js.rio;

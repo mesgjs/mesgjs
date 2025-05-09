@@ -327,7 +327,8 @@ export class NANOS {
     get rio () { return this._rio; }
 
     set rio (r) {
-	if (r === undefined || r === null || (r?.batch && r.changed && r.create && r.depend)) this._rio = r;
+	if (!r) delete this._rio;
+	else if ((r?.batch && r.changed && r.create && r.depend)) this._rio = r;
     }
 
     /*

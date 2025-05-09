@@ -64,6 +64,8 @@ export function jsToSCL (jsv) {
 	// Not sure if we'll see many of these "in the wild"
 	// if (jsv?.$reactive) return getInstance('@reactive', jsv);
 	if (Array.isArray(jsv)) return getInstance('@jsArray', [jsv]);
+	if (jsv instanceof Map) return getInstance('@map', [jsv]);
+	if (jsv instanceof Set) return getInstance('@set', [jsv]);
 	return getInstance('@undefined');
     case 'string':
 	return getInstance('@string', jsv);

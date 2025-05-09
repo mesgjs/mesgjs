@@ -24,7 +24,7 @@ export function install (name) {
 	    // forEach - use @kvIter
 	    get: d => d.js.get(d.mp.at(0)),
 	    has: d => d.js.has(d.mp.at(0)),
-	    keyIter: d = d.js.keys(),
+	    keyIter: d => d.js.keys(),
 	    keys: d => new NANOS([...d.js.keys()]),
 	    set: d => d.js.set(d.mp.at(0), d.mp.at(1)),
 	    size: d => d.js.size,

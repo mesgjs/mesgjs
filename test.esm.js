@@ -3,6 +3,22 @@ import { transpileTree } from 'syscl/transpile.esm.js';
 
 export let passed = 0, failed = 0;
 
+export function assertEqual (actual, expected) {
+    if (actual !== expected) {
+	throw new Error(`Expected ${expected}; got ${actual}`);
+    }
+}
+
+export function assertThrows (fn, msgPart = '') {
+    try { fn(); } catch (e) {
+	if (msgPart && !e.message.includes(msgPart)) {
+	    throw new Error(`Expected error to include "${msgPart}"; got: "${e.message}"`);
+	}
+	return;
+    }
+    throw new Error('Expected function to throw an exception');
+}
+
 export function deleteGlobals () {
     delete globalThis.$f;
     delete globalThis.$gss;
@@ -39,6 +55,17 @@ export async function testAsync (label, fn) {
 	++failed;
 	return false;
     }
+}
+
+export async function testModule (label, source, expectFn) {
+    return testAsync(label, async () => {
+	const { tree, errors: parseErrs } = parse(lex(source).tokens);
+	if (parseErrs.length) throw new Error('SysCL parsing failed');
+	const { code, errors: transpErrs } = transpileTree(tree, { debugBlocks: true, enableJS: true });
+	if (transpErrs.length) throw new Error('SysCL transpilation failed');
+	const mod = await loadModuleCode(code);
+	await expectFn(mod);
+    });
 }
 
 export function testRejects (label, fn, expect) {

@@ -29,7 +29,7 @@ export function install (name) {
 	    // isDisjointFrom
 	    // isSubsetOf
 	    // isSupersetOf
-	    keyIter: d = d.js.keys(),
+	    keyIter: d => d.js.keys(),
 	    keys: d => new NANOS([...d.js.keys()]),
 	    // union
 	    values: d => new NANOS([...d.values()]),
