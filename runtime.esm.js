@@ -7,6 +7,7 @@
  * Sending and receiving messages
  * Defining interfaces and dispatching handlers in response to messages
  */
+import { calcDigest, getIntegritySHA512 } from 'syscl/calc_digest.esm.js';
 import { NANOS, isIndex } from 'syscl/nanos.esm.js';
 import { SieveCache } from 'syscl/sieve_cache.esm.js';
 import { unifiedList } from 'syscl/unified_list.esm.js';
@@ -25,6 +26,34 @@ export class SCLFlow extends Error {
     }
 
     get name () { return 'SCLFlow'; }
+}
+
+export async function calcIntegrity (src) {
+    const srcMat = src.match(/^(https:\/\/[^/]*)\/(.*)/);
+    const host = srcMat ? srcMat[1] : '', path = canonModPath(srcMat ? srcMat[2] : src);
+    const code = await fetchModule(host, path);
+    return calcDigest(code, 'SHA-512');
+}
+
+function canonModPath (path) {
+    const parts = [];
+    for (const part of path.split('/')) switch (part) {
+	case '': case '.':
+	    break;
+	case '..':
+	    parts.pop();
+	    break;
+	default:
+	    parts.push(part);
+	    break;
+	}
+    return parts.join('/');
+}
+
+async function fetchModule (host, path) {
+    if (host) return await fetch(`${host}/${path}`).then(r => r.text());
+    if (typeof Deno !== 'undefined') return await Deno.readTextFile(path);
+    throw new Error(`fetchModule: File not found: "${path}"`);
 }
 
 // listFromPairs is the runtime shortcut ls([]) (NANOS generator)
@@ -100,10 +129,15 @@ const hasOwn = Object.hasOwn;
 export const {
     debugConfig,
     initialize,
-    logInterfaces,
+    fcheck,
+    fready,
+    fwait,
     getInstance,
     getInterface,
+    loadModule,
+    logInterfaces,
     moduleScope,
+    setModMeta,
     typeAccepts,
     typeChains,
 } = (() => {
@@ -116,6 +150,20 @@ export const {
     }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
+    const modLoaded = new Set(), features = new Map(), modMeta = Object.create(null), modMap = new Map();
+
+    // Assemble the feature map from modules or host modules.
+    function addModFeatures (mods) {
+	for (const mod of Object.keys(mods || {})) {
+	    // Only add features for verifiable mods
+	    if (!getIntegritySHA512(mods[mod]?.integrity)) continue;
+	    for (const f of (mods[mod]?.features || [])) if (!features.has(f)) {
+		const pwr = Object.assign(Promise.withResolvers(), { status: 'pending' });
+		pwr.promise.then(() => pwr.status = 'resolved', () => pwr.status = 'rejected');
+		features.set(f, pwr);
+	    }
+	}
+    }
 
     // Add some or all of our SysCL stack trace to the JS one
     function appendStackTrace (e) {
@@ -304,6 +352,28 @@ export const {
 	return '';
     }
 
+    // Non-blocking feature check
+    function fcheck (f) {
+	switch (features.get(f)?.status) {
+	case 'pending': return false;	// @f: not ready
+	case 'resolved': return true;	// @t: ready
+	}
+	// no such feature, or mod load rejected: @u
+    }
+
+    // Wait for a list of features to be ready
+    function fwait (...list) {
+	const proms = [];
+	for (const f of list) if (features.has(f)) proms.push(features.get(f).promise);
+	return Promise.all(proms);
+    }
+
+    // Mark a feature ready (if module is authorized)
+    function fready (mid, f) {
+	const meta = modMap.get(mid);
+	if (meta && meta.features?.includes(f)) features.get(f)?.resolve();
+    }
+
     /*
      * Try to locate a specific or default handler for a type and operation.
      * Returns {code, type, op}.
@@ -409,6 +479,52 @@ export const {
 	}
     }
 
+    async function loadModule (src) {
+	src = remapModURL(src);
+	const srcMat = src.match(/^(https:\/\/[^/]*)\/(.*)/);
+	const host = srcMat ? srcMat[1] : '', path = canonModPath(srcMat ? srcMat[2] : src);
+	const newSrc = host ? `${host}/${path}` : $path, meta = modMeta.hosts?.[host]?.modules?.[path] || modMeta.modules?.[newSrc];
+
+	// Prevent reload by source
+	if (modLoaded.has('src-' + newSrc)) return;
+	modLoaded.add('src-' + newSrc);
+
+	const expect = getIntegritySHA512(meta?.integrity);
+	if (expect) {
+	    // Prevent reload by signature
+	    if (modLoaded.has(expect)) return;
+	    modLoaded.add(expect);
+	} else {
+	    if (globalThis.sclModMeta) throw new Error(`loadModule: Refusing unsigned module "${newSrc}"`);
+	    console.log(`loadModule WARNING: Module "${newSrc}" is unsigned`);
+	}
+
+	const code = await fetchModule(host, path);
+	const check = await calcDigest(code, 'SHA-512');
+	if (expect && check !== expect) {
+	    const err = new Error(`loadModule: Integrity mismatch for "${newSrc}"`);
+	    // Reject this module's features, if any
+	    for (const f of meta?.features || []) features.get(f)?.reject(err);
+	    throw err;
+	}
+
+	if (meta) {
+	    meta.mid = Symbol();
+	    modMap.set('src-' + newSrc, meta);
+	    modMap.set(expect, meta);
+	    modMap.set(meta.mid, meta);
+	}
+	if (typeof Deno !== 'undefined') {
+	    const mod = await import(`data:application/javascript;base64,${btoa(code)}`);
+	    if (globalThis.sclModMeta && mod.loadScl) mod.loadSCL(meta?.mid);
+	} else {
+	    const blobURL = URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' }));
+	    const mod = await import(blobURL);
+	    URL.revokeObjectURL(blobURL);
+	    if (globalThis.sclModMeta && mod.loadSCL) mod.loadSCL(meta?.mid);
+	}
+    }
+
     function logInterfaces () { console.log(interfaces); }
 
     // Return a module dispatch object
@@ -476,6 +592,15 @@ export const {
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
     });
+
+    // Use modMeta.urlMap to remap the module source location
+    function remapModURL (src) {
+	const urlMap = modMeta.urlMap || {};
+	if (urlMap[src]) return urlMap[src];
+	let bestRepl = '', len = 0;
+	for (const pref of Object.keys(urlMap)) if (pref.slice(-1) === '/' && pref.length > len && src.startsWith(pref)) [ bestRepl, len ] = [ urlMap[pref], pref.length ];
+	return bestRepl + src.slice(len);
+    }
 
     // Prototype @code receiver
     function sclR$Code (op0, mp0) {
@@ -651,6 +776,13 @@ export const {
 	if (mp.singleton) ix.singleton = true;
     }
 
+    function setModMeta (meta) {
+	Object.assign(modMeta, JSON.parse(JSON.stringify(meta)));
+	setRO(globalThis, 'sclModMeta', true);
+	addModFeatures(modMeta.modules);
+	for (const host of Object.keys(modMeta.hosts || {})) addModFeatures(modMeta.hosts[host].modules);
+    }
+
     function stub (type, ...names) {
 	const h = interfaces[type]?.handlers;
 	if (h) names.forEach(name => h[name] = false);
@@ -682,11 +814,16 @@ export const {
 
     return {
 	debugConfig,
-	initialize,
-	logInterfaces,
+	fcheck,
+	fready,
+	fwait,
 	getInstance: coreGetInstance,
 	getInterface,
+	initialize,
+	logInterfaces,
+	loadModule,
 	moduleScope,
+	setModMeta,
 	typeAccepts,
 	typeChains,
     };
