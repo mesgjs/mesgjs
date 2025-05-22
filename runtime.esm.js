@@ -802,7 +802,6 @@ export const {
 	if (globalThis.sclModMeta) return;
 	if (meta instanceof NANOS) modMeta.push(parseSLID(meta.toSLID()));
 	else modMeta.push(parseQJSON(JSON.stringify(meta)));
-	console.log('modMeta', modMeta.toSLID());
 	setRO(globalThis, 'sclModMeta', true);
 	addModFeatures(modMeta.at('modules'));
 	const hosts = modMeta.at('hosts');
