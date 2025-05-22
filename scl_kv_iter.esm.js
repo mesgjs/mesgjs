@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, isIndex, NANOS, runIfCode, SCLFlow, setRO, typeAccepts } from 'syscl/runtime.esm.js';
+import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from 'syscl/runtime.esm.js';
 
 function common (d, keys) {
     const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
@@ -12,12 +12,15 @@ function common (d, keys) {
     const save = r => { if (collect) result.push(r); else result = r; };
     const react = e => {
 	if (!js.capture) throw e;
-	const info = e.info;
-	if (info?.has?.('result')) save(info.at('result'));
+	if (js.hasFlowRes) {
+	    save(js.flowRes);
+	    js.hasFlowRes = js.flowRes = false;
+	}
 	if (e.message === 'stop') throw e;
 	js.capture = false;
     };
     const onIndex = mp.at('index'), onNamed = mp.at('named'), split = onIndex || onNamed, onBoth = mp.at(1);
+    js.active = true;
     try {
 	for (const k of keys) {
 	    js.capture = false;
@@ -36,7 +39,9 @@ function common (d, keys) {
 	    }
 	    try { if (onBoth) save(runIfCode(onBoth)); } catch (e) { react(e); }
 	}
+	js.active = false;
     } catch (e) { if (!js.capture) throw e; }
+    finally { js.active = false; }
     if (!count) {
 	const ls = d.mp.at('else');
 	if (ls) return runIfCode(ls);
@@ -85,12 +90,13 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', {}),
+	    active: d => !!d.js.active,
 	    for: opFor,
 	    isIndex: d => d.js.isIndex,
 	    key: d => d.js.key,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
+	    next: d => throwFlow(d, 'next', name),
 	    rev: opRev,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
+	    stop: d => throwFlow(d, 'stop', name),
 	    value: d => d.js.value,
 	},
     });

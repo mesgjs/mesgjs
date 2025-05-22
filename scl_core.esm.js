@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
 import { parseQJSON, parseSLID } from 'syscl/nanos.esm.js';
 
 // (and value...)
@@ -61,11 +61,13 @@ function opOr (d) {
 }
 
 // (run value... collect=@f)
+
 function opRun (d) {
     const { mp } = d, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
     const save = v => { if (collect) result.push(v); else result = v; };
-    for (const v of mp.values()) save(runIfCode(v));
+    if (mp.at('repeat')) for (const v of mp.values()) save(runWhileCode(v));
+    else for (const v of mp.values()) save(runIfCode(v));
     return result;
 }
 
@@ -88,6 +90,11 @@ function opXor (d) {
     return result;
 }
 
+function runWhileCode (v) {
+    while (v?.sclType === '@code') v = v('run');
+    return v;
+}
+
 export function install (name) {
     getInterface(name).set({
 	final: true, lock: true, pristine: true, singleton: true,
@@ -96,6 +103,9 @@ export function install (name) {
 	    and: opAnd,
 	    case: opCase,
 	    debug: d => debugConfig(d.mp),
+	    fcheck: d => fcheck(d.mp.at(0)),
+	    fwait: d => fwait(...d.mp.values()),
+	    fready: d => fready(d.mp.at('mid'), d.mp.at(0)),
 	    get: opGet,			// Get instance
 	    if: opIf,
 	    // import: opImport,

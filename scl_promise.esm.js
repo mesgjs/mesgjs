@@ -6,22 +6,34 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
+/*
+Can reject in the original promise task, but queues the handler call (it
+doesn't require the handler yet).
+It returns.
+Handlers can be added in a chain after the new Promise.
+In the reject dispatch, checks for no reject handler.
+*/
+
+import { getInstance, getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
 
 const identity = x => x, thrower = x => { throw x; };
-const callable = f => typeof f === 'function' && (!f.sclType || f.sclType === '@function');
+const callable = f => typeof f === 'function' && (!f.sclType || f.sclType === '@code' || f.sclType === '@function');
 const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
 const dualStatus = status => Object.assign(new NANOS(status), status);
 
 function callHandlers (list) {
     const { state, result } = this[privKey], ok = state === 'fulfilled';
+    if (!ok && !list.length) {
+	queueMicrotask(() => Promise.reject(result));
+	return;
+    }
     for (const entry of list) {
 	const [ onResolve, onReject, next ] = entry;
 	queueMicrotask(() => {
 	    try {
-		const handler = ok ? onResolve : onReject;
-		if (handler.sclType) next.resolve(handler('call', ok ? { resolve: result } : { reject: result }));
+		const handler = ok ? onResolve : onReject, st = handler.sclType;
+		if (st) next.resolve(handler((st === '@code') ? 'run' : 'call', ok ? { resolve: result } : { reject: result }));
 		else next.resolve(handler(result));
 	    } catch (err) {
 		next.reject(err);
@@ -42,7 +54,7 @@ const proto = Object.setPrototypeOf({
 	    p.then(res => {
 		results[idx] = res;
 		if (--remaining === 0) this.resolve(results);
-	    }).catch(err => jsReject(js, err));
+	    }, err => this.reject(err));
 	});
 	return this;
     },
@@ -57,7 +69,7 @@ const proto = Object.setPrototypeOf({
 	    p.then(value => {
 		results[idx] = dualStatus({ status: 'fulfilled', value });
 		if (--remaining === 0) this.resolve(results);
-	    }).catch(reason => {
+	    }, reason => {
 		results[idx] = dualStatus({ status: 'rejected', reason });
 		if (--remaining === 0) this.resolve(results);
 	    });
@@ -75,8 +87,7 @@ const proto = Object.setPrototypeOf({
 
 	if (!remaining) allRejected();
 	promises.forEach((p, idx) => {
-	    p.then(res => this.resolve(res))
-	    .catch(reason => {
+	    p.then(res => this.resolve(res), reason => {
 		reasons[idx] = reason;
 		if (--remaining === 0) allRejected();
 	    });
@@ -91,8 +102,8 @@ const proto = Object.setPrototypeOf({
 	if (!callable(onResolve)) onResolve = identity;
 	if (!callable(onReject)) onReject = thrower;
 	const entry = [ onResolve, onReject, getInstance('@promise') ];
-	if (priv.state === 'pending') priv.handlers.push(entry);
-	else callHandlers.call(this, [ entry ]);
+	if (priv.handlers) priv.handlers.push(entry);
+	else queueMicrotask(() => callHandlers.call(this, [ entry ]));
 	return entry[2];
     },
 
@@ -108,10 +119,10 @@ const proto = Object.setPrototypeOf({
 	priv.state = 'rejected';
 	if (!(reason instanceof Error)) reason = new Error(reason);
 	priv.result = reason;
-	if (!priv.handlers.length) queueMicrotask(() => { throw reason; });
-	callHandlers.call(this, priv.handlers);
-	priv.handlers = null;
-	return this;
+	queueMicrotask(() => {
+	    callHandlers.call(this, priv.handlers);
+	    priv.handlers = null;
+	});
     },
 
     resolve (result) {
@@ -119,13 +130,14 @@ const proto = Object.setPrototypeOf({
 	if (priv.state !== 'pending') return;
 	if (thenable(result)) {
 	    result.then(res => this.resolve(res), err => this.reject(err));
-	    return result;
+	    return;
 	}
 	priv.state = 'fulfilled';
 	priv.result = result;
-	callHandlers.call(this, priv.handlers);
-	priv.handlers = null;
-	return this;
+	queueMicrotask(() => {
+	    callHandlers.call(this, priv.handlers);
+	    priv.handlers = null;
+	});
     },
 
     get result () { return this[privKey].result; },
@@ -141,6 +153,8 @@ function opInit (d) {
     setRO(d.rr, privKey, {
 	state: 'pending', result: undefined, handlers: [],
     });
+    if (d.mp.has('resolve')) d.rr.resolve(d.mp.at('resolve'));
+    if (d.mp.has('reject')) d.rr.reject(d.mp.at('reject'));
 }
 
 export function install (name) {

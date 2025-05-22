@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, runIfCode, SCLFlow, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, runIfCode, setRO, throwFlow } from 'syscl/runtime.esm.js';
 
 /*
  * @codeIter(run code times=n collect=boolean)
@@ -16,17 +16,20 @@ function opRun (d) {
     let result = collect ? new NANOS() : undefined;
     const save = res => { if (collect) result.push(res); else result = res; };
     js.times = times;
-    for (let i = 0; i < times; ++i) {
+    js.active = true;
+    try { for (let i = 0; i < times; ++i) {
 	js.capture = false;
 	js.iteration = i;
 	try { save(runIfCode(mp.at(0))); }
 	catch (e) {
 	    if (!js.capture) throw e;
-	    const info = e.info;
-	    if (info?.has?.('result')) save(info.at('result'));
+	    if (js.hasFlowRes) {
+		save(js.flowRes);
+		js.hasFlowRes = js.flowRes = false;
+	    }
 	    if (e.message === 'stop') break;
 	}
-    }
+    } } finally { js.active = false; }
     return result;
 }
 
@@ -41,19 +44,22 @@ function opWhile (d) {
     // Snapshot blocks at start (in theory, they could change during execution)
     const main = mp.at(0), xtra = ifc(mp.at(1)), pre = ifc(mp.at('pre')), mid = xtra && ifc(mp.at('mid')), post = ifc(mp.at('post'));
     // At least one of the pre or post code blocks must be present
-    if (!pre && !mid && !post) return;
+    if (!pre && !mid && !post) throw new SyntaxError('(while) test {block!} required');;
     const collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
     const save = res => { if (collect) result.push(res); else result = res; };
     const react = e => {
 	if (!js.capture) throw e;
-	const info = e.info;
-	if (info?.has?.('result')) save(info.at('result'));
+	if (js.hasFlowRes) {
+	    save(js.flowRes);
+	    js.hasFlowRes = js.flowRes = false;
+	}
 	if (e.message === 'stop') throw e;
 	js.capture = false;
     };
     js.times = undefined;
-    for (let i = 0; ; ++i) {
+    js.active = true;
+    try { for (let i = 0; ; ++i) {
 	js.capture = false;
 	js.iteration = i;
 	try {
@@ -65,10 +71,12 @@ function opWhile (d) {
 	    }
 	    try { if (post && !post('run')) break; } catch (e) { react(e); }
 	} catch (e) {
+	    js.active = false;
 	    if (!js.capture) throw e;
 	    if (e.message === 'stop') break;
+	    js.active = true;
 	}
-    }
+    } } finally { js.active = false; }
     return result;
 }
 
@@ -86,13 +94,14 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', {}),
+	    active: d => !!d.js.active,
 	    num: d => d.js.iteration,
 	    num1: d => d.js.iteration + 1,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
+	    next: d => throwFlow(d, 'next', name),
 	    rem: d => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
 	    rem1: d => d.js.times ? (d.js.times - d.js.iteration) : undefined,
 	    run: opRun,
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
+	    stop: d => throwFlow(d, 'stop', name),
 	    times: d => d.js.times,
 	    while: opWhile,
 	},

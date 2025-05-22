@@ -4,24 +4,24 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, SCLFlow, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, runIfCode, setRO, throwFlow } from 'syscl/runtime.esm.js';
 
 // @try(try code... catch=code always=code)
 function opTry (d) {
     const { mp, js } = d;
     delete js.exception;
     delete js.result;
-    const save = ex => {
-	const info = ex.info;
-	if (info?.has?.('result')) js.result = e.info.at('result');
-    };
+    js.active = true;
     try {
 	for (const v of mp.values()) {
 	    js.capture = false;
 	    try { js.result = runIfCode(v); }
 	    catch (ex) {
 		if (!js.capture) throw ex;
-		save(ex);
+		if (js.hasFlowRes) {
+		    js.result = js.flowRes;
+		    js.hasFlowRes = js.flowRes = false;
+		}
 		if (ex.message === 'stop') break;
 	    }
 	}
@@ -37,7 +37,10 @@ function opTry (d) {
 	    try { en[1]('run'); }
 	    catch (ex) {
 		if (!js.capture) throw ex;
-		save(ex);
+		if (js.hasFlowRes) {
+		    js.result = js.flowRes;
+		    js.hasFlwoRes = js.flowRes = false;
+		}
 	    }
 	    return js.result;
 	}
@@ -48,11 +51,15 @@ function opTry (d) {
 	try { cv('run'); }
 	catch (ex) {
 	    if (!js.capture) throw ex;
-	    save(ex);
+	    if (js.hasFlowRes) {
+		js.result = js.flowRes;
+		js.hasFlowRes = js.flowRes = false;
+	    }
 	}
     }
     finally {
 	runIfCode(mp.at('always'));
+	js.active = false;
     }
     return js.result;
 }
@@ -65,10 +72,10 @@ export function install (name) {
 	    error: d => d.js.exception,
 	    message: d => d.js.exception?.message,
 	    name: d => d.js.exception?.name,
-	    next: d => { d.js.capture = true; throw new SCLFlow('next', d.mp); },
+	    next: d => throwFlow(d, 'next', name),
 	    result: d => d.js.result,
 	    return: d => { d.js.result = d.mp.at(0); },
-	    stop: d => { d.js.capture = true; throw new SCLFlow('stop', d.mp); },
+	    stop: d => throwFlow(d, 'stop', name),
 	    try: opTry,
 	},
     });

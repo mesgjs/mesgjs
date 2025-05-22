@@ -24,6 +24,18 @@ function opAt (d) {
     return cur;
 }
 
+function doGet () {
+    if (this.list.has(this.key)) return this.list.at(this.key);
+    if (this.hasElse) return runIfCode(this.elseVal);
+    throw new Error(`Required key ${this.key} not present`);
+}
+
+function opGetter (d) {
+    const { js: list, mp } = d;
+    const key = mp.at(0), hasElse = mp.has('else'), elseVal = mp.at('else');
+    return d.b({ cd: doGet.bind({ list, key, hasElse, elseVal }) });
+}
+
 function opNext (d) {
     if (d.mp.has(0)) {
 	d.js.next = d.mp.at(0);
@@ -46,6 +58,15 @@ function opRIO (d) {
 	return d.rr;
     }
     return !!js.rio;
+}
+
+function doSet (d) {
+    this.list.set(this.key, d.mp.at(0));
+}
+
+function opSetter (d) {
+    const { js: list, mp } = d, key = mp.at(0);
+    return d.b({ cd: doSet.bind({ list, key }) })('fn');
 }
 
 // Supported key types
@@ -85,6 +106,7 @@ export function install (name) {
 	    // findLast: use @kvIter
 	    // forEach: use @kvIter
 	    get: opAt,
+	    getter: opGetter,
 	    has: d => d.js.has(d.mp.at(0)),
 	    includes: d => d.js.includes(d.mp.at(0)),
 	    indexEntries: d => new NANOS([...d.js.indexEntries(d.mp.at(0))]),
@@ -111,6 +133,7 @@ export function install (name) {
 	    rio: opRIO,
 	    self: d => d.js,
 	    set: opSet,
+	    setter: opSetter,
 	    shift: d => d.js.shift(),
 	    size: d => d.js.size,
 	    toJSON: d => d.js.toJSON(),

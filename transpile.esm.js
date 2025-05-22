@@ -144,7 +144,7 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';\nfunction loadSCL (mid) {\nconst {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
+	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';\nexport function loadSCL (mid) {\nconst {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
 	outBuf.push(segment(`}\nif (!globalThis.sclModMeta) loadSCL();\n`));
     }
 
