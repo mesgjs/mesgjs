@@ -1,2 +1,0 @@
-#!/bin/sh
-exec deno run --allow-read --allow-write trascl-cli.esm.js "$@"

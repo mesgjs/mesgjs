@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# bin/maptoscl
+# Use sourcemaps to map JavaScript errors back to SysCL
+# Author: Brian Katzung <briank@kappacs.com>
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+exec deno run --config "$SCRIPT_DIR/../deno.json" --allow-read "$SCRIPT_DIR/../cli/maptoscl-cli.esm.js" "$@"

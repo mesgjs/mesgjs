@@ -1,6 +1,8 @@
 {
     "imports": {
-	"syscl/": "./"
+	"syscl/nanos.esm.js": "./vendor/nanos.esm.js",
+	"syscl/reactive.esm.js": "./vendor/reactive.esm.js",
+	"syscl/": "./src/"
     },
     "tasks": {
     }
