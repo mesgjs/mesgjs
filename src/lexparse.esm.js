@@ -1,13 +1,13 @@
 /*
- * SysCL2 Lexical Analyzer And Parsing Functions
+ * Mesgjs Lexical Analyzer And Parsing Functions
  * Copyright 2024-2025 Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { unescapeJSString } from 'syscl/escape.esm.js';
+import { unescapeJSString } from 'mesgjs/escape.esm.js';
 
-// SysCL lexical token regexps
-const SCLPats = {
+// Mesgjs lexical token regexps
+const MSJSPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
@@ -21,8 +21,8 @@ const SCLPats = {
     oth: '[^\'"!%#/[(={})\\]\\s]+',// Other
 };
 
-const SCLRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.split(' ').map(k => SCLPats[k]).join('|') + ')', 's');
-const SCLNum = new RegExp('^' + SCLPats.num + '$');
+const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
+const MSJSNum = new RegExp('^' + MSJSPats.num + '$');
 
 // Simple lexical analyzer
 export function lex (input, loc = {}) {
@@ -49,7 +49,7 @@ export function lex (input, loc = {}) {
 	adv(configSLID);
     }
 
-    return { shebang, configSLID, tokens: input.split(SCLRE).map(text => {
+    return { shebang, configSLID, tokens: input.split(MSJSRE).map(text => {
 	    const loc = { src, line, col };
 	    adv(text);
 
@@ -79,7 +79,7 @@ export function lex (input, loc = {}) {
 		return { type: text, loc };
 	    default:
 		if (/^\s/.test(text)) return false;
-		if (SCLNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
+		if (MSJSNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
 		if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) };
 		if (text === '@debug{') return { type: 'dbg', loc };
 		return { type: 'wrd', loc, text, staticValue: text };

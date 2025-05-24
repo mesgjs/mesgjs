@@ -1,10 +1,10 @@
 /*
- * SysCL @number interface
+ * Mesgjs @number interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO, typeAccepts } from 'syscl/runtime.esm.js';
+import { getInterface, setRO, typeAccepts } from 'mesgjs/runtime.esm.js';
 
 function perform (d, opf, def = 0) {
     const mp = d.mp; let js = d.js;
@@ -13,7 +13,7 @@ function perform (d, opf, def = 0) {
 }
 
 function toNum (v, def) {
-    const st = v?.sclType;
+    const st = v?.msjsType;
     if (st && typeAccepts(st, 'toNumber')) v = v('toNumber');
     const t = typeof v;
     if (t === 'number' || t === 'bigint') return v;

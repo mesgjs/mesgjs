@@ -1,15 +1,15 @@
 /*
- * SysCL @set - JS Set wrapper interface
+ * Mesgjs @set - JS Set wrapper interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, sclInstance, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, set = mp.at(0);
     setRO(octx, 'js', (set instanceof Set) ? set : new Set());
-    setRO(d.js, sclInstance, d.rr, false);
+    setRO(d.js, msjsInstance, d.rr, false);
 }
 
 export function install (name) {

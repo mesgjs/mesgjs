@@ -1,10 +1,10 @@
 /*
- * SysCL @kvIter (key-value iteration) interface
+ * Mesgjs @kvIter (key-value iteration) interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from 'syscl/runtime.esm.js';
+import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from 'mesgjs/runtime.esm.js';
 
 function common (d, keys) {
     const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
@@ -51,7 +51,7 @@ function common (d, keys) {
 
 // Return a key/value interface for whatever object we were given
 function getKVI (obj) {
-    const ot = typeof obj, st = obj?.sclType;
+    const ot = typeof obj, st = obj?.msjsType;
     let keys, get;
     if ((ot !== 'object' && ot !== 'function') || obj === null) obj = [obj];
     if (st) {

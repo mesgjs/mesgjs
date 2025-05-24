@@ -1,10 +1,10 @@
 /*
- * SysCL @try interface
+ * Mesgjs @try interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, setRO, throwFlow } from 'syscl/runtime.esm.js';
+import { getInterface, runIfCode, setRO, throwFlow } from 'mesgjs/runtime.esm.js';
 
 // @try(try code... catch=code always=code)
 function opTry (d) {
@@ -27,12 +27,12 @@ function opTry (d) {
 	}
     }
     catch (ex) {
-	if (ex instanceof SCLFlow) throw ex;
+	if (ex instanceof MSJSFlow) throw ex;
 	js.exception = ex;
 	if (mp.has('catchers')) for (const en of mp.at('catchers').entries()) {
 	    const clob = globalThis[en[0]];
 	    if (typeof clob !== 'function' || !(ex instanceof clob)) continue;
-	    if (en[1]?.sclType !== '@code') return en[1];
+	    if (en[1]?.msjsType !== '@code') return en[1];
 	    js.capture = false;
 	    try { en[1]('run'); }
 	    catch (ex) {
@@ -46,7 +46,7 @@ function opTry (d) {
 	}
 	if (!mp.has('catch')) throw ex;
 	const cv = mp.at('catch');
-	if (cv?.sclType !== '@code') return cv;
+	if (cv?.msjsType !== '@code') return cv;
 	js.capture = false;
 	try { cv('run'); }
 	catch (ex) {

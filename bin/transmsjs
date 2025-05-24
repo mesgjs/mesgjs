@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# bin/trascl
-# Transpile SysCL to JavaScript
+# bin/transmsjs
+# Transpile Mesgjs to JavaScript
 # Author: Brian Katzung <briank@kappacs.com>
 
 SOURCE="${BASH_SOURCE[0]}"
@@ -11,4 +11,4 @@ while [ -L "$SOURCE" ]; do
 done
 SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-exec deno run --config "$SCRIPT_DIR/../deno.json" --allow-read --allow-write "$SCRIPT_DIR/../cli/trascl-cli.esm.js" "$@"
+exec deno run --config "$SCRIPT_DIR/../deno.json" --allow-read --allow-write "$SCRIPT_DIR/../cli/transmsjs-cli.esm.js" "$@"

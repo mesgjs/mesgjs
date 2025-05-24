@@ -1,5 +1,5 @@
 /*
- * SysCL Runtime Interface And Messaging Support
+ * Mesgjs Runtime Interface And Messaging Support
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  *
@@ -7,30 +7,30 @@
  * Sending and receiving messages
  * Defining interfaces and dispatching handlers in response to messages
  */
-import { calcDigest, getIntegritySHA512 } from 'syscl/calc_digest.esm.js';
-import { NANOS, isIndex, parseQJSON, parseSLID } from 'syscl/nanos.esm.js';
-import { SieveCache } from 'syscl/sieve_cache.esm.js';
-import { unifiedList } from 'syscl/unified_list.esm.js';
+import { calcDigest, getIntegritySHA512 } from 'mesgjs/calc_digest.esm.js';
+import { NANOS, isIndex, parseQJSON, parseSLID } from 'mesgjs/nanos.esm.js';
+import { SieveCache } from 'mesgjs/sieve_cache.esm.js';
+import { unifiedList } from 'mesgjs/unified_list.esm.js';
 export { NANOS, isIndex, unifiedList };
-import 'syscl/shim.esm.js';
+import 'mesgjs/shim.esm.js';
 
 // Foundational-class installers
-import { installCoreExtensions, jsToSCL, sclInstance } from 'syscl/runtime_local.esm.js';
-export { jsToSCL, sclInstance };
+import { installCoreExtensions, jsToMSJS, msjsInstance } from 'mesgjs/runtime_local.esm.js';
+export { jsToMSJS, msjsInstance };
 
-// Flow exception, e.g. @d(return value) throws SCLFlow('return', value)
-export class SCLFlow extends Error {
+// Flow exception, e.g. @d(return value) throws MSJSFlow('return', value)
+export class MSJSFlow extends Error {
     constructor (message, info) {
 	super(message);
 	if (info !== undefined) this.info = info;
     }
 
-    get name () { return 'SCLFlow'; }
+    get name () { return 'MSJSFlow'; }
 }
-export class SCLFlowError extends RangeError {
+export class MSJSFlowError extends RangeError {
     constructor (...a) {
 	super(...a);
-	this.name = 'SCLFlowError';
+	this.name = 'MSJSFlowError';
     }
 };
 
@@ -67,7 +67,7 @@ export const listFromPairs = pa => new NANOS().fromPairs(pa);
 
 // Types to show in place of values during dispatch/stack traces
 export function loggedType (v) {
-    if (v?.sclType) return 'S.' + v.sclType;
+    if (v?.msjsType) return 'S.' + v.msjsType;
     const jt = typeof v;
     switch (jt) {
     case 'boolean': return (v ? '@t' : '@f');
@@ -86,21 +86,21 @@ export function namespaceAt  (namespace, key, opt) {
 }
 
 // Get the return value if @code, or the raw value otherwise
-export const runIfCode = v => v?.sclType === '@code' ? v('run') : v;
+export const runIfCode = v => v?.msjsType === '@code' ? v('run') : v;
 
 // Send an anonymous message (promoting JS receiver objects as necessary)
 export function sendAnonMessage (rr, op, mp) {
-    if (!rr?.sclType) rr = jsToSCL(rr);
+    if (!rr?.msjsType) rr = jsToMSJS(rr);
     return rr(op, mp);
 }
 
 // Return a message sender's source file/line/column
 export function senderFLC () {
     const stack = (new Error().stack || '').split('\n');
-    // Discard stack frames through the object's sclR$ receiver (public i/f fn)
-    while (stack.length) if (/sclR\$/.test(stack.shift())) break;
-    // Also discard sender's sclS$ frames for attributed messages
-    while (/sclS\$/.test(stack[0])) stack.shift();
+    // Discard stack frames through the object's msjsR$ receiver (public i/f fn)
+    while (stack.length) if (/msjsR\$/.test(stack.shift())) break;
+    // Also discard sender's msjsS$ frames for attributed messages
+    while (/msjsS\$/.test(stack[0])) stack.shift();
     const srFrame = stack[0] || '';
     const match = srFrame.match(/[@(](.*):(\d+):(\d+)/) ||
 	srFrame.match(/(?:^|\s+)at\s+(.*):(\d+):(\d+)$/);
@@ -129,13 +129,13 @@ export const setRO = (o, ...a) => {
 
 export function throwFlow (d, type, ifName) {
     const { js, mp } = d;
-    if (!js.active) throw new SCLFlowError(`(${type}) to inactive ${ifName}`);
+    if (!js.active) throw new MSJSFlowError(`(${type}) to inactive ${ifName}`);
     js.capture = true;
     if (mp.has('result')) {
 	js.hasFlowRes = true;
 	js.flowRes = mp.at('result');
     }
-    throw new SCLFlow(type);
+    throw new MSJSFlow(type);
 }
 
 const hasOwn = Object.hasOwn;
@@ -164,7 +164,7 @@ export const {
     const dbgCfg = Object.setPrototypeOf({
 	dispatch: false, dispatchSource: false, dispatchTypes: false,
 	stack: 0, stackSource: false, stackTypes: false,
-    }, null), stack = [], hdr = '-- SysCL Dispatch Stack --';
+    }, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
     const modLoaded = new Set(), features = new Map(), modMeta = new NANOS(), modMap = new Map();
@@ -183,7 +183,7 @@ export const {
 	}
     }
 
-    // Add some or all of our SysCL stack trace to the JS one
+    // Add some or all of our Mesgjs stack trace to the JS one
     function appendStackTrace (e) {
 	if (!stack.length || !e.stack?.includes || e.stack.includes(hdr)) return;
 	const frames = [], stop = dbgCfg.stack;
@@ -201,7 +201,7 @@ export const {
     // Bind a code template to a dispatch object and save it
     function bindCode (tpl, disp) {
 	if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
-	return ((disp._bc ||= [])[tpl.ucid] ||= newSCLCode(tpl.cd, disp));
+	return ((disp._bc ||= [])[tpl.ucid] ||= newMSJSCode(tpl.cd, disp));
     }
 
     /*
@@ -225,7 +225,7 @@ export const {
 	    if (hp('params')) mp = op.params;
 	    if (hp('op')) op = op.op;
 	    else if (hp('0')) op = op[0];
-	    else throw new SyntaxError('Missing operation in SysCL list-op message');
+	    else throw new SyntaxError('Missing operation in Mesgjs list-op message');
 	}
 	if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
 	return { sr, st, rr, rt, op, mp, hasElse, elseExpr };
@@ -266,7 +266,7 @@ export const {
 	get js () { return this.octx.js; },
 	// JIT persistent storage NANOS
 	get p () { return this.octx.ps ??= new NANOS(); },
-	get sclType () { return '@dispatch'; },
+	get msjsType () { return '@dispatch'; },
 	// JIT transient (scratch) storage NANOS
 	get t () { return this._ts ??= new NANOS(); },
     }, Object.getPrototypeOf(Function));
@@ -280,7 +280,7 @@ export const {
 	 * As part of the messaging pathway, dispatch objects have custom
 	 * receiver functions.
 	 */
-	const bfnThis = {}, disp = bfnThis.bfn = Object.setPrototypeOf(sclR$Dispatch.bind(bfnThis, mctx, dhctx, mp), dispProto);
+	const bfnThis = {}, disp = bfnThis.bfn = Object.setPrototypeOf(msjsR$Dispatch.bind(bfnThis, mctx, dhctx, mp), dispProto);
 	disp.dop = op;
 	disp.ht = handler.type;
 	disp.mop = mctx.op;
@@ -296,21 +296,21 @@ export const {
 	try {
 	    if (dbgCfg.dispatch) {
 		const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
-		console.log(`[SysCL dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+		console.log(`[Mesgjs dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
 	    }
 	    if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
 	    const result = handler.code(disp);
-	    if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
+	    if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
 	    return result;
 	}
 	catch (e) {
-	    if (disp._capture && e instanceof SCLFlow) {
+	    if (disp._capture && e instanceof MSJSFlow) {
 		disp._capture = false;
-		if (thisDisp !== false) console.log(`[SysCL return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
+		if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		return e.info;
 	    }
-	    if (thisDisp !== false) console.log(`[SysCL exception ${thisDisp}]`, e);
-	    if (trace && !(e instanceof SCLFlow)) appendStackTrace(e);
+	    if (thisDisp !== false) console.log(`[Mesgjs exception ${thisDisp}]`, e);
+	    if (trace && !(e instanceof MSJSFlow)) appendStackTrace(e);
 	    throw e;
 	}
 	finally {
@@ -326,13 +326,13 @@ export const {
 	const { octx, handler = getHandler(rt, op) } = dctx;
 
 	if (!handler) {
-	    if (dbgCfg.dispatch) console.log(`[SysCl dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
+	    if (dbgCfg.dispatch) console.log(`[Mesgjs dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
 	    if (hasElse) return runIfCode(elseExpr);
-	    throw new TypeError(`No SysCL handler found for "${rt}(${op})"`);
+	    throw new TypeError(`No Mesgjs handler found for "${rt}(${op})"`);
 	}
 
 	// Send-message function (shared across all dispatches)
-	const sm = sclS$SendMessage.bind({ sr: rr, st: rt });
+	const sm = msjsS$SendMessage.bind({ sr: rr, st: rt });
 
 	// Dispatch the initial handler and return its result
 	return dispatchHandler(cmp, { octx, op, handler, sm }, mp);
@@ -441,10 +441,10 @@ export const {
      */
     function getInstance (type, mp) {
 	const ix = interfaces[type];
-	if (!ix) throw new TypeError(`Cannot get instance for unknown SysCL interface "${type}"`);
+	if (!ix) throw new TypeError(`Cannot get instance for unknown Mesgjs interface "${type}"`);
 	if (ix.instance) return ix.instance;
-	const octx = Object.create(null), pi = function sclR$Object (op, mp) { return dispatchMessage({ rr: pi, rt: type, op, mp }, { octx }); };
-	setRO(pi, 'sclType', type);
+	const octx = Object.create(null), pi = function msjsR$Object (op, mp) { return dispatchMessage({ rr: pi, rt: type, op, mp }, { octx }); };
+	setRO(pi, 'msjsType', type);
 	if (ix.singleton) ix.instance = pi;
 	ix.refd = true;
 	if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
@@ -453,7 +453,7 @@ export const {
     }
 
     /*
-     * Return a SCL interface management object.
+     * Return a MSJS interface management object.
      * As part of the foundation for the object messaging system, it uses
      * a custom message receiver function.
      */
@@ -468,12 +468,12 @@ export const {
 	    once: false, pristine: true, singleton: false
 	};
 	if (ix?.once) return;
-	const bfnThis = { name, isFirst }, bfn = bfnThis.bfn = sclR$Interface.bind(bfnThis);
+	const bfnThis = { name, isFirst }, bfn = bfnThis.bfn = msjsR$Interface.bind(bfnThis);
 	return setRO(bfn, {
 	    ifName: name,
 	    set: mp => setInterface(name, mp, isFirst),
 	    instance: mp => getInstance(name, mp),
-	    sclType: '@interface',
+	    msjsType: '@interface',
 	});
     }
     firstInit.push(() => {
@@ -514,7 +514,7 @@ export const {
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    if (globalThis.sclModMeta) throw new Error(`loadModule: Refusing unverified module "${newSrc}"`);
+	    if (globalThis.msjsModMeta) throw new Error(`loadModule: Refusing unverified module "${newSrc}"`);
 	    console.log(`loadModule WARNING: Module "${newSrc}" is unverified`);
 	}
 
@@ -536,12 +536,12 @@ export const {
 	}
 	if (typeof Deno !== 'undefined') {
 	    const mod = await import(`data:application/javascript;base64,${btoa(code)}`);
-	    if (globalThis.sclModMeta && mod.loadScl) mod.loadSCL(meta?.mid);
+	    if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
 	} else {
 	    const blobURL = URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' }));
 	    const mod = await import(blobURL);
 	    URL.revokeObjectURL(blobURL);
-	    if (globalThis.sclModMeta && mod.loadSCL) mod.loadSCL(meta?.mid);
+	    if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
 	}
     }
 
@@ -550,7 +550,7 @@ export const {
     // Return a module dispatch object
     function moduleScope () {
 	if (initPhase) initialize();
-	const m = function sclR$Module () {}, d = function sclR$Dispatch (op) {
+	const m = function msjsR$Module () {}, d = function msjsR$Dispatch (op) {
 	    ({ op } = canMesgProps({ rr: d, op }));
 	    switch (op) {
 	    case 'op': return 'load';
@@ -560,14 +560,14 @@ export const {
 	    }
 	};
 	let per, tra;	// JIT persistent, transient storage
-	const b = tpl => bindCode(tpl, d), sm = sclS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
-	setRO(m, 'sclType', '@module');
+	const b = tpl => bindCode(tpl, d), sm = msjsS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
+	setRO(m, 'msjsType', '@module');
 	Object.defineProperties(m, {
 	    p: { get: getPer, enumerable: true },
 	    t: { get: getTra, enumerable: true },
 	});
 	setRO(d, {
-	    sr: m, st: '@module', rr: m, rt: '@module', sclType: '@dispatch',
+	    sr: m, st: '@module', rr: m, rt: '@module', msjsType: '@dispatch',
 	    octx: $u, op: 'load', mp: $u, b, sm,
 	});
 	Object.defineProperties(d, {
@@ -583,21 +583,21 @@ export const {
 	getInterface('@module').set({ pristine: true, private: true, lock: true });
     });
 
-    // Return a new SCL @code object given code and a dispatch
-    function newSCLCode (cd, od) {
+    // Return a new MSJS @code object given code and a dispatch
+    function newMSJSCode (cd, od) {
 	// Encapsulate the code with a custom receiver function (public i/f)
-	const bfnThis = { cd, od }, bfn = bfnThis.bfn = sclR$Code.bind(bfnThis);
-	return setRO(bfn, 'sclType', '@code');
+	const bfnThis = { cd, od }, bfn = bfnThis.bfn = msjsR$Code.bind(bfnThis);
+	return setRO(bfn, 'msjsType', '@code');
     }
 
-    // Return a new SCL @function object given code and state
-    function newSCLFunction (cd, ps) {
+    // Return a new MSJS @function object given code and state
+    function newMSJSFunction (cd, ps) {
 	const type = '@function', octx = {};
 	const bfnThis = { octx, op: 'call', handler: { code: cd, type, op: 'call' } };
 	if (ps !== undefined) setRO(octx, 'ps', ps);
-	const bfn = bfnThis.bfn = sclR$Function.bind(bfnThis);
-	bfnThis.sm = sclS$SendMessage.bind({ sr: bfn, st: type });
-	return setRO(bfn, 'sclType', type);
+	const bfn = bfnThis.bfn = msjsR$Function.bind(bfnThis);
+	bfnThis.sm = msjsS$SendMessage.bind({ sr: bfn, st: type });
+	return setRO(bfn, 'msjsType', type);
     }
     firstInit.push(() => {
 	getInterface('@code').set({ pristine: true, private: true, lock: true,
@@ -624,7 +624,7 @@ export const {
     }
 
     // Prototype @code receiver
-    function sclR$Code (op0, mp0) {
+    function msjsR$Code (op0, mp0) {
 	const cmp = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 }), { op, mp, hasElse, elseExpr } = cmp;
 	// Fast-track (run) message
 	if (op === 'run') return this.cd(this.od);
@@ -634,10 +634,10 @@ export const {
 	    codeBaton = { code: this.cd }; // JS function for interface
 	    return;
 	case 'fn':			// Return new function code block
-	    return newSCLFunction(this.cd, mp);
+	    return newMSJSFunction(this.cd, mp);
 	}
 	if (hasElse) return runIfCode(elseExpr);
-	throw new TypeError(`No SysCL handler found for "@code(${op})"`);
+	throw new TypeError(`No Mesgjs handler found for "@code(${op})"`);
     }
 
     /*
@@ -645,7 +645,7 @@ export const {
      * Accepts original message context, dispatch context, and
      * dispatched message params.
      */
-    function sclR$Dispatch (mctx, dhctx, _dmp) {
+    function msjsR$Dispatch (mctx, dhctx, _dmp) {
 	// Note: op/mp here is for the d(message), not the original (mctx)
 	const { op, mp, elseExpr } = canMesgProps({ rr: this.bfn });
 	const { octx, handler, sm } = dhctx;
@@ -674,7 +674,7 @@ export const {
 	}
 	case 'return':
 	    this.bfn._capture = true;
-	    throw new SCLFlow('return', mp.at(0));
+	    throw new MSJSFlow('return', mp.at(0));
 	    // Not reached
 	case 'rr': return mctx.rr;
 	case 'rt': return mctx.rt;
@@ -686,23 +686,23 @@ export const {
 
     // Prototype @function receiver
     function jsFnCall (...mp) { return this.bfn('call', new NANOS([...mp])); }
-    function sclR$Function (op0, mp0) {
+    function msjsR$Function (op0, mp0) {
 	const cmp = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
 	const { op, mp, hasElse, elseExpr } = cmp;
 	// Fast-track (call) message
 	if (op === 'call') return dispatchHandler(cmp, this, mp);
 	switch (op) {		// Function-mode ops
 	case 'fn':			// Return a new function code block
-	    return newSCLFunction(cd, mp);
+	    return newMSJSFunction(cd, mp);
 	case 'jsfn':		// Return a JS wrapper-function
 	    return (this.jsFn ||= jsFnCall.bind(this));
 	}
 	if (hasElse) return runIfCode(elseExpr);
-	throw new TypeError(`No SysCL handler found for "${type}(${op})"`);
+	throw new TypeError(`No Mesgjs handler found for "${type}(${op})"`);
     }
 
     // Prototype @interface receiver
-    function sclR$Interface (op0, mp0) {
+    function msjsR$Interface (op0, mp0) {
 	const name = this.name, { op, mp, hasElse, elseExpr } = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
 	switch (op) {
 	case 'instance': return getInstance(name, mp);
@@ -710,16 +710,16 @@ export const {
 	case 'set': return setInterface(name, mp, this.isFirst);
 	}
 	if (hasElse) return runIfCode(elseExpr);
-	throw new TypeError(`No SysCL handler found for "@interface(${op})"`);
+	throw new TypeError(`No Mesgjs handler found for "@interface(${op})"`);
     };
 
     /*
      * Prototype private send-message function
-     * Promote JS receiver objects to SysCL, if necessary, and deliver an
+     * Promote JS receiver objects to Mesgjs, if necessary, and deliver an
      * attributed message via the message baton.
      */
-    function sclS$SendMessage (rr, op, mp) {
-	if (!rr?.sclType) rr = jsToSCL(rr);
+    function msjsS$SendMessage (rr, op, mp) {
+	if (!rr?.msjsType) rr = jsToMSJS(rr);
 	mesgBaton = { sr: this.sr, st: this.st, rr, op, mp };
 	let result;
 	try { result = rr(); }
@@ -728,7 +728,7 @@ export const {
     }
 
     /*
-     * Interface-object implementation to set/change a SCL object interface
+     * Interface-object implementation to set/change a MSJS object interface
      *
      * Parameters:
      * - abstract - The interface is incomplete and cannot be instantiated
@@ -743,21 +743,21 @@ export const {
      *       via the interface object, not through the core)
      */
     function setInterface (name, mp, isFirst) {
-	if (name[0] === '@' && initPhase !== 1) throw new TypeError(`Cannot configure SysCL interface "${name}" after runtime initialization`);
+	if (name[0] === '@' && initPhase !== 1) throw new TypeError(`Cannot configure Mesgjs interface "${name}" after runtime initialization`);
 	const ix = interfaces[name];
 	if (mp instanceof NANOS) mp = mp.storage;
-	if ((mp.once && !isFirst) || (mp.pristine && !ix.pristine)) throw new TypeError(`SysCL interface "${name}" is not pristine`);
+	if ((mp.once && !isFirst) || (mp.pristine && !ix.pristine)) throw new TypeError(`Mesgjs interface "${name}" is not pristine`);
 	ix.pristine = false;
-	if (ix.locked) throw new TypeError(`Cannot change locked SysCL interface "${name}"`);
+	if (ix.locked) throw new TypeError(`Cannot change locked Mesgjs interface "${name}"`);
 
 	// Set the interface chain. Refd guarantees an acyclic graph.
 	if (mp.chain) {
-	    if (ix.chain.size) throw new TypeError(`Cannot change chain for SysCL interface "${name}"`);
-	    if (ix.refd) throw new TypeError(`Cannot set chain for active SysCL interface "${name}"`);
+	    if (ix.chain.size) throw new TypeError(`Cannot change chain for Mesgjs interface "${name}"`);
+	    if (ix.refd) throw new TypeError(`Cannot set chain for active Mesgjs interface "${name}"`);
 	    const chain = new Set(Object.values(mp.chain.storage || mp.chain || []));
 	    for (const item of chain) {
-		if (!interfaces[item]) throw new ReferenceError(`SysCL interface "${name}" references unknown interface "${item}"`);
-		if (interfaces[item].final) throw new TypeError(`SysCL interface "${name}" tries to extend final interface "${item}"`);
+		if (!interfaces[item]) throw new ReferenceError(`Mesgjs interface "${name}" references unknown interface "${item}"`);
+		if (interfaces[item].final) throw new TypeError(`Mesgjs interface "${name}" tries to extend final interface "${item}"`);
 		interfaces[item].refd = true;
 	    }
 	    ix.chain = chain;
@@ -765,15 +765,15 @@ export const {
 
 	/*
 	 * Add message handlers. These can be either foundational JavaScript
-	 * implementation functions or SysCL code blocks.
+	 * implementation functions or Mesgjs code blocks.
 	 */
 	const opHandlers = mp.handlers || {};
 	for (const [ op, handler ] of (opHandlers instanceof NANOS) ? opHandlers.entries() : Object.entries(opHandlers)) {
 	    if (typeof handler === 'function') {
-		if (handler.sclType === '@code') {
+		if (handler.msjsType === '@code') {
 		    codeBaton = undefined;
 		    handler(getCode);
-		    if (codeBaton?.code) setRO(ix.handlers[op] = codeBaton.code, 'sclType', '@handler');
+		    if (codeBaton?.code) setRO(ix.handlers[op] = codeBaton.code, 'msjsType', '@handler');
 		}
 		else ix.handlers[op] = handler;
 	    } else if (handler === false) ix.handlers[op] = false;
@@ -799,10 +799,10 @@ export const {
 
     // Set module metadata (once) from a plain object or NANOS
     function setModMeta (meta) {
-	if (globalThis.sclModMeta) return;
+	if (globalThis.msjsModMeta) return;
 	if (meta instanceof NANOS) modMeta.push(parseSLID(meta.toSLID()));
 	else modMeta.push(parseQJSON(JSON.stringify(meta)));
-	setRO(globalThis, 'sclModMeta', true);
+	setRO(globalThis, 'msjsModMeta', true);
 	addModFeatures(modMeta.at('modules'));
 	const hosts = modMeta.at('hosts');
 	for (const host of hosts?.keys() || []) addModFeatures(hosts.at(host).at('modules'));

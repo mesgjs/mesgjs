@@ -1,15 +1,15 @@
 /*
- * SysCL interface wrapper for JS arrays
+ * Mesgs interface wrapper for JS arrays
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, sclInstance, setRO } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
 
 function opAtInit (d) {
     const { octx, mp } = d, ary = mp.at(0);
     setRO(octx, 'js', Array.isArray(ary) ? ary : []);
-    setRO(d.js, sclInstance, d.rr, false);
+    setRO(d.js, msjsInstance, d.rr, false);
 }
 
 export function install (name) {

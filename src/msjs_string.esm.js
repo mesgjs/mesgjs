@@ -1,18 +1,18 @@
 /*
- * SysCL @string interface
+ * Mesgjs @string interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, jsToSCL, NANOS, setRO, typeAccepts } from 'syscl/runtime.esm.js';
+import { getInstance, getInterface, jsToMSJS, NANOS, setRO, typeAccepts } from 'mesgjs/runtime.esm.js';
 
 // Join strings together with an optional separator
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
     const { mp, js } = d, sep = mp.at('with') ?? '', parts = [ js ];
     for (const v of mp.values()) {
-	const so = jsToSCL(v);
-	if (typeAccepts(so.sclType, 'toString')) parts.push(so('toString'));
+	const so = jsToMSJS(v);
+	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(sep);
 }
@@ -22,33 +22,33 @@ function opJoin (d) {
 function opJoining (d) {
     const { mp, js } = d, parts = [];
     for (const v of mp.values()) {
-	const so = jsToSCL(v);
-	if (typeAccepts(so.sclType, 'toString')) parts.push(so('toString'));
+	const so = jsToMSJS(v);
+	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(js);
 }
 
 function opReplace (d, all = false) {
-    const rawPat = d.mp.at(0, ''), pat = (rawPat?.sclType === '@regex')? rawPat.jsv : rawPat;
-    const rawRep = d.mp.at(1, ''), rep = (rawRep?.sclType === '@function') ? replWrapper.bind({ sclfn: rawRep }) : rawRep;
+    const rawPat = d.mp.at(0, ''), pat = (rawPat?.msjsType === '@regex')? rawPat.jsv : rawPat;
+    const rawRep = d.mp.at(1, ''), rep = (rawRep?.msjsType === '@function') ? replWrapper.bind({ msjsfn: rawRep }) : rawRep;
     return (all ? d.js.replaceAll(pat, rep) : d.js.replace(pat, rep));
 }
 
 function opSplit (d) {
-    const rawSep = d.mp.at(0, ''), sep = (rawSep?.sclType === '@regex') ? rawSep.jsv : rawSep;
+    const rawSep = d.mp.at(0, ''), sep = (rawSep?.msjsType === '@regex') ? rawSep.jsv : rawSep;
     return d.js.split(sep, d.mp.at(1, Infinity));
 }
 
-// JS-to-SCL replacement-function wrapper
+// JS-to-MSJS replacement-function wrapper
 function replWrapper (...args) {
     /*
-     * Transform this rather awkward JS signature to a nice, clean SCL one
+     * Transform this rather awkward JS signature to a nice, clean MSJS one
      * (match, p1, p2, ..., pN, offset, string, groups?)
      */
     const match = args.shift(), [ groups ] = args.slice(-1), hasG = typeof groups === 'object';
     const [ offset, string ] = args.splice(hasG ? -3 : -2);
     const mp = new NANOS(args, { match, offset, string }, hasG ? { groups: new NANOS(groups) } : []);
-    return this.sclfn('call', mp);
+    return this.msjsfn('call', mp);
 }
 
 export function install () {

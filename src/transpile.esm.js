@@ -1,12 +1,12 @@
 /*
- * SysCL2-to-JavaScript Transpilation Functions
+ * Mesgjs-to-JavaScript Transpilation Functions
  * Copyright 2024-2025 Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { lex, parse } from 'syscl/lexparse.esm.js';
-import { encode as vlenc } from 'syscl/vlq.esm.js';
-import { escapeJSString } from 'syscl/escape.esm.js';
+import { lex, parse } from 'mesgjs/lexparse.esm.js';
+import { encode as vlenc } from 'mesgjs/vlq.esm.js';
+import { escapeJSString } from 'mesgjs/escape.esm.js';
 
 class Segment {
     constructor (gen, src, pending) {
@@ -144,8 +144,8 @@ export function transpileTree (tree, opts = {}) {
 	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`import {moduleScope} from 'syscl/runtime.esm.js';\nexport function loadSCL (mid) {\nconst {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
-	outBuf.push(segment(`}\nif (!globalThis.sclModMeta) loadSCL();\n`));
+	outBuf.unshift(segment(`import {moduleScope} from 'mesgjs/runtime.esm.js';\nexport function loadMSJS (mid) {\nconst {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
+	outBuf.push(segment(`}\nif (!globalThis.msjsModMeta) loadMSJS();\n`));
     }
 
     function generateJS (node) {
@@ -297,6 +297,7 @@ export function mappingGenerator (segments) {
     }
 
     return {
+	version: 3,
 	sources: Object.assign([], Object.fromEntries(Object.entries(sources).map(e => [e[1], e[0]]))),
 	mappings: mappings.join(''),
     };

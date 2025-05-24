@@ -1,5 +1,5 @@
 /*
- * SysCL Unified List Interface
+ * Mesgjs Unified List Interface
  *
  * A minimalist universal interface to support passing JS arrays, plain
  * objects, and other native JS values as message parameter lists with
@@ -9,7 +9,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { NANOS, isIndex } from 'syscl/nanos.esm.js';
+import { NANOS, isIndex } from 'mesgjs/nanos.esm.js';
 export { NANOS, isIndex };
 
 const noKey = Symbol();

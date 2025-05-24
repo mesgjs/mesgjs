@@ -1,12 +1,10 @@
 /*
- * SysCL boolean interface wrapper
+ * Mesgjs boolean interface wrapper
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from 'syscl/runtime.esm.js';
-// import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-// import { isIndex, NANOS } from 'syscl/nanos.esm.js';
+import { getInterface, setRO } from 'mesgjs/runtime.esm.js';
 
 export function install () {
     getInterface('@boolean').set({

@@ -1,10 +1,10 @@
 /*
- * SysCL @loop interface
+ * Mesgjs @loop interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, runIfCode, setRO, throwFlow } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, runIfCode, setRO, throwFlow } from 'mesgjs/runtime.esm.js';
 
 /*
  * @codeIter(run code times=n collect=boolean)
@@ -40,7 +40,7 @@ function opRun (d) {
  * Returns the collected main values or the one from the last iteration.
  */
 function opWhile (d) {
-    const { mp, js } = d, ifc = v => (v?.sclType === '@code') ? v : undefined;
+    const { mp, js } = d, ifc = v => (v?.msjsType === '@code') ? v : undefined;
     // Snapshot blocks at start (in theory, they could change during execution)
     const main = mp.at(0), xtra = ifc(mp.at(1)), pre = ifc(mp.at('pre')), mid = xtra && ifc(mp.at('mid')), post = ifc(mp.at('post'));
     // At least one of the pre or post code blocks must be present

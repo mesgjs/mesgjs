@@ -1,5 +1,5 @@
 /*
- * SysCL @promise interface
+ * Mesgjs @promise interface
  * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
  *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
@@ -14,10 +14,10 @@ Handlers can be added in a chain after the new Promise.
 In the reject dispatch, checks for no reject handler.
 */
 
-import { getInstance, getInterface, NANOS, setRO } from 'syscl/runtime.esm.js';
+import { getInstance, getInterface, NANOS, setRO } from 'mesgjs/runtime.esm.js';
 
 const identity = x => x, thrower = x => { throw x; };
-const callable = f => typeof f === 'function' && (!f.sclType || f.sclType === '@code' || f.sclType === '@function');
+const callable = f => typeof f === 'function' && (!f.msjsType || f.msjsType === '@code' || f.msjsType === '@function');
 const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
 const dualStatus = status => Object.assign(new NANOS(status), status);
@@ -32,7 +32,7 @@ function callHandlers (list) {
 	const [ onResolve, onReject, next ] = entry;
 	queueMicrotask(() => {
 	    try {
-		const handler = ok ? onResolve : onReject, st = handler.sclType;
+		const handler = ok ? onResolve : onReject, st = handler.msjsType;
 		if (st) next.resolve(handler((st === '@code') ? 'run' : 'call', ok ? { resolve: result } : { reject: result }));
 		else next.resolve(handler(result));
 	    } catch (err) {
@@ -148,7 +148,7 @@ const proto = Object.setPrototypeOf({
 proto.finally = proto.always;
 
 function opInit (d) {
-    // Initialize, and make this object JS/SysCL "bilingual"
+    // Initialize, and make this object JS/Mesgjs "bilingual"
     Object.setPrototypeOf(d.rr, proto);
     setRO(d.rr, privKey, {
 	state: 'pending', result: undefined, handlers: [],

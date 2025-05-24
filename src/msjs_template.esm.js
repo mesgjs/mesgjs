@@ -1,13 +1,12 @@
 /*
- * SysCL Interface Template
+ * Mesgjs Interface Template
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 // deno-lint-ignore-file
 
-import { getInterface, jsToSCL, NANOS, runIfCode, setRO } from 'syscl/runtime.esm.js';
-// import { isIndex, NANOS } from 'syscl/nanos.esm.js';
+import { getInterface, jsToMSJS, NANOS, runIfCode, setRO } from 'mesgjs/runtime.esm.js';
 
 function opF (d) {
     const { mp } = d;

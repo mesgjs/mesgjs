@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { isIndex, NANOS } from 'syscl/nanos.esm.js';
+import { isIndex, NANOS } from 'mesgjs/nanos.esm.js';
 
 export class LRUCache extends NANOS {
     #limit;

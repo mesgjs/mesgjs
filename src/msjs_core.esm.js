@@ -1,11 +1,11 @@
 /*
- * SysCL @core Interface
+ * Mesgjs @core Interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToSCL, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'syscl/runtime.esm.js';
-import { parseQJSON, parseSLID } from 'syscl/nanos.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToMSJS, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'mesgjs/runtime.esm.js';
+import { parseQJSON, parseSLID } from 'mesgjs/nanos.esm.js';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)
@@ -21,7 +21,7 @@ function opAnd (d) {
 
 // (case val cmp1 res1 ... cmpN resN else=default)
 function opCase (d) {
-    const { mp } = d, val = mp.at(0), type = val?.sclType, stop = mp.next - 1;
+    const { mp } = d, val = mp.at(0), type = val?.msjsType, stop = mp.next - 1;
     const op = typeAccepts(type, 'caseEq') ? 'caseEq' : typeAccepts(type, 'eq') ? 'eq' : undefined, eq = op ? (to => val(op, to)) : (to => val === to);
     for (let i = 1; i < stop; i += 2) if (eq(runIfCode(mp.at(i)))) return runIfCode(mp.at(i + 1));
     return runIfCode(mp.at('else'));
@@ -91,7 +91,7 @@ function opXor (d) {
 }
 
 function runWhileCode (v) {
-    while (v?.sclType === '@code') v = v('run');
+    while (v?.msjsType === '@code') v = v('run');
     return v;
 }
 
@@ -118,7 +118,7 @@ export function install (name) {
 	    run: opRun,
 	    slid: d => parseSLID(d.mp.at(0, '')),
 	    throw: opThrow,
-	    type: d => jsToSCL(d.mp.at(0))?.sclType,
+	    type: d => jsToMSJS(d.mp.at(0))?.msjsType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
 	    xor: opXor,

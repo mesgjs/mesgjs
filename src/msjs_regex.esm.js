@@ -1,10 +1,10 @@
 /*
- * SysCL @regex interface
+ * Mesgjs @regex interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, sclInstance, setRO, throwFlow } from 'syscl/runtime.esm.js';
+import { getInterface, NANOS, msjsInstance, setRO, throwFlow } from 'mesgjs/runtime.esm.js';
 
 const listize = res => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
@@ -12,7 +12,7 @@ function opInit (d) {
     const raw = d.mp.at(0, ''), re = (raw instanceof RegExp) ? raw : new RegExp(raw, d.mp.at(1, ''));
     setRO(d.rr, 'jsv', re);
     setRO(d.octx, 'js', { re });
-    setRO(d.js, sclInstance, d.rr, false);
+    setRO(d.js, msjsInstance, d.rr, false);
 }
 
 // regex(matchAll string each={block!} else={block!} collect=@f)
@@ -28,7 +28,7 @@ function opMatchAll (d) {
     try {
 	for (const match of mp.at(0, '').matchAll(js.re)) {
 	    ++js.num;			// 0-based match number
-	    if (each?.sclType === '@code') {
+	    if (each?.msjsType === '@code') {
 		js.match = listize(match);
 		try { save(each('run')); }
 		catch (ex) {
@@ -42,7 +42,7 @@ function opMatchAll (d) {
 		}
 	    }
 	}
-	if (js.num < 0 && ls?.sclType === '@code') {
+	if (js.num < 0 && ls?.msjsType === '@code') {
 	    try { save(ls('run')); }
 	    catch (ex) {
 		if (!js.capture) throw ex;

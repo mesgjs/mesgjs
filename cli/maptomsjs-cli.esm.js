@@ -1,4 +1,4 @@
-import { decodeMappings, findSegment } from 'syscl/decode_source_map.esm.js';
+import { decodeMappings, findSegment } from 'mesgjs/decode_source_map.esm.js';
 
 let sourceMap, segments;
 

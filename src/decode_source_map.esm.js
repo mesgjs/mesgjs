@@ -1,4 +1,4 @@
-import { decode as vldec } from 'syscl/vlq.esm.js';
+import { decode as vldec } from 'mesgjs/vlq.esm.js';
 
 export function decodeMappings (str) {
     const lineSegs = [];

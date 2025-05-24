@@ -1,16 +1,16 @@
 /*
- * SysCL NANOS wrapper interface
+ * Mesgjs NANOS wrapper interface
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, NANOS, runIfCode, sclInstance, setRO } from 'syscl/runtime.esm.js';
-import { unifiedList } from 'syscl/unified_list.esm.js';
+import { getInstance, getInterface, NANOS, runIfCode, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
+import { unifiedList } from 'mesgjs/unified_list.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
     setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
-    setRO(d.js, sclInstance, d.rr, false);
+    setRO(d.js, msjsInstance, d.rr, false);
 }
 
 function opAt (d) {
