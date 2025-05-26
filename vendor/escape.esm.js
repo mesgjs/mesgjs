@@ -4,6 +4,7 @@
 
 // Generate string escapes for JavaScript
 export function escapeJSString (s) {
+    // deno-lint-ignore no-control-regex
     return s.replace(/[\x00-\x1f'"\\\x7f-\uffff]/g, c => {
 	switch (c) {
 	case '\b': return '\\b';

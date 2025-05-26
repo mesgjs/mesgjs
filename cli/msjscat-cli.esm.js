@@ -1,3 +1,9 @@
+/*
+ * msjscat - Mesgjs catalog database utility
+ * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Author: Brian Katzung <briank@kappacs.com>
+ */
+
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 
@@ -19,11 +25,12 @@ path TEXT NOT NULL,
 major INT NOT NULL,
 minor INT NOT NULL,
 patch INT NOT NULL,
+extvers TEXT NOT NULL,
 URL TEXT NOT NULL,
 sha512 TEXT NOT NULL,
-provides TEXT NOT NULL,
-requires TEXT NOT NULL,
-PRIMARY KEY (path, major, minor, patch)
+langfeats TEXT NOT NULL,
+versreqs TEXT NOT NULL,
+PRIMARY KEY (path, major, minor, patch, extvers)
 );
 `);
 

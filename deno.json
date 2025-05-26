@@ -2,7 +2,8 @@
     "imports": {
 	"mesgjs/nanos.esm.js": "./vendor/nanos.esm.js",
 	"mesgjs/reactive.esm.js": "./vendor/reactive.esm.js",
-	"mesgjs/": "./src/"
+	"mesgjs/": "./src/",
+	"vendor/": "./vendor/"
     },
     "tasks": {
     }
