@@ -534,15 +534,12 @@ export const {
 	    modMap.set(expect, meta);
 	    modMap.set(mid, meta);
 	}
-	if (typeof Deno !== 'undefined') {
-	    const mod = await import(`data:application/javascript;base64,${btoa(code)}`);
-	    if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
-	} else {
-	    const blobURL = URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' }));
-	    const mod = await import(blobURL);
-	    URL.revokeObjectURL(blobURL);
-	    if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
-	}
+	const URL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
+	    URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
+	    `data:application/javascript;base64,${btoa(code)}`;
+	const mod = await import(URL);
+	if (URL.startsWith('blob:')) URL.revokeObjectURL(URL);
+	if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
     }
 
     function logInterfaces () { console.log(interfaces); }

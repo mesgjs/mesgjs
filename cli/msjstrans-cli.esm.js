@@ -2,6 +2,14 @@
  * msjstrans - Mesgjs-to-JavaScript transpiler
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
+ *
+ * --tokens - Display lexical tokens
+ * --tree - Display parse tree
+ * --no-js - Do not generate JavaScript or source map
+ * --ver - Use configSLID module version
+ * --mod - Use configSLID module path
+ * --root - The output root directory
+ * --cat - The module catalog database
  */
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
@@ -12,7 +20,7 @@ import { calcDigest } from 'mesgjs/calc_digest.esm.js';
 import { parseSLID } from 'mesgjs/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
-    boolean: [ 'tokens', 'tree', 'ver', 'no-js' ],
+    boolean: [ 'tokens', 'tree', 'mod', 'ver', 'no-js' ],
     string: [ 'cat', 'root' ],
 });
 // console.log(flags);
@@ -20,8 +28,6 @@ const flags = parseArgs(Deno.args, {
 let root = flags.root || '';
 if (root && root.slice(-1) !== '/') root += '/';
 if (root && !Deno.lstatSync(root)?.isDirectory) throw new Error(`Directory ${root} not found`);
-
-if (flags.ver && !flags.root) throw new Error('--root option required with --ver option');
 
 let db;
 if (flags.cat) {
@@ -46,14 +52,14 @@ function dotStart (path) {
  * Final path = (dist) root + dir + file
  */
 function outPath (srcPath, config) {
-    const version = flags.ver && config?.at('version'), modPath = root && config?.at('modPath');
+    const version = flags.ver && config?.at('version'), modPath = root && flags.mod && config?.at('modPath');
     const [ major ] = version ? version.match(/\d+/) : [];
 
     let dir, base;
     if (modPath) {		// Work from configured module path
 	if (dotStart(modPath)) throw new Error(`Invalid module path ${modPath}`);
 	[ , dir, base ] = modPath.match(/^\/?(.*\/)?(.*)$/);
-    } else {			// Work from source file name
+    } else {			// Work from source file.msjs name
 	[ , base ] = srcPath.match(/(?:.*\/)?([^@]+)(.*\.msjs)$/);
 	if (dotStart(base)) throw new Error(`Invalid module path ${base}`);
     }
@@ -61,7 +67,7 @@ function outPath (srcPath, config) {
     if (dir && dir.slice(-1) !== '/') dir += '/';
 
     const file = base + (version ? ('@' + version) : '') + '.esm.js';
-    if (version) dir += `${base}/${major}/`;
+    if (root && version) dir += `${base}/${major}/`;
     return { dir, file };
 }
 
@@ -103,11 +109,35 @@ function process (srcPath) {
     const mapJSON = JSON.stringify(mapping);
     const codePlus = code + `\n//# sourceMappingURL=${file}.map\n`;
 
+    const version = config && config.at('version'), modPath = config && config.at('modPath');
+    const [ , major, minor, patch, extvers ] = version ? version.match(/(\d+)\.(\d+)\.(\d+)([+-].*)?/) : [];
+
+    let skip = false;
+    if (flags.ver || db) {
+	if (!version) {
+	    console.log(`Warning: no version in ${srcPath}`);
+	    skip = true;
+	} else if (!major || !minor || !patch) {
+	    console.log(`Warning: invalid version ${version} in ${srcPath}`);
+	    skip = true;
+	}
+    }
+    if ((flags.mod || db) && !modPath) {
+	console.log(`Warning: no modPath in ${srcPath}`);
+	skip = true;
+    }
+    if (skip) return;
+
     console.log(`Writing ${finalPath} and map...`);
-    if (finalDir) console.log(`mkdir ${finalDir}`)
-    // if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
-    // Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
-    // Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+    //if (finalDir) console.log(`mkdir ${finalDir}`)
+    if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
+    Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
+    Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+
+    if (db && major && minor && patch && modPath) {
+	const sha512 = await calcDigiest(codePlus, 'SHA-512');
+	db.query('insert or replace into modules (path, major, minor, patch, extvers, sha512, langfeats, versreqs) values (?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extvers, sha512, config.at('langFeats', ''), config.at('versReqs', '') ]);
+    }
 }
 
 for (const file of flags._) {
@@ -115,9 +145,5 @@ for (const file of flags._) {
     else console.log(`Expected file extension .msjs: ${file}`);
 }
 console.log('Done');
-
-//console.log(await calcDigest(codePlus, 'SHA-512'));
-// if (flags.cat && config?.name && config?.version) {
-// }
 
 // END
