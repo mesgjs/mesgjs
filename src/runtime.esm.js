@@ -7,15 +7,15 @@
  * Sending and receiving messages
  * Defining interfaces and dispatching handlers in response to messages
  */
-import { calcDigest, getIntegritySHA512 } from 'mesgjs/calc_digest.esm.js';
-import { NANOS, isIndex, parseQJSON, parseSLID } from 'mesgjs/nanos.esm.js';
-import { SieveCache } from 'mesgjs/sieve_cache.esm.js';
-import { unifiedList } from 'mesgjs/unified_list.esm.js';
+import { calcDigest, getIntegritySHA512 } from 'mesgjs/calc-digest.esm.js';
+import { NANOS, isIndex, parseQJSON, parseSLID } from 'nanos/nanos.esm.js';
+import { SieveCache } from 'mesgjs/sieve-cache.esm.js';
+import { unifiedList } from 'mesgjs/unified-list.esm.js';
 export { NANOS, isIndex, unifiedList };
 import 'mesgjs/shim.esm.js';
 
 // Foundational-class installers
-import { installCoreExtensions, jsToMSJS, msjsInstance } from 'mesgjs/runtime_local.esm.js';
+import { installCoreExtensions, jsToMSJS, msjsInstance } from 'mesgjs/runtime-local.esm.js';
 export { jsToMSJS, msjsInstance };
 
 // Flow exception, e.g. @d(return value) throws MSJSFlow('return', value)

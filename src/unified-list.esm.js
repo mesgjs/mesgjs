@@ -9,7 +9,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { NANOS, isIndex } from 'mesgjs/nanos.esm.js';
+import { NANOS, isIndex } from 'nanos/nanos.esm.js';
 export { NANOS, isIndex };
 
 const noKey = Symbol();

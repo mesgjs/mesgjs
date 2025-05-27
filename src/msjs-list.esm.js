@@ -5,7 +5,7 @@
  */
 
 import { getInstance, getInterface, NANOS, runIfCode, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
-import { unifiedList } from 'mesgjs/unified_list.esm.js';
+import { unifiedList } from 'mesgjs/unified-list.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);

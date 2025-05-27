@@ -6,7 +6,7 @@
  */
 
 import { getInterface, runIfCode, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
-import { reactive } from 'mesgjs/reactive.esm.js';
+import { reactive } from 'reactive/reactive.esm.js';
 
 let instType;
 
