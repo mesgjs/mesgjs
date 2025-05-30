@@ -1,7 +1,7 @@
 {
     "imports": {
 	"escape-js/escape.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.0.2/src/escape.esm.js",
-	"nanos/nanos.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.1/src/nanos.esm.js",
+	"nanos/nanos.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.2/src/nanos.esm.js",
 	"reactive/reactive.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.1/src/reactive.esm.js",
 	"mesgjs/": "./src/"
     },

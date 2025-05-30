@@ -5,7 +5,7 @@
  */
 
 import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToMSJS, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'mesgjs/runtime.esm.js';
-import { parseQJSON, parseSLID } from 'mesgjs/nanos.esm.js';
+import { parseQJSON, parseSLID } from 'nanos/nanos.esm.js';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)

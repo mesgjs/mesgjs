@@ -6,7 +6,7 @@
 
 import { lex, parse } from 'mesgjs/lexparse.esm.js';
 import { encode as vlenc } from 'mesgjs/vlq.esm.js';
-import { escapeJSString } from 'vendor/escape.esm.js';
+import { escapeJSString } from 'escape-js/escape.esm.js';
 
 class Segment {
     constructor (gen, src, pending) {

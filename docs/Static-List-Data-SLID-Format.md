@@ -9,17 +9,17 @@ objects like JSON, SLID always composes a (potentially) nested structure of
 NANOS (named and numbered ordered storage) JavaScript class instances. Unlike
 JSON, SLID cannot encode scalar values outside of a list.
 
-The top-most list in SLID is called the SLID container. It begins with "\[(" and
-ends at the closest subsequent ")\]". The starting "\[(" is not a valid
+The top-most list in SLID is called the SLID container. It begins with `[(` and
+ends at the closest subsequent `)]`. The starting `[(` is not a valid
 character sequence in Mesgjs, so it offers a way to distinguish between SLID
 content and Mesgjs code.
 
-If you need to include the text ")\]" within SLID, backslash-escape the bracket
-(")\\\]"). On the other hand, if you need ")\\\]", backslash-escape the
-backslash (")\\\\\]") in a quoted string.
+If you need to include the text `)]` within SLID, backslash-escape the bracket
+(`)\]`). On the other hand, if you need `)\]`, backslash-escape the
+backslash (`)\\]`) in a quoted string.
 
-Nested (inner) list values within the top-most list begin with "\[" and end at a
-matching (balanced) "\]". Do NOT use SLID container delimiters "\[(" and ")\]"
+Nested (inner) list values within the top-most list begin with `[` and end at a
+matching (balanced) `]`. Do NOT use SLID container delimiters `[(` and `)]`
 for _nested_ lists.
 
 List items may be either standalone values or take the form _key_\=_value_. Keys
@@ -29,8 +29,10 @@ more than the highest index used in the list _so far_). Index keys may appear in
 either numeric or string form, as long as strings contain no leading zeroes
 (i.e. '0' is equivalent to 0, but '007' is not equivalent to 7).
 
-\[( hello=world first second '3'=fourth fifth )\] is equivalent to\
-\[( hello=world 0=first 1=second 3=fourth 4=fifth )\]
+```
+[( hello=world first second '3'=fourth fifth )] is equivalent to
+[( hello=world 0=first 1=second 3=fourth 4=fifth )]
+```
 
 # Value Types
 
@@ -61,12 +63,12 @@ Mesgjs), so they may be included as part of word-literals (e.g. "hello, world"
 
 ### Special Word-Literal Values
 
-@e \- (as a standalone "value") is empty (leaves a hole and advances to the next
+`@e` \- (as a standalone "value") is empty (leaves a hole and advances to the next
 index)\
-@f, @n, @t, @u \- Mesgjs equivalents of JavaScript false, null, true, and
+`@f, @n, @t, @u` \- Mesgjs equivalents of JavaScript false, null, true, and
 undefined, respectively
 
-Mesgjs' @gss and @mps (global and module) namespace names are not special in
+Mesgjs' `@gss` and `@mps` (global and module) namespace names are not special in
 SLID.
 
 Future (or domain-specific) implementations may support additional special
@@ -91,16 +93,16 @@ _For symmetry_, "(" is prohibited as well.
 
 # Lists
 
-As previously mentioned, use "\[(" and ")\]" for the SLID container (outermost
-list), and "\[" and "\]" for nested (inner) lists. Lists may not be used as
+As previously mentioned, use `\[(` and `)\]` for the SLID container (outermost
+list), and `\[` and `\]` for nested (inner) lists. Lists may not be used as
 keys.
 
 # Comments
 
-SLID ignores content between "/\*" and the closest subsequent "\*/" appearing
+SLID ignores content between `/\*` and the closest subsequent `\*/` appearing
 outside of quoted strings. Comments do delimit tokens, however, so
-"hello/\*\*/world" (without the quotes) would result in two word-literals,
-"hello" and "world", not "helloworld". Comments may span multiple lines.
+`hello/\*\*/world`  would result in two word-literals,
+`hello` and `world`, not `helloworld`. Comments may span multiple lines.
 
 SLID does _not_ support Mesgjs' single-line comment format (//).
 
@@ -112,9 +114,10 @@ position that maintains the ascending order of indexed values**. Inserted values
 are added in the **first** key position that maintains the order of indexed
 values.
 
-\[( hello=bonjour 1=second goodbye='au revoir' 0=first )\] is equivalent to\
-\[( hello=bonjour first second goodbye='au revoir' )\] (0 in last key position
-before 1\)
+```
+[( hello=bonjour 1=second goodbye='au revoir' 0=first )] is equivalent to
+[( hello=bonjour first second goodbye='au revoir' )] (0 in last key position before 1)
+```
 
 # Quoted-String Escape Sequences
 
@@ -122,8 +125,8 @@ before 1\)
 - \\n \- newline
 - \\r \- carriage return
 - \\t \- horizontal tab
-- \\u_HHHH_ \- character codes up to 16 bits as four hexadecimal digits
-- \\x_HH_ \- character codes up to 8 bits as two hexadecimal digits
+- \\u*HHHH* \- character codes up to 16 bits as four hexadecimal digits
+- \\x*HH* \- character codes up to 8 bits as two hexadecimal digits
 - \\' \- single quote
 - \\" \- double quote
 - \\\\ \- backslash
@@ -132,14 +135,16 @@ before 1\)
 
 ## A Simple HTML Document
 
-\[(html\
-\[head\
-\[title 'HTML As SLID'\]\
-\]\
-\[body\
-/\* \[tag properties... children...\] \*/\
-\[h1 'This is so SLID\!'\]\
-\[p style='font-family: sans-serif;' 'Hello, world'\]\
-\[a href='https://example.com' target=\_blank example.com\]\
-\]\
-)\]
+```
+[(html
+    [head
+        [title 'HTML As SLID']
+    ]
+    [body
+        /* [tag properties... children...] */
+        [h1 'This is so SLID!']
+        [p style='font-family: sans-serif;' 'Hello, world']
+        [a href='https://example.com' target=_blank example.com]
+    ]
+    )]
+```

@@ -3,21 +3,24 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  *
+ * --cat - The module catalog database
+ * --mod - Use configSLID module path
+ * --no-js - Do not generate JavaScript or source map
+ * --root - The output root directory
  * --tokens - Display lexical tokens
  * --tree - Display parse tree
- * --no-js - Do not generate JavaScript or source map
  * --ver - Use configSLID module version
- * --mod - Use configSLID module path
- * --root - The output root directory
- * --cat - The module catalog database
+ * *.msjs - Mesgjs source files
+ * *.slid - Matching extra-meta-data (e.g. for modsreqd)
  */
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { lex, parse } from 'mesgjs/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/transpile.esm.js';
-import { calcDigest } from 'mesgjs/calc_digest.esm.js';
-import { parseSLID } from 'mesgjs/nanos.esm.js';
+import { calcDigest } from 'mesgjs/calc-digest.esm.js';
+import { checkTables } from 'mesgjs/msjs-catalog-lite.esm.js';
+import { parseSLID } from 'nanos/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
     boolean: [ 'tokens', 'tree', 'mod', 'ver', 'no-js' ],
@@ -35,9 +38,7 @@ if (flags.cat) {
     const dbFile = flags.cat.endsWith('.msjcat') ? flags.cat : (flags.cat + '.msjcat');
     if (!Deno.lstatSync(dbFile).isFile) throw new Error(`Module catalog ${dbFile} not found`);
     db = new DB(dbFile);
-    const maps = db.query("select name from sqlite_master where type='table' and name='path_map'");
-    const mods = db.query("select name from sqlite_master where type='table' and name='modules'");
-    if (!maps.length || !mods.length) throw new Error(`No path map and/or modules in ${dbFile}`);
+    checkTables(db);
 }
 
 // Return true if any path component begins with .
@@ -46,10 +47,11 @@ function dotStart (path) {
 }
 
 /*
- * Config modpath -> dir/file
- * Else path -> ./file
- * Version -> dir += base/major/
- * Final path = (dist) root + dir + file
+ * Config modpath -> dir/base (iff root supplied)
+ * Else srcpath -> .../base
+ * Version -> file = base + @version
+ * Version -> dir += base/major/ (iff root supplied)
+ * Final path = (dist) root + dir + file + .esm.js
  */
 function outPath (srcPath, config) {
     const version = flags.ver && config?.at('version'), modPath = root && flags.mod && config?.at('modPath');
@@ -72,7 +74,7 @@ function outPath (srcPath, config) {
 }
 
 // Process one Mesgjs source file
-function process (srcPath) {
+async function process (srcPath) {
     console.log(`Processing file ${srcPath}...`);
     const source = Deno.readTextFileSync(srcPath);
 
@@ -95,6 +97,16 @@ function process (srcPath) {
     }
     if (flags['no-js']) return;
 
+    let meta = { at: (_, def = '') => def };
+    try {
+	const slidPath = srcPath.replace(/\.msjs$/, '.slid');
+	const slid = Deno.readTextFileSync(slidPath);
+	if (slid) meta = parseSLID(slid);
+    } catch (e) {
+	console.log('Note: .slid meta-data is absent or unreadable.');
+	console.log('No module dependencies will be recorded.');
+    }
+
     const { code, errors: txpErrors, fatal, segments } = transpileTree(tree);
     if (txpErrors?.length) console.log(txpErrors.join('\n'));
     if (fatal) console.log(fatal);
@@ -109,8 +121,8 @@ function process (srcPath) {
     const mapJSON = JSON.stringify(mapping);
     const codePlus = code + `\n//# sourceMappingURL=${file}.map\n`;
 
-    const version = config && config.at('version'), modPath = config && config.at('modPath');
-    const [ , major, minor, patch, extvers ] = version ? version.match(/(\d+)\.(\d+)\.(\d+)([+-].*)?/) : [];
+    const version = config && config.at('version'), modPath = config && config.at('modpath');
+    const [ , major, minor, patch, extver ] = version ? version.match(/(\d+)\.(\d+)\.(\d+)([+-].*)?/) : [];
 
     let skip = false;
     if (flags.ver || db) {
@@ -123,7 +135,7 @@ function process (srcPath) {
 	}
     }
     if ((flags.mod || db) && !modPath) {
-	console.log(`Warning: no modPath in ${srcPath}`);
+	console.log(`Warning: no modpath in ${srcPath}`);
 	skip = true;
     }
     if (skip) return;
@@ -135,13 +147,13 @@ function process (srcPath) {
     Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
 
     if (db && major && minor && patch && modPath) {
-	const sha512 = await calcDigiest(codePlus, 'SHA-512');
-	db.query('insert or replace into modules (path, major, minor, patch, extvers, sha512, langfeats, versreqs) values (?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extvers, sha512, config.at('langFeats', ''), config.at('versReqs', '') ]);
+	const sha512 = await calcDigest(codePlus, 'SHA-512');
+	db.query('insert or replace into modules (path, major, minor, patch, extver, integ, featprvd, featreqd, modsreqd) values (?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extver ?? '', sha512, config.at('featpro', ''), config.at('featreq'), meta.at('modreq', '') ]);
     }
 }
 
 for (const file of flags._) {
-    if (/\.msjs$/.test(file)) process(file);
+    if (/\.msjs$/.test(file)) await process(file);
     else console.log(`Expected file extension .msjs: ${file}`);
 }
 console.log('Done');

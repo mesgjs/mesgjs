@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { unescapeJSString } from 'vendor/escape.esm.js';
+import { unescapeJSString } from 'escape-js/escape.esm.js';
 
 // Mesgjs lexical token regexps
 const MSJSPats = {

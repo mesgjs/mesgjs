@@ -37,7 +37,7 @@ export class MSJSFlowError extends RangeError {
 export async function calcIntegrity (src) {
     const srcMat = src.match(/^(https:\/\/[^/]*)\/(.*)/);
     const host = srcMat ? srcMat[1] : '', path = canonModPath(srcMat ? srcMat[2] : src);
-    const code = await fetchModule(host, path);
+    const code = await fetchModule(host, path, { decode: false });
     return calcDigest(code, 'SHA-512');
 }
 
@@ -56,10 +56,14 @@ function canonModPath (path) {
     return parts.join('/');
 }
 
-async function fetchModule (host, path) {
-    if (host) return await fetch(`${host}/${path}`).then(r => r.text());
-    if (typeof Deno !== 'undefined') return await Deno.readTextFile(path);
-    throw new Error(`fetchModule: File not found: "${path}"`);
+export async function fetchModule (host, path, { decode, integrity } = {}) {
+    const src = host ? `${host}/${path}` : path;
+    let data;
+    if (host) data = await fetch(src).arrayBuffer();
+    if (typeof Deno !== 'undefined') data = await Deno.readFile(path);
+    if (!data) return new Error(`fetchModule: File "${path}" not found`);
+    if (integrity && await calcDigest(data, 'SHA-512') !== integrity) return new Error(`fetchModule: File "${src}" integrity verification failed`);
+    return ((decode === false) ? data : new TextDecoder().decode(data));
 }
 
 // listFromPairs is the runtime shortcut ls([]) (NANOS generator)
@@ -175,7 +179,7 @@ export const {
 	    // Only add features for verifiable mods
 	    const modInf = mods.at(modKey);
 	    if (!getIntegritySHA512(modInf?.at('integrity'))) continue;
-	    for (const f of modInf?.at('features')?.values() || []) if (!features.has(f)) {
+	    for (const f of modInf?.at('featpro')?.values() || []) if (!features.has(f)) {
 		const prom = getInstance('@promise');
 		prom.catch(() => console.log(`loadModule: Feature "${f}" rejected`));
 		features.set(f, prom);
@@ -390,7 +394,7 @@ export const {
     // Mark a feature ready (if module is authorized)
     function fready (mid, f) {
 	const meta = modMap.get(mid);
-	if (meta && meta.features?.includes(f)) features.get(f)?.resolve();
+	if (meta && meta.featpro?.includes(f)) features.get(f)?.resolve();
     }
 
     /*
@@ -518,13 +522,11 @@ export const {
 	    console.log(`loadModule WARNING: Module "${newSrc}" is unverified`);
 	}
 
-	const code = await fetchModule(host, path);
-	const check = await calcDigest(code, 'SHA-512');
-	if (expect && check !== expect) {
-	    const err = new Error(`loadModule: Integrity mismatch for "${newSrc}"`);
+	const code = await fetchModule(host, path, { integrity: check });
+	if (code instanceof Error) {
 	    // Reject this module's features, if any
-	    for (const f of meta?.at('features')?.values() || []) features.get(f)?.reject(err);
-	    throw err;
+	    for (const f of meta?.at('featpro')?.values() || []) features.get(f)?.reject(code);
+	    throw code;
 	}
 
 	if (meta) {

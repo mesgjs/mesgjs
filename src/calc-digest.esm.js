@@ -1,7 +1,6 @@
 // Algorithm: SHA-256 / SHA-384 / SHA-512
 export async function calcDigest (source, algorithm) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(source);
+  const data = (typeof source === 'string') ? new TextEncoder().encode(source) : source;
   const hashBuffer = await crypto.subtle.digest(algorithm, data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const base64Hash = btoa(String.fromCharCode(...hashArray));
