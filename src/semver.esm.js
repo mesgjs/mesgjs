@@ -5,13 +5,20 @@
  */
 
 // Compare two major/minor/patch version arrays, returning -, 0, or +.
-function compareMMP (v1, v2) {
+export function compareModVer (v1, v2) {
     return ((v1[0] - v2[0]) || (v1[1] - v2[1]) || (v1[2] - v2[2]));
 }
 
 // Parse an array of (maybe) strings into an array of integers.
 function parseEach (...a) {
     return [...a].map(s => (typeof s !== 'string') ? s : parseInt(s, 10));
+}
+
+// Parse module@version string into components
+export function parseModVer (mod) {
+    let [ , path, major, minor, patch, extver ] = mod.match(/\s*(?:(.*)@)?(\d+)\.(\d+)\.(\d+)([+-]\S+)?/) || [];
+    [ major, minor, patch ] = parseEach(major, minor, patch);
+    return { path, major, minor, patch, extver };
 }
 
 export class SemVerRanges {
@@ -29,7 +36,7 @@ export class SemVerRanges {
 	if (extver) return this._ranges.some(r => r[0] === '=' && r[1] === major && r[2] === minor && r[3] === patch && r[4] === extver);
 	const va = [ major, minor, patch ];
 	for (const r of this._ranges) {
-	    if (r[0] === '-' && compareMMP([r[1], r[2], r[3]], va) <= 0 && compareMMP(va, [r[4], r[5], r[6]]) < 0) return true;
+	    if (r[0] === '-' && compareModVer([r[1], r[2], r[3]], va) <= 0 && compareModVer(va, [r[4], r[5], r[6]]) < 0) return true;
 	}
 	return false;
     }

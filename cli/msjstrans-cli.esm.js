@@ -54,7 +54,7 @@ function dotStart (path) {
  * Final path = (dist) root + dir + file + .esm.js
  */
 function outPath (srcPath, config) {
-    const version = flags.ver && config?.at('version'), modPath = root && flags.mod && config?.at('modPath');
+    const version = flags.ver && config?.at('version'), modPath = root && flags.mod && config?.at('modpath');
     const [ major ] = version ? version.match(/\d+/) : [];
 
     let dir, base;
@@ -148,7 +148,7 @@ async function process (srcPath) {
 
     if (db && major && minor && patch && modPath) {
 	const sha512 = await calcDigest(codePlus, 'SHA-512');
-	db.query('insert or replace into modules (path, major, minor, patch, extver, integ, featprvd, featreqd, modsreqd) values (?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extver ?? '', sha512, config.at('featpro', ''), config.at('featreq'), meta.at('modreq', '') ]);
+	db.query('insert or replace into modules (path, major, minor, patch, extver, integ, featpro, featreq, modreq) values (?, ?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extver ?? '', sha512, config.at('featpro', ''), config.at('featreq', ''), meta.at('modreq', '') ]);
     }
 }
 
