@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from 'mesgjs/runtime.esm.js';
+import { getInterface, setRO } from './runtime.esm.js';
 
 export function install () {
     getInterface('@undefined').set({

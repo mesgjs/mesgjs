@@ -18,8 +18,8 @@ import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { lex, parse } from 'mesgjs/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/transpile.esm.js';
-import { calcDigest } from 'mesgjs/calc-digest.esm.js';
-import { checkTables } from 'mesgjs/msjs-catalog-lite.esm.js';
+import { checkTables } from 'mesgjs/module-catalog-lite.esm.js';
+import { calcDigest } from 'mesgjs/runtime/calc-digest.esm.js';
 import { parseSLID } from 'nanos/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
@@ -37,8 +37,8 @@ if (flags.cat) {
     // Check module-catalog existence and contents if supplied
     const dbFile = flags.cat.endsWith('.msjcat') ? flags.cat : (flags.cat + '.msjcat');
     if (!Deno.lstatSync(dbFile).isFile) throw new Error(`Module catalog ${dbFile} not found`);
-    db = new DB(dbFile);
-    checkTables(db);
+    db = new DB(dbFile, { mode: 'write' });
+    checkTables(db, dbFile);
 }
 
 // Return true if any path component begins with .

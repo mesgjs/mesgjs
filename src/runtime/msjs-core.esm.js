@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToMSJS, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from 'mesgjs/runtime.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToMSJS, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
 import { parseQJSON, parseSLID } from 'nanos/nanos.esm.js';
 
 // (and value...)
@@ -111,7 +111,9 @@ export function install (name) {
 	    // import: opImport,
 	    interface: d => getInterface(d.mp.at(0)),
 	    log: d => console.log(...d.mp.values()),
+	    logErr: d => console.error(...d.mp.values()),
 	    logInterfaces,
+	    logWarn: d => console.warn(...d.mp.values()),
 	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
 	    qjson: d => parseQJSON(d.mp.at(0, '')),

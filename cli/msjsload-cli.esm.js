@@ -10,7 +10,7 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { checkTables, getModule, getVersions } from 'mesgjs/msjs-catalog-lite.esm.js';
+import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
 import { compareModVer, parseModVer, SemVerRanges } from 'mesgjs/semver.esm.js';
 import { parseSLID } from 'nanos/nanos.esm.js';
 import Logic from 'npm:logic-solver';
@@ -23,7 +23,7 @@ const flags = parseArgs(Deno.args, {
 
 const dbExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
 const dbFile = dbExt(flags.cat || 'modules');
-const db = new DB(dbFile);
+let db;
 
 // Module mapping (path <=> mid)
 let nextMid = 0;
@@ -34,6 +34,7 @@ const _modCache = {};
 const requ = new Set();
 const modVers = {}, weights = [];
 
+// Weight module versions to prefer newer versions
 function computeWeights () {
     for (const mod of Object.keys(modVers)) {
 	const mid = modToMid(mod);
@@ -59,13 +60,32 @@ function encodeReqs (reqs, label) {
 	    any.push(`${mid}@${ver}`);
 	    requ.add(`${mod}@${ver}`);		// Schedule if new mod@ver
 	}
-	if (!any.length) throw new Error(`No module ${mod} version satisfies "${spec.trim()}" for ${label}`);
-	all.push(Logic.or(...any));
+	if (any.length) all.push(Logic.or(...any));
+	else {
+	    console.error(`Error: No module ${mod} version satisfies "${spec.trim()}" for ${label}`);
+	    all.push(Logic.FALSE);
+	}
     }
     return (all.length ? Logic.and(...all) : Logic.TRUE);
 }
 
-function link (main, code) {
+// Map module id to module (passing optional version)
+function midToMod (mid) {
+    const mat = mid.match(/(.*)(@\d+\.\d+\.\d+.*)/);
+    if (mat) mid = mat[1];
+    return _midToMod[mid] + (mat ? mat[2] : '');
+}
+
+// Map module to module id (passing optional version)
+function modToMid (mod) {
+    const mat = mod.match(/(.*)(@\d+\.\d+\.\d+.*)/);
+    if (mat) mod = mat[1];
+    if (!_modToMid[mod]) _midToMod[_modToMid[mod] = 'M' + (nextMid++).toString(36)] = mod;
+    return _modToMid[mod] + (mat ? mat[2] : '');
+}
+
+// Resolve module dependencies
+function resolve (main, code) {
     solver.require(encodeReqs(main, 'entry point'));
     // Quasi-"trampoline" until all requirements have been encoded
     for (const item of requ.keys()) solver.require(Logic.implies(modToMid(item), encodeReqs(getModule(db, item).modreq, item)));
@@ -82,56 +102,63 @@ function link (main, code) {
 	solver.require(Logic.atMostOne(...([...modVers[mod].std, ...modVers[mod].ext].map(v => mid + '@' + v))));
     }
 
-    // Look for any solution
+    // Look for any (trial) solution
     const trial = solver.solve();
-    if (!trial) throw new Error('Unable to resolve all dependencies');
+    if (!trial) throw new Error('Unable to resolve all module dependencies');
 
-    // Try to optimize using newest module versions
+    // Optimize using newest module versions
     computeWeights();
     const final = solver.minimizeWeightedSum(trial, Object.keys(weights), Object.values(weights));
 
-    console.log('Module dependency resolution:');
+    const finalMods = [], featpro = new Set();
     for (const midver of final.getTrueVars()) {
-	const [ , mid, ver ] = midver.match(/(.*)@(.*)/);
-	console.log(midToMod(mid) + '@' + ver);
+	const modver = midToMod(midver);
+	if (!finalMods.length) console.log('Module dependencies resolved:');
+	finalMods.push(modver);
+	console.log(modver);
     }
 
+    // Feature check (provided vs required)
+    for (const mod of finalMods) for (const feat of getModule(db, mod, true).featpro.split(/\s+/)) if (feat) featpro.add(feat);
+    for (const mod of finalMods) {
+	const modInfo = getModule(db, mod, true);
+	for (const feat of modInfo.featreq.split(/\s+/)) if (feat && !featpro.has(feat)) console.warn(`Warning: Module ${mod} requires missing feature ${feat}`);
+    }
+
+    // JS import map
+    const jsImportMapData = [
+	'escape-js/escape.esm.js',
+	'nanos/nanos.esm.js',
+	'reactive/reactive.esm.js',
+	'mesgjs/runtime/',
+    ].map(path => [ path, mapPath(db, path) ]);
+
+    // Mesgjs mod meta
+    // Module loading loop
+    // JS code (if supplied)
     if (code) { /* */ }
 }
 
-// Map module id to module
-function midToMod (mid) { return _midToMod[mid]; }
+try {
+    db = new DB(dbFile, { mode: 'read' });
+    checkTables(db, dbFile);
 
-// Map module to module id (passing optional version)
-function modToMid (mod) {
-    const mat = mod.match(/(.*)(@\d+\.\d+\..*)/);
-    if (mat) mod = mat[1];
-    if (!_modToMid[mod]) _midToMod[_modToMid[mod] = 'M' + (nextMid++).toString(36)] = mod;
-    return _modToMid[mod] + (mat ? mat[2] : '');
-}
-
-checkTables(db);
-
-const main = flags._[0];
-if (!main) throw new Error(`Main entry point module or .msjs file required as first parameter`);
-if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
-    const jsFile = main.replace(/\.msjs$/, '.esm.js');
-    const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
-    const js = Deno.readTextFileSync(jsFile);
-    const meta = parseSLID(Deno.readTextFileSync(slidFile));
-    try {
+    const main = flags._[0];
+    if (!main) throw new Error(`Main entry point module or .msjs file required as first parameter`);
+    if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
+	const jsFile = main.replace(/\.msjs$/, '.esm.js');
+	const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
+	const js = Deno.readTextFileSync(jsFile);
+	const meta = parseSLID(Deno.readTextFileSync(slidFile));
 	solver.require(encodeReqs(meta.at('modreq', ''), 'entry point'));
-	link(meta.at('modreq', ''), js);
-    } catch (e) {
-	console.log('Error:', e.message);
-    }
-} else {
-    try {
+	resolve(meta.at('modreq', ''), js);
+    } else {
 	solver.require(encodeReqs(main, 'entry point'));
-	link(main);
-    } catch (e) {
-	console.log('Error:', e.message);
+	resolve(main);
     }
+} catch (err) {
+    console.error('Error:', err.message);
+    Deno.exit(1);
 }
 
 // END

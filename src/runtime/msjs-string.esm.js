@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, jsToMSJS, NANOS, setRO, typeAccepts } from 'mesgjs/runtime.esm.js';
+import { getInstance, getInterface, jsToMSJS, NANOS, setRO, typeAccepts } from './runtime.esm.js';
 
 // Join strings together with an optional separator
 // a(join b c with=-) // a-b-c

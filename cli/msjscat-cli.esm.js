@@ -14,16 +14,21 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { catalogExt, escapeLike, initTables } from 'mesgjs/msjs-catalog-lite.esm.js';
+import { catalogExt, escapeLike, initTables, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
 
 const flags = parseArgs(Deno.args, {
     boolean: [ 'lsmap', 'lsmod', 'rmmap' ],
-    string: [ 'db', 'mapin', 'mapout', 'mod' ],
+    string: [ 'db', 'map', 'mapin', 'mapout', 'mod' ],
 });
 const dbFile = catalogExt(flags.db || 'modules');
-const db = new DB(dbFile);
+const db = new DB(dbFile, { mode: 'create' });
 
 initTables(db);
+
+if (flags.map) {
+    console.log('Input:', flags.map);
+    console.log('Output:', mapPath(db, flags.map));
+}
 
 if (flags.mapin) {
     if (flags.rmmap) db.query('delete from path_map where input = ?', [flags.mapin]);

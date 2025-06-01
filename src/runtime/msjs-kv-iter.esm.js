@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from 'mesgjs/runtime.esm.js';
+import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
 
 function common (d, keys) {
     const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;

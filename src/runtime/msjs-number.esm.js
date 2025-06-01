@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO, typeAccepts } from 'mesgjs/runtime.esm.js';
+import { getInterface, setRO, typeAccepts } from './runtime.esm.js';
 
 function perform (d, opf, def = 0) {
     const mp = d.mp; let js = d.js;

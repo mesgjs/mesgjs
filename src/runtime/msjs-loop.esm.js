@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, runIfCode, setRO, throwFlow } from 'mesgjs/runtime.esm.js';
+import { getInterface, NANOS, runIfCode, setRO, throwFlow } from './runtime.esm.js';
 
 /*
  * @codeIter(run code times=n collect=boolean)

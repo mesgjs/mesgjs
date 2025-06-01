@@ -1,10 +1,12 @@
 {
     "imports": {
+        "esbuild": "npm:esbuild@^0.25.5",
 	"escape-js/escape.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.0.2/src/escape.esm.js",
 	"nanos/nanos.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.2/src/nanos.esm.js",
 	"reactive/reactive.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.1/src/reactive.esm.js",
 	"mesgjs/": "./src/"
     },
     "tasks": {
+	"runtime-min": "deno run --allow-run --allow-read --allow-write --allow-env npm:esbuild src/runtime/*.js --minify --outdir=dist/runtime-min --format=esm --sourcemap=external"
     }
 }

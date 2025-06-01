@@ -5,7 +5,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
+import { getInterface, runIfCode, msjsInstance, setRO } from './runtime.esm.js';
 import { reactive } from 'reactive/reactive.esm.js';
 
 let instType;

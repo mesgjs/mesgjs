@@ -4,28 +4,30 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { parseModVer } from 'mesgjs/semver.esm.js';
+import { parseModVer } from './semver.esm.js';
 
 const _modCache = {}, _versions = {};
+const _pathMap = {}, _pathPreMap = [];
+let pathMapLoaded = false;
 
 export const catalogExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
 export const escapeLike = s => s.replace(/[%_\\]/g, '\\$1');
 
 // Verify path_map and modules tables are present in the database
-export function checkTables (db) {
+export function checkTables (db, file) {
     const maps = db.query("select name from sqlite_master where type='table' and name='path_map'");
     const mods = db.query("select name from sqlite_master where type='table' and name='modules'");
-    if (!maps.length || !mods.length) throw new Error(`No path map and/or modules in ${dbFile}`);
+    if (!maps.length || !mods.length) throw new Error(`No path map and/or modules in ${file}`);
 }
 
 // Return module record (modreq-only or detailed)
 export function getModule (db, mod, detail = false) {
-    console.log('getModule', mod);
     const cached = _modCache[mod];
     if (cached && (cached.integ || !detail)) return cached;
+
     const { path, major, minor, patch, extver } = parseModVer(mod);
-    console.log(path, major, minor, patch, extver);
     if (major === undefined) return;
+
     const [ row ] = db.query('select ' + (detail ? 'modreq, integ, featpro, featreq' : 'modreq') + ' from modules where major = ? and minor = ? and patch = ? and extver = ?', [ major, minor, patch, extver ?? '' ]);
     if (row) {
 	const [ modreq, integ, featpro, featreq ] = row;
@@ -37,6 +39,7 @@ export function getModule (db, mod, detail = false) {
 export function getVersions (db, path, major, extra = false) {
     const pathMajor = `${path}@${major}`, cached = _versions[pathMajor];
     if (cached) return cached;
+
     const versions = [];
     for (const [minor, patch, extver] of db.query('select minor, patch, extver from modules where path = ? and major = ?', [path, major])) {
 	if (!extver || extra) versions.push(`${major}.${minor}.${patch}${extver}`);
@@ -65,6 +68,25 @@ modreq TEXT NOT NULL,
 PRIMARY KEY (path, major, minor, patch, extver)
 );
     `);
+}
+
+// Map a path according to the path_map table
+export function mapPath (db, path) {
+    if (!pathMapLoaded) {
+	pathMapLoaded = true;
+	for (const row of db.query('select input, output from path_map')) {
+	    const [ input, output ] = row;
+	    if (input.slice(-1) === '/') _pathPreMap.push([ input.length, input, output ]);
+	    else _pathMap[input] = output;
+	}
+    }
+
+    const full = _pathMap[path];
+    if (full) return full;
+
+    let best, bestLen = 0;
+    for (const en of _pathPreMap) if (en[0] > bestLen && path.startsWith(en[1])) [ best, bestLen ] = [ en[2], en[0] ];
+    return (best ? (best + path.substring(bestLen)) : path);
 }
 
 // END

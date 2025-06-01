@@ -4,8 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, NANOS, runIfCode, msjsInstance, setRO } from 'mesgjs/runtime.esm.js';
-import { unifiedList } from 'mesgjs/unified-list.esm.js';
+import { getInstance, getInterface, NANOS, runIfCode, msjsInstance, setRO } from './runtime.esm.js';
+import { unifiedList } from './unified-list.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);

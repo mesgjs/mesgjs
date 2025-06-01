@@ -1,4 +1,10 @@
-import { decode as vldec } from 'mesgjs/vlq.esm.js';
+/*
+ * Sourcemap decoder utility functions
+ * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Author: Brian Katzung <briank@kappacs.com>
+ */
+
+import { decode as vldec } from 'mesgjs/vendor/vlq.esm.js';
 
 export function decodeMappings (str) {
     const lineSegs = [];

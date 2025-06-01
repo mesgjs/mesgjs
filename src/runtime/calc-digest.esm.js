@@ -7,6 +7,7 @@ export async function calcDigest (source, algorithm) {
   return `${algorithm.toLowerCase().replace('-', '')}-${base64Hash}`;
 }
 
+// Return the sha512 hash from a potentially multi-hash integrity value
 export function getIntegritySHA512 (integ) {
     const m = integ?.match(/(?:^|\s)(sha512-\S+)/);
     if (m) return m[1];
