@@ -612,14 +612,18 @@ export const {
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
     });
 
-    // Use modMeta.urlMap to remap the module source location
+    // Use modMeta to remap the module source location
     function remapModURL (src) {
-	const urlMap = modMeta.at('urlMap');
-	const exact = urlMap?.at(src);
-	if (exact) return exact;
-	let bestRepl = '', len = 0;
-	for (const pref of urlMap?.keys() || []) if (pref.slice(-1) === '/' && pref.length > len && src.startsWith(pref)) [ bestRepl, len ] = [ urlMap.at(pref), pref.length ];
-	return bestRepl + src.slice(len);
+	const exactURL = modMeta.at('modules')?.at(src)?.at('url');
+	if (exactURL) return exactURL;
+
+	const prefixMap = modMeta.at('prefixMap');
+	let best = [ '', 0 ];
+	for (const [ input, output ] of prefixMap.entries()) {
+	    const len = input.length;
+	    if (len > best[1] && src.startsWith(input)) best = [ output, len ];
+	}
+	return best[0] + src.substring(best[1]);
     }
 
     // Prototype @code receiver
@@ -798,13 +802,26 @@ export const {
 
     // Set module metadata (once) from a plain object or NANOS
     function setModMeta (meta) {
-	if (globalThis.msjsModMeta) return;
+	if (globalThis.msjsModMeta) return;	// Only set once
+	setRO(globalThis, 'msjsModMeta', true);	// Now subject to mod meta
+	initialize();			// Make sure runtime is initialized
+
+	// Deep copy from NANOS or plain object config
 	if (meta instanceof NANOS) modMeta.push(parseSLID(meta.toSLID()));
 	else modMeta.push(parseQJSON(JSON.stringify(meta)));
-	setRO(globalThis, 'msjsModMeta', true);
+
+	// Track features provided by modules
 	addModFeatures(modMeta.at('modules'));
-	const hosts = modMeta.at('hosts');
-	for (const host of hosts?.keys() || []) addModFeatures(hosts.at(host).at('modules'));
+
+	/*
+	 * Allow modules to @c(fwait @loaded) and initiate loading of all
+	 * non-deferred modules. @loaded reflects completion of the loading
+	 * phase (success or failure).
+	 */
+	const loaded = getInstance('@promise'), loadPros = [];
+	features.set('@loaded', loaded);
+	for (const mod of modMeta.at('modules').entries()) if (!mod[1].at('defLoad')) loadPros.push(loadModule(mod[0]));
+	loaded.allSettled(...loadPros);
     }
 
     function stub (type, ...names) {

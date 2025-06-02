@@ -11,8 +11,8 @@
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
-import { compareModVer, parseModVer, SemVerRanges } from 'mesgjs/semver.esm.js';
-import { parseSLID } from 'nanos/nanos.esm.js';
+import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/semver.esm.js';
+import { NANOS, parseSLID } from 'nanos/nanos.esm.js';
 import Logic from 'npm:logic-solver';
 
 const solver = new Logic.Solver();
@@ -39,8 +39,8 @@ function computeWeights () {
     for (const mod of Object.keys(modVers)) {
 	const mid = modToMid(mod);
 	for (const en of modVers[mod].std.map(v => {
-	    const p = parseModVer(v);
-	    return [ p.major, p.minor, p.patch ];
+	    const { major, minor, patch } = pmv(v);
+	    return [ major, minor, patch ];
 	  }).sort((a, b) => compareModVer(b, a)).
 	  map((va, i) => [ mid + '@' + va.join('.'), i ])) {
 	    weights[en[0]] = en[1];
@@ -52,7 +52,7 @@ function computeWeights () {
 // module spec; module spec; ...
 function encodeReqs (reqs, label) {
     const all = [];
-    for (const modSpec of reqs.split(';')) {
+    for (const modSpec of reqs || []) {
 	const [ , mod, spec ] = modSpec.match(/\s*(\S+)\s+(.*)/);
 	const mid = modToMid(mod), ranges = new SemVerRanges(spec), majors = ranges.majors(), any = [];
 	// For each allowed module major, allow each in-range module version
@@ -69,33 +69,89 @@ function encodeReqs (reqs, label) {
     return (all.length ? Logic.and(...all) : Logic.TRUE);
 }
 
+// Return the JS import map in JSON format
+function getJSImportMap () {
+    return JSON.stringify({ imports: Object.fromEntries([
+	'escape-js/escape.esm.js',
+	'nanos/nanos.esm.js',
+	'reactive/reactive.esm.js',
+	'mesgjs/runtime/',
+    ].map(path => [ path, mapPath(db, path) ])) });
+}
+
+// Return Mesgjs module metadata
+function getModMeta (finalMods, meta) {
+    const prefixMap = { '': '' }, modules = {};
+    for (const mod of finalMods) {
+	const { module, version } = pmv(mod), { integrity, featpro } = getModule(db, mod, true), meta = { integrity, version };
+	if (featpro) meta.featpro = featpro.split(/[,\s]+/).filter(f => f);
+	const [ url, mapping ] = mapPath(db, module, { detail: true, version });
+	if (!mapping) meta.url = url;
+	else prefixMap[mapping[0]] ||= mapping[1];
+	modules[module] = meta;
+    }
+    delete prefixMap[''];
+
+    if (meta instanceof NANOS) for (const mod of getModSpec(main, 'deferLoad') || []) if (modules[mod]) modules[mod].deferLoad = true;
+    return { prefixMap, modules };
+}
+
+// Return (;-separated, if string) list of module requirements (or defers)
+function getModSpec (spec, group = 'modreq') {
+    if (spec instanceof NANOS) {
+	spec = spec.at(group);
+	if (spec instanceof NANOS) spec = [...spec.values()];
+    } else if (group !== 'modreq') return;
+    if (typeof spec === 'string') {
+	const sep = (group === 'modreq') ? /\s*;\s*/ : /[,;\s]+/;
+	return spec.split(sep).filter(f => f);
+    }
+}
+
+// Link the main entry point
+function link (spec, code) {
+    // Resolve module dependencies
+    const finalMods = resolveModDeps(spec);
+
+    // Check for required features not provided
+    checkFeatures(finalMods);
+
+    // JS import map
+    const jsImportMap = getJSImportMap();
+
+    // Mesgjs mod meta
+    const modMeta = getModMeta(finalMods, spec);
+
+    // Module loading loop
+    // JS code (if supplied)
+    ({ code, jsImportMap, modMeta });
+}
+
 // Map module id to module (passing optional version)
 function midToMod (mid) {
-    const mat = mid.match(/(.*)(@\d+\.\d+\.\d+.*)/);
-    if (mat) mid = mat[1];
-    return _midToMod[mid] + (mat ? mat[2] : '');
+    const { module, atVersion } = pmv(mid);
+    return _midToMod[module] + atVersion;
 }
 
 // Map module to module id (passing optional version)
 function modToMid (mod) {
-    const mat = mod.match(/(.*)(@\d+\.\d+\.\d+.*)/);
-    if (mat) mod = mat[1];
-    if (!_modToMid[mod]) _midToMod[_modToMid[mod] = 'M' + (nextMid++).toString(36)] = mod;
-    return _modToMid[mod] + (mat ? mat[2] : '');
+    const { module, atVersion } = pmv(mod);
+    if (!_modToMid[module]) _midToMod[_modToMid[module] = 'M' + (nextMid++).toString(36)] = module;
+    return _modToMid[module] + atVersion;
 }
 
 // Resolve module dependencies
-function resolve (main, code) {
-    solver.require(encodeReqs(main, 'entry point'));
+function resolveModDeps (spec) {
+    solver.require(encodeReqs(spec, 'entry point'));
     // Quasi-"trampoline" until all requirements have been encoded
     for (const item of requ.keys()) solver.require(Logic.implies(modToMid(item), encodeReqs(getModule(db, item).modreq, item)));
 
     // Constrain to at most one version of each module
     for (const item of requ.keys()) {
-	const [ , mod, ver ] = item.match(/(.*)@(.*)/);
-	modVers[mod] ||= { std: [], ext: [] };
-	if (/[+-]/.test(ver)) modVers[mod].ext.push(ver);
-	else modVers[mod].std.push(ver);
+	const { module, version, extver } = pmv(item);
+	modVers[module] ||= { std: [], ext: [] };
+	if (extver) modVers[module].ext.push(version);
+	else modVers[module].std.push(version);
     }
     for (const mod of Object.keys(modVers)) {
 	const mid = modToMid(mod);
@@ -110,33 +166,24 @@ function resolve (main, code) {
     computeWeights();
     const final = solver.minimizeWeightedSum(trial, Object.keys(weights), Object.values(weights));
 
-    const finalMods = [], featpro = new Set();
+    const finalMods = [];
     for (const midver of final.getTrueVars()) {
 	const modver = midToMod(midver);
 	if (!finalMods.length) console.log('Module dependencies resolved:');
 	finalMods.push(modver);
 	console.log(modver);
     }
+    return finalMods;
+}
 
+function checkFeatures (finalMods) {
     // Feature check (provided vs required)
-    for (const mod of finalMods) for (const feat of getModule(db, mod, true).featpro.split(/\s+/)) if (feat) featpro.add(feat);
+    const featpro = new Set();
+    for (const mod of finalMods) for (const feat of getModule(db, mod, true).featpro.split(/[,\s]+/)) if (feat) featpro.add(feat);
     for (const mod of finalMods) {
 	const modInfo = getModule(db, mod, true);
-	for (const feat of modInfo.featreq.split(/\s+/)) if (feat && !featpro.has(feat)) console.warn(`Warning: Module ${mod} requires missing feature ${feat}`);
+	for (const feat of modInfo.featreq.split(/[,\s]+/)) if (feat && !featpro.has(feat)) console.warn(`Warning: Module ${mod} requires missing feature ${feat}`);
     }
-
-    // JS import map
-    const jsImportMapData = [
-	'escape-js/escape.esm.js',
-	'nanos/nanos.esm.js',
-	'reactive/reactive.esm.js',
-	'mesgjs/runtime/',
-    ].map(path => [ path, mapPath(db, path) ]);
-
-    // Mesgjs mod meta
-    // Module loading loop
-    // JS code (if supplied)
-    if (code) { /* */ }
 }
 
 try {
@@ -144,17 +191,15 @@ try {
     checkTables(db, dbFile);
 
     const main = flags._[0];
-    if (!main) throw new Error(`Main entry point module or .msjs file required as first parameter`);
+    if (!main) throw new Error('Entry point module or .esm.js/.msjs/.slid file required');
     if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
 	const jsFile = main.replace(/\.msjs$/, '.esm.js');
 	const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
-	const js = Deno.readTextFileSync(jsFile);
-	const meta = parseSLID(Deno.readTextFileSync(slidFile));
-	solver.require(encodeReqs(meta.at('modreq', ''), 'entry point'));
-	resolve(meta.at('modreq', ''), js);
+	link(parseSLID(Deno.readTextFileSync(slidFile)), Deno.readTextFileSync(jsFile));
+    } else if (main.endsWith('.slid')) {
+	link(parseSLID(Deno.readTextFileSync(main)));
     } else {
-	solver.require(encodeReqs(main, 'entry point'));
-	resolve(main);
+	link(main);
     }
 } catch (err) {
     console.error('Error:', err.message);

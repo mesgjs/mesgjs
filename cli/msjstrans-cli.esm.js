@@ -102,7 +102,7 @@ async function process (srcPath) {
 	const slidPath = srcPath.replace(/\.msjs$/, '.slid');
 	const slid = Deno.readTextFileSync(slidPath);
 	if (slid) meta = parseSLID(slid);
-    } catch (e) {
+    } catch (_err) {
 	console.log('Note: .slid meta-data is absent or unreadable.');
 	console.log('No module dependencies will be recorded.');
     }

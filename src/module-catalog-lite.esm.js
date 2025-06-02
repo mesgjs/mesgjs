@@ -71,22 +71,23 @@ PRIMARY KEY (path, major, minor, patch, extver)
 }
 
 // Map a path according to the path_map table
-export function mapPath (db, path) {
+export function mapPath (db, path, { version, detail } = {}) {
     if (!pathMapLoaded) {
 	pathMapLoaded = true;
 	for (const row of db.query('select input, output from path_map')) {
 	    const [ input, output ] = row;
-	    if (input.slice(-1) === '/') _pathPreMap.push([ input.length, input, output ]);
+	    if (input.slice(-1) === '/') _pathPreMap.push([ input, output, input.length ]);
 	    else _pathMap[input] = output;
 	}
     }
 
-    const full = _pathMap[path];
-    if (full) return full;
+    const full = (version && _pathMap[path + version]) || _pathMap[path];
+    if (full) return (detail ? [ full ] : full);
 
-    let best, bestLen = 0;
-    for (const en of _pathPreMap) if (en[0] > bestLen && path.startsWith(en[1])) [ best, bestLen ] = [ en[2], en[0] ];
-    return (best ? (best + path.substring(bestLen)) : path);
+    let best = [ '', '', 0 ];
+    for (const en of _pathPreMap) if (en[2] > best[2] && path.startsWith(en[0]))best = en;
+    const result = best[1] + path.substring(best[2]);
+    return (detail ? [ result, best ] : result);
 }
 
 // END

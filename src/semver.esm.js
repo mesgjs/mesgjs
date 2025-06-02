@@ -16,9 +16,10 @@ function parseEach (...a) {
 
 // Parse module@version string into components
 export function parseModVer (mod) {
-    let [ , path, major, minor, patch, extver ] = mod.match(/\s*(?:(.*)@)?(\d+)\.(\d+)\.(\d+)([+-]\S+)?/) || [];
+    let [ , module, version, major, minor, patch, extver, tail ] = mod.match(/(?:^\s*(\D.*?))?(?:(?:^|@)((\d+)\.(\d+)\.(\d+)([+-][^\/]+)?)(\/.*)?)?$/) || [];
     [ major, minor, patch ] = parseEach(major, minor, patch);
-    return { path, major, minor, patch, extver };
+    const atVersion = (module && version) ? ('@' + version) : (version ?? '');
+    return { module, atVersion, version, major, minor, patch, extver, tail };
 }
 
 export class SemVerRanges {
