@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { decode as vldec } from 'mesgjs/vendor/vlq.esm.js';
+import { decode as vldec } from './vendor/vlq.esm.js';
 
 export function decodeMappings (str) {
     const lineSegs = [];

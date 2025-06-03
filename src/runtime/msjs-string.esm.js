@@ -4,14 +4,15 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, jsToMSJS, NANOS, setRO, typeAccepts } from './runtime.esm.js';
+import { getInstance, getInterface, setRO, typeAccepts } from './runtime.esm.js';
+import { NANOS } from './vendor.esm.js';
 
 // Join strings together with an optional separator
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
     const { mp, js } = d, sep = mp.at('with') ?? '', parts = [ js ];
     for (const v of mp.values()) {
-	const so = jsToMSJS(v);
+	const so = globalThis.$toMSJS(v);
 	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(sep);
@@ -22,7 +23,7 @@ function opJoin (d) {
 function opJoining (d) {
     const { mp, js } = d, parts = [];
     for (const v of mp.values()) {
-	const so = jsToMSJS(v);
+	const so = globalThis.$toMSJS(v);
 	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(js);

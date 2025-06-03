@@ -1,0 +1,1 @@
+async function s(t,e){const n=typeof t=="string"?new TextEncoder().encode(t):t,r=await crypto.subtle.digest(e,n),a=Array.from(new Uint8Array(r)),o=btoa(String.fromCharCode(...a));return`${e.toLowerCase().replace("-","")}-${o}`}function c(t){const e=t?.match(/(?:^|\s)(sha512-\S+)/);if(e)return e[1]}export{s as calcDigest,c as getIntegritySHA512};

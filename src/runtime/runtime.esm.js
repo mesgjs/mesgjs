@@ -8,15 +8,13 @@
  * Defining interfaces and dispatching handlers in response to messages
  */
 import { calcDigest, getIntegritySHA512 } from './calc-digest.esm.js';
-import { NANOS, isIndex, parseQJSON, parseSLID } from 'nanos/nanos.esm.js';
+import { NANOS, isIndex, parseQJSON, parseSLID } from './vendor.esm.js';
 import { SieveCache } from './sieve-cache.esm.js';
 import { unifiedList } from './unified-list.esm.js';
-export { NANOS, isIndex, unifiedList };
 import './shim.esm.js';
 
-// Foundational-class installers
-import { installCoreExtensions, jsToMSJS, msjsInstance } from './runtime-local.esm.js';
-export { jsToMSJS, msjsInstance };
+const gt = globalThis;
+export const msjsInstance = Symbol.for('msjsInstance');
 
 // Flow exception, e.g. @d(return value) throws MSJSFlow('return', value)
 export class MSJSFlow extends Error {
@@ -35,25 +33,7 @@ export class MSJSFlowError extends RangeError {
 };
 
 export async function calcIntegrity (src) {
-    const srcMat = src.match(/^(https:\/\/[^/]*)\/(.*)/);
-    const host = srcMat ? srcMat[1] : '', path = canonModPath(srcMat ? srcMat[2] : src);
-    const code = await fetchModule(host, path, { decode: false });
-    return calcDigest(code, 'SHA-512');
-}
-
-function canonModPath (path) {
-    const parts = [];
-    for (const part of path.split('/')) switch (part) {
-	case '': case '.':
-	    break;
-	case '..':
-	    parts.pop();
-	    break;
-	default:
-	    parts.push(part);
-	    break;
-	}
-    return parts.join('/');
+    return calcDigest(await fetchModule(src, { decode: false }), 'SHA-512');
 }
 
 export async function fetchModule (host, path, { decode, integrity } = {}) {
@@ -94,7 +74,7 @@ export const runIfCode = v => v?.msjsType === '@code' ? v('run') : v;
 
 // Send an anonymous message (promoting JS receiver objects as necessary)
 export function sendAnonMessage (rr, op, mp) {
-    if (!rr?.msjsType) rr = jsToMSJS(rr);
+    if (!rr?.msjsType) rr = gt.$toMSJS(rr);
     return rr(op, mp);
 }
 
@@ -237,7 +217,6 @@ export const {
 
     // Core version of getInstance (works with public interfaces)
     function coreGetInstance (type, mp) {
-	if (initPhase === 2) initialize();
 	const ix = interfaces[type];
 	if (ix && !ix.private) return getInstance(type, mp);
     }
@@ -462,7 +441,6 @@ export const {
      * a custom message receiver function.
      */
     function getInterface (name) {
-	if (initPhase === 2) initialize();
 	if (name === '?') name = '?' + nextAnon++;
 	else if (typeof name !== 'string' || !name || (name[0] === '?' && !interfaces[name]) || (name[0] === '@' && initPhase !== 1)) return;
 	const ix = interfaces[name], isFirst = !ix;
@@ -496,33 +474,30 @@ export const {
 	if (initPhase === 2) {		// Only initialize once
 	    initPhase = 1;
 	    firstInit.forEach(cb => cb());
-	    installCoreExtensions();
+	    globalThis.installMSJSCoreExtensions();
 	    initPhase = 0;
-	    dacHandMctx.sr = dacHandMctx.rr = $c;
+	    dacHandMctx.sr = dacHandMctx.rr = gt.$c;
 	}
     }
 
     async function loadModule (src) {
-	src = remapModURL(src);
-	const srcMat = src.match(/^(https:\/\/[^/]*)\/(.*)/);
-	const host = srcMat ? srcMat[1] : '', path = canonModPath(srcMat ? srcMat[2] : src);
-	const newSrc = host ? `${host}/${path}` : path, meta = modMeta.at('hosts')?.at(host)?.at('modules')?.at(path) || modMeta.at('modules')?.at(newSrc);
-
 	// Prevent reload by source
-	if (modLoaded.has('src-' + newSrc)) return;
-	modLoaded.add('src-' + newSrc);
+	if (modLoaded.has('src-' + src)) return;
+	modLoaded.add('src-' + src);
 
+	const meta = modMeta?.at('modules')?.at(src);
 	const expect = getIntegritySHA512(meta?.at('integrity'));
 	if (expect) {
 	    // Prevent reload by signature
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    if (globalThis.msjsModMeta) throw new Error(`loadModule: Refusing unverified module "${newSrc}"`);
-	    console.log(`loadModule WARNING: Module "${newSrc}" is unverified`);
+	    if (globalThis.msjsModMeta) throw new Error(`loadModule: Refusing unverified module "${src}"`);
+	    console.log(`loadModule WARNING: Module "${src}" is unverified`);
 	}
 
-	const code = await fetchModule(host, path, { integrity: check });
+	src = remapModURL(src, meta);
+	const code = await fetchModule(src, { integrity: expect });
 	if (code instanceof Error) {
 	    // Reject this module's features, if any
 	    for (const f of meta?.at('featpro')?.values() || []) features.get(f)?.reject(code);
@@ -532,7 +507,6 @@ export const {
 	if (meta) {
 	    const mid = Symbol();
 	    meta.set('mid', mid);
-	    modMap.set('src-' + newSrc, meta);
 	    modMap.set(expect, meta);
 	    modMap.set(mid, meta);
 	}
@@ -548,7 +522,6 @@ export const {
 
     // Return a module dispatch object
     function moduleScope () {
-	if (initPhase) initialize();
 	const m = function msjsR$Module () {}, d = function msjsR$Dispatch (op) {
 	    ({ op } = canMesgProps({ rr: d, op }));
 	    switch (op) {
@@ -567,7 +540,7 @@ export const {
 	});
 	setRO(d, {
 	    sr: m, st: '@module', rr: m, rt: '@module', msjsType: '@dispatch',
-	    octx: $u, op: 'load', mp: $u, b, sm,
+	    octx: gt.$u, op: 'load', mp: gt.$u, b, sm,
 	});
 	Object.defineProperties(d, {
 	    p: { get: getPer, enumerable: true },
@@ -613,17 +586,29 @@ export const {
     });
 
     // Use modMeta to remap the module source location
-    function remapModURL (src) {
-	const exactURL = modMeta.at('modules')?.at(src)?.at('url');
-	if (exactURL) return exactURL;
+    function remapModURL (src, meta) {
+	// Use an exact URL if one was provided
+	const url = meta?.at('url');
+	if (url) return url;
 
+	// Revise based on prefix mapping
 	const prefixMap = modMeta.at('prefixMap');
 	let best = [ '', 0 ];
 	for (const [ input, output ] of prefixMap.entries()) {
 	    const len = input.length;
 	    if (len > best[1] && src.startsWith(input)) best = [ output, len ];
 	}
-	return best[0] + src.substring(best[1]);
+	src = best[0] + src.substring(best[1]);
+
+	// /base + version => /base/major/base@version
+	const version = meta?.at('version'), [ , major ] = version && version.match(/(\d+)/) || [];
+	if (version && major !== undefined) {
+	    const [ , dir, base ] = src.match(/(.*\/)?(.*)(?:(?:\.esm)?\.js)?$/);
+	    src = `${dir}${base}/${major}/${base}@${version}`;
+	}
+
+	if (!src.endsWith('.js')) src += '.esm.js';
+	return src;
     }
 
     // Prototype @code receiver
@@ -696,12 +681,12 @@ export const {
 	if (op === 'call') return dispatchHandler(cmp, this, mp);
 	switch (op) {		// Function-mode ops
 	case 'fn':			// Return a new function code block
-	    return newMSJSFunction(cd, mp);
+	    return newMSJSFunction(this.handler.code, mp);
 	case 'jsfn':		// Return a JS wrapper-function
 	    return (this.jsFn ||= jsFnCall.bind(this));
 	}
 	if (hasElse) return runIfCode(elseExpr);
-	throw new TypeError(`No Mesgjs handler found for "${type}(${op})"`);
+	throw new TypeError(`No Mesgjs handler found for "@function(${op})"`);
     }
 
     // Prototype @interface receiver
@@ -722,7 +707,7 @@ export const {
      * attributed message via the message baton.
      */
     function msjsS$SendMessage (rr, op, mp) {
-	if (!rr?.msjsType) rr = jsToMSJS(rr);
+	if (!rr?.msjsType) rr = gt.$toMSJS(rr);
 	mesgBaton = { sr: this.sr, st: this.st, rr, op, mp };
 	let result;
 	try { result = rr(); }
@@ -804,7 +789,6 @@ export const {
     function setModMeta (meta) {
 	if (globalThis.msjsModMeta) return;	// Only set once
 	setRO(globalThis, 'msjsModMeta', true);	// Now subject to mod meta
-	initialize();			// Make sure runtime is initialized
 
 	// Deep copy from NANOS or plain object config
 	if (meta instanceof NANOS) modMeta.push(parseSLID(meta.toSLID()));
@@ -875,6 +859,7 @@ export const {
 
 setRO(globalThis, {
     $f: false, $gss: new NANOS(), $n: null, $t: true, $u: undefined,
+    $modScope: moduleScope,
 });
 
 /*

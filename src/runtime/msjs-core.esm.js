@@ -4,8 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, jsToMSJS, logInterfaces, NANOS, runIfCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
-import { parseQJSON, parseSLID } from 'nanos/nanos.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, logInterfaces, runIfCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
+import { NANOS, parseQJSON, parseSLID } from './vendor.esm.js';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)
@@ -120,7 +120,7 @@ export function install (name) {
 	    run: opRun,
 	    slid: d => parseSLID(d.mp.at(0, '')),
 	    throw: opThrow,
-	    type: d => jsToMSJS(d.mp.at(0))?.msjsType,
+	    type: d => globalThis.$toMSJS(d.mp.at(0))?.msjsType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
 	    xor: opXor,

@@ -4,7 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, msjsInstance, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, msjsInstance, setRO, throwFlow } from './runtime.esm.js';
+import { NANOS } from './vendor.esm.js';
 
 const listize = res => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 

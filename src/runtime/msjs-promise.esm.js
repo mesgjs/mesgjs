@@ -14,7 +14,8 @@ Handlers can be added in a chain after the new Promise.
 In the reject dispatch, checks for no reject handler.
 */
 
-import { getInstance, getInterface, NANOS, setRO } from './runtime.esm.js';
+import { getInstance, getInterface, setRO } from './runtime.esm.js';
+import { NANOS } from './vendor.esm.js';
 
 const identity = x => x, thrower = x => { throw x; };
 const callable = f => typeof f === 'function' && (!f.msjsType || f.msjsType === '@code' || f.msjsType === '@function');

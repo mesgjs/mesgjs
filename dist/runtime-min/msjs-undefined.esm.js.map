@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/runtime/msjs-undefined.esm.js"],
+  "sourcesContent": ["/*\n * Mesgjs @undefined interface\n * Author: Brian Katzung <briank@kappacs.com>\n * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung\n */\n\nimport { getInterface, setRO } from './runtime.esm.js';\n\nexport function install () {\n    getInterface('@undefined').set({\n\tfinal: true, lock: true, pristine: true, singleton: true,\n\thandlers: {\n\t    '@init': d => setRO(d.octx, 'js', undefined),\n\t    '@jsv': () => undefined,\n\t    has: () => undefined,\n\t    toString: () => '@u',\n\t    valueOf: () => undefined,\n\t},\n    });\n}\n\n// END\n"],
+  "mappings": "AAMA,OAAS,gBAAAA,EAAc,SAAAC,MAAa,mBAE7B,SAASC,GAAW,CACvBF,EAAa,YAAY,EAAE,IAAI,CAClC,MAAO,GAAM,KAAM,GAAM,SAAU,GAAM,UAAW,GACpD,SAAU,CACN,QAASG,GAAKF,EAAME,EAAE,KAAM,KAAM,MAAS,EAC3C,OAAQ,IAAG,GACX,IAAK,IAAG,GACR,SAAU,IAAM,KAChB,QAAS,IAAG,EAChB,CACG,CAAC,CACL",
+  "names": ["getInterface", "setRO", "install", "d"]
+}

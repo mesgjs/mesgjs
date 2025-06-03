@@ -4,7 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, isIndex, NANOS, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
+import { getInterface, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
+import { isIndex, NANOS } from './vendor.esm.js';
 
 function common (d, keys) {
     const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
@@ -63,7 +64,7 @@ function getKVI (obj) {
 	if (typeof obj?.keys === 'function') {
 	    keys = obj.keys();
 	    if (Array.isArray(keys)) keys = keys.values();
-	} else if (Array.isArray(obj?.keys)) keys = objs.keys.values();
+	} else if (Array.isArray(obj?.keys)) keys = obj.keys.values();
 	if (typeof obj?.at === 'function') get = k => obj.at(k);
 	else if (typeof obj?.get === 'function') get = k => obj.get(k);
 	else get = k => obj[k];

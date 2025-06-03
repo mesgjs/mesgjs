@@ -30,8 +30,8 @@ export function getModule (db, mod, detail = false) {
 
     const [ row ] = db.query('select ' + (detail ? 'modreq, integ, featpro, featreq' : 'modreq') + ' from modules where major = ? and minor = ? and patch = ? and extver = ?', [ major, minor, patch, extver ?? '' ]);
     if (row) {
-	const [ modreq, integ, featpro, featreq ] = row;
-	return (_modCache[mod] = { path, major, minor, patch, extver, integ, modreq, featpro, featreq });
+	const [ modreq, integrity, featpro, featreq ] = row;
+	return (_modCache[mod] = { path, major, minor, patch, extver, integrity, modreq, featpro, featreq });
     };
 }
 

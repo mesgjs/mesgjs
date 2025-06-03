@@ -9,8 +9,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { NANOS, isIndex } from 'nanos/nanos.esm.js';
-export { NANOS, isIndex };
+import { NANOS, isIndex } from './vendor.esm.js';
 
 const noKey = Symbol();
 

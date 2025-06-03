@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/runtime/msjs-null.esm.js"],
+  "sourcesContent": ["/*\n * Mesgjs @null interface\n * Author: Brian Katzung <briank@kappacs.com>\n * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung\n */\n\nimport { getInterface, setRO } from './runtime.esm.js';\n\nexport function install () {\n    getInterface('@null').set({\n\tfinal: true, lock: true, pristine: true, singleton: true,\n\thandlers: {\n\t    '@init': d => setRO(d.octx, 'js', null),\n\t    '@jsv': () => null,\n\t    has: () => undefined,\n\t    toString: () => '@n',\n\t    valueOf: () => null,\n\t},\n    });\n}\n\n// END\n"],
+  "mappings": "AAMA,OAAS,gBAAAA,EAAc,SAAAC,MAAa,mBAE7B,SAASC,GAAW,CACvBF,EAAa,OAAO,EAAE,IAAI,CAC7B,MAAO,GAAM,KAAM,GAAM,SAAU,GAAM,UAAW,GACpD,SAAU,CACN,QAASG,GAAKF,EAAME,EAAE,KAAM,KAAM,IAAI,EACtC,OAAQ,IAAM,KACd,IAAK,IAAG,GACR,SAAU,IAAM,KAChB,QAAS,IAAM,IACnB,CACG,CAAC,CACL",
+  "names": ["getInterface", "setRO", "install", "d"]
+}

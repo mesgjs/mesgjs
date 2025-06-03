@@ -1,0 +1,1 @@
+import{getInterface as n,setRO as t}from"./runtime.esm.js";function u(){n("@undefined").set({final:!0,lock:!0,pristine:!0,singleton:!0,handlers:{"@init":e=>t(e.octx,"js",void 0),"@jsv":()=>{},has:()=>{},toString:()=>"@u",valueOf:()=>{}}})}export{u as install};

@@ -1,5 +1,5 @@
 /*
- * Mesgjs Runtime Local Configuration
+ * Mesgjs Entry-Point Module And Runtime Local Configuration
  *
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
@@ -23,8 +23,12 @@ import { install as installString } from './msjs-string.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './msjs-undefined.esm.js';
 
+import { getInstance, initialize, msjsInstance, setModMeta, setRO } from './runtime.esm.js';
+export { setModMeta };
+import { NANOS } from './vendor.esm.js';
+
 // Guaranteed-load, @-interface extension modules
-export function installCoreExtensions () {
+function installCoreExtensions () {
     installCore('@core');		// SHOULD ALWAYS BE FIRST
 
     installBoolean();
@@ -44,11 +48,8 @@ export function installCoreExtensions () {
     installUndefined();
 }
 
-import { getInstance, NANOS } from './runtime.esm.js';
-
 // Promote a JS object to a MSJS object for messaging
-export const msjsInstance = Symbol.for('msjsInstance');
-export function jsToMSJS (jsv) {
+function toMSJS (jsv) {
     if (jsv?.msjsType) return jsv;
     switch (typeof jsv) {
     case 'boolean':
@@ -73,5 +74,15 @@ export function jsToMSJS (jsv) {
 	return getInstance('@undefined');
     }
 }
+
+/*
+ * We have only two "exports". These are shared globally in order to
+ * avoid circular import dependencies for lots of modules.
+ */
+setRO(globalThis, {
+    installMSJSCoreExtensions: installCoreExtensions,
+    $toMSJS: toMSJS,
+});
+initialize();
 
 // END;

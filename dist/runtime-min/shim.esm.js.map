@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/runtime/shim.esm.js"],
+  "sourcesContent": ["if (!Set.prototype.union) Set.prototype.union = function union (other) {\n    const result = new Set([]);\n    for (const v of this.values()) result.add(v);\n    for (const v of other.values()) result.add(v);\n    return result;\n}\n"],
+  "mappings": "AAAK,IAAI,UAAU,QAAO,IAAI,UAAU,MAAQ,SAAgBA,EAAO,CACnE,MAAMC,EAAS,IAAI,IAAI,CAAC,CAAC,EACzB,UAAWC,KAAK,KAAK,OAAO,EAAGD,EAAO,IAAIC,CAAC,EAC3C,UAAWA,KAAKF,EAAM,OAAO,EAAGC,EAAO,IAAIC,CAAC,EAC5C,OAAOD,CACX",
+  "names": ["other", "result", "v"]
+}

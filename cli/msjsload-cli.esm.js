@@ -12,6 +12,7 @@ import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
 import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/semver.esm.js';
+import { escapeJSString as escJSStr } from 'escape-js/escape.esm.js';
 import { NANOS, parseSLID } from 'nanos/nanos.esm.js';
 import Logic from 'npm:logic-solver';
 
@@ -51,6 +52,7 @@ function computeWeights () {
 // Encode the specified requirements
 // module spec; module spec; ...
 function encodeReqs (reqs, label) {
+    if (typeof reqs === 'string') reqs = getModSpec(reqs);
     const all = [];
     for (const modSpec of reqs || []) {
 	const [ , mod, spec ] = modSpec.match(/\s*(\S+)\s+(.*)/);
@@ -72,9 +74,6 @@ function encodeReqs (reqs, label) {
 // Return the JS import map in JSON format
 function getJSImportMap () {
     return JSON.stringify({ imports: Object.fromEntries([
-	'escape-js/escape.esm.js',
-	'nanos/nanos.esm.js',
-	'reactive/reactive.esm.js',
 	'mesgjs/runtime/',
     ].map(path => [ path, mapPath(db, path) ])) });
 }
@@ -92,7 +91,7 @@ function getModMeta (finalMods, meta) {
     }
     delete prefixMap[''];
 
-    if (meta instanceof NANOS) for (const mod of getModSpec(main, 'deferLoad') || []) if (modules[mod]) modules[mod].deferLoad = true;
+    if (meta instanceof NANOS) for (const mod of getModSpec(meta.at('deferLoad', []), 'deferLoad') || []) if (modules[mod]) modules[mod].deferLoad = true;
     return { prefixMap, modules };
 }
 
@@ -109,9 +108,9 @@ function getModSpec (spec, group = 'modreq') {
 }
 
 // Link the main entry point
-function link (spec, code) {
+function link (spec, jsIn) {
     // Resolve module dependencies
-    const finalMods = resolveModDeps(spec);
+    const finalMods = resolveModDeps(getModSpec(spec));
 
     // Check for required features not provided
     checkFeatures(finalMods);
@@ -124,7 +123,17 @@ function link (spec, code) {
 
     // Module loading loop
     // JS code (if supplied)
-    ({ code, jsImportMap, modMeta });
+    ({ jsIn, jsImportMap, modMeta });
+
+    const outbuf = [], output = (...c) => outbuf.push(...c);
+
+    output(`${flags.html ? '' : '// '}<script type='importmap'>${jsImportMap}</script>\n`);
+    if (flags.html) output("<script type='module'>\n");
+    output(`import { setModMeta } from '${escJSStr(mapPath(db, 'mesgjs/runtime/mesgjs.esm.js'), { dq: false })}';\n`);
+    output(`setModMeta(${JSON.stringify(modMeta)}));\n`);
+    if (flags.html) output(`</script>`);
+
+    console.log(outbuf.join(''));
 }
 
 // Map module id to module (passing optional version)
@@ -202,6 +211,7 @@ try {
 	link(main);
     }
 } catch (err) {
+    if (Deno.env.has('DEBUG')) throw err;
     console.error('Error:', err.message);
     Deno.exit(1);
 }

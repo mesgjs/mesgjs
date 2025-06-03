@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, MSJSFlow, runIfCode, setRO, throwFlow } from './runtime.esm.js';
 
 // @try(try code... catch=code always=code)
 function opTry (d) {

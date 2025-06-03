@@ -4,7 +4,8 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, NANOS, msjsInstance, setRO } from './runtime.esm.js';
+import { getInterface, msjsInstance, setRO } from './runtime.esm.js';
+import { NANOS } from './vendor.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, map = mp.at(0);

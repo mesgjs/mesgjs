@@ -20,6 +20,7 @@ import { lex, parse } from 'mesgjs/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/transpile.esm.js';
 import { checkTables } from 'mesgjs/module-catalog-lite.esm.js';
 import { calcDigest } from 'mesgjs/runtime/calc-digest.esm.js';
+import { parseModVer as pmv } from 'mesgjs/semver.esm.js';
 import { parseSLID } from 'nanos/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
@@ -52,6 +53,7 @@ function dotStart (path) {
  * Version -> file = base + @version
  * Version -> dir += base/major/ (iff root supplied)
  * Final path = (dist) root + dir + file + .esm.js
+ * Ex: foo/bar 1.2.3 => root/foo/bar/1/bar@1.2.3.esm.js
  */
 function outPath (srcPath, config) {
     const version = flags.ver && config?.at('version'), modPath = root && flags.mod && config?.at('modpath');
@@ -122,20 +124,20 @@ async function process (srcPath) {
     const codePlus = code + `\n//# sourceMappingURL=${file}.map\n`;
 
     const version = config && config.at('version'), modPath = config && config.at('modpath');
-    const [ , major, minor, patch, extver ] = version ? version.match(/(\d+)\.(\d+)\.(\d+)([+-].*)?/) : [];
+    const { major, minor, patch, extver } = pmv(version);
 
     let skip = false;
     if (flags.ver || db) {
 	if (!version) {
-	    console.log(`Warning: no version in ${srcPath}`);
+	    console.log(`Warning: No version in ${srcPath}`);
 	    skip = true;
-	} else if (!major || !minor || !patch) {
-	    console.log(`Warning: invalid version ${version} in ${srcPath}`);
+	} else if ([ major, minor, patch ].includes(undefined)) {
+	    console.log(`Warning: Invalid version ${version} in ${srcPath}`);
 	    skip = true;
 	}
     }
     if ((flags.mod || db) && !modPath) {
-	console.log(`Warning: no modpath in ${srcPath}`);
+	console.log(`Warning: No modpath in ${srcPath}`);
 	skip = true;
     }
     if (skip) return;
@@ -146,7 +148,7 @@ async function process (srcPath) {
     Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
     Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
 
-    if (db && major && minor && patch && modPath) {
+    if (db && !([ major, minor, patch ].includes(undefined)) && modPath) {
 	const sha512 = await calcDigest(codePlus, 'SHA-512');
 	db.query('insert or replace into modules (path, major, minor, patch, extver, integ, featpro, featreq, modreq) values (?, ?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extver ?? '', sha512, config.at('featpro', ''), config.at('featreq', ''), meta.at('modreq', '') ]);
     }

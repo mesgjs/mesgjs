@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { unescapeJSString } from 'escape-js/escape.esm.js';
+import { unescapeJSString } from './vendor.esm.js';
 
 // Mesgjs lexical token regexps
 const MSJSPats = {
@@ -141,7 +141,7 @@ export function parse (tokens) {
 	    const statement = parseStatement();
 	    if (statement) node.statements.push(statement);
 	    else {
-		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -192,7 +192,7 @@ export function parse (tokens) {
 	    const item = parseNamedValue() || parseValue();
 	    if (item) items.push(item);
 	    else {
-		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -234,7 +234,7 @@ export function parse (tokens) {
 	    const param = parseNamedValue() || parseValue();
 	    if (param) params.push(param);
 	    else {
-		error(`Syntax error (unexpected ${cur.type}) at ${tls()}`);
+		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -310,7 +310,7 @@ export function parse (tokens) {
 	const res = parseStatement();
 	if (res) output.push(res);
 	else {
-	    error(`Syntax error (unexpected ${tokens[read]?.type}) at ${tls()}`);
+	    error(`Syntax error: Unexpected ${tokens[read]?.type} at ${tls()}`);
 	    ++read;
 	}
     }
@@ -318,7 +318,7 @@ export function parse (tokens) {
 }
 
 // Return a token's location string
-function tokenLocStr (token) {
+export function tokenLocStr (token) {
     const loc = token?.loc;
     return (loc ? `${loc.src || 'unknown'}:${loc.line + 1}:${loc.col + 1}` : 'end of input');
 }

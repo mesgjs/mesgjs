@@ -4,9 +4,9 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { lex, parse } from 'mesgjs/lexparse.esm.js';
-import { encode as vlenc } from 'mesgjs/vlq.esm.js';
-import { escapeJSString } from 'escape-js/escape.esm.js';
+import { lex, parse, tokenLocStr } from './lexparse.esm.js';
+import { encode as vlenc } from './vendor/vlq.esm.js';
+import { escapeJSString } from './vendor.esm.js';
 
 class Segment {
     constructor (gen, src, pending) {
@@ -31,7 +31,7 @@ export function transpileTree (tree, opts = {}) {
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
     const outBuf = [], blocks = [], outStack = [];
     const aws = opts.addWhiteSpace;
-    let nextBlock = 0, blocksIP = 0;
+    let nextBlock = 0, jsFirst = false;
 
     const error = (message, fatal = false) => {
 	    if (fatal) throw new Error(message);
@@ -140,18 +140,20 @@ export function transpileTree (tree, opts = {}) {
     }
 
     function generateFinalOutput () {
+	const initialJS = jsFirst && outBuf.shift();
 	if (blocks.length) {
-	    outBuf.splice(blocksIP, 0, 'const c=Object.freeze([', ...blocks.flat(1), ']);');
+	    outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`import {moduleScope} from 'mesgjs/runtime.esm.js';\nexport function loadMSJS (mid) {\nconst {d,ls,m,na}=moduleScope(), {mp,sm}=d;\n`));
-	outBuf.push(segment(`}\nif (!globalThis.msjsModMeta) loadMSJS();\n`));
+	outBuf.unshift(segment(`export function loadMSJS(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
+	if (jsFirst) outBuf.unshift(initialJS);
+	outBuf.push(segment(`}if(!globalThis.msjsModMeta)loadMSJS();\n`));
     }
 
     function generateJS (node) {
 	if (opts.enableJS) {
+	    if (!outBuf.length) jsFirst = true;
 	    outseg(node.text, node, true);
-	    if (!nextBlock) blocksIP = outBuf.length;
 	}
 	else error(`Error: JavaScript is not enabled at ${tls(node)}`);
     }

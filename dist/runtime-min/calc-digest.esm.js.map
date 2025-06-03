@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/runtime/calc-digest.esm.js"],
+  "sourcesContent": ["// Algorithm: SHA-256 / SHA-384 / SHA-512\nexport async function calcDigest (source, algorithm) {\n  const data = (typeof source === 'string') ? new TextEncoder().encode(source) : source;\n  const hashBuffer = await crypto.subtle.digest(algorithm, data);\n  const hashArray = Array.from(new Uint8Array(hashBuffer));\n  const base64Hash = btoa(String.fromCharCode(...hashArray));\n  return `${algorithm.toLowerCase().replace('-', '')}-${base64Hash}`;\n}\n\n// Return the sha512 hash from a potentially multi-hash integrity value\nexport function getIntegritySHA512 (integ) {\n    const m = integ?.match(/(?:^|\\s)(sha512-\\S+)/);\n    if (m) return m[1];\n}\n\n// END\n"],
+  "mappings": "AACA,eAAsBA,EAAYC,EAAQC,EAAW,CACnD,MAAMC,EAAQ,OAAOF,GAAW,SAAY,IAAI,YAAY,EAAE,OAAOA,CAAM,EAAIA,EACzEG,EAAa,MAAM,OAAO,OAAO,OAAOF,EAAWC,CAAI,EACvDE,EAAY,MAAM,KAAK,IAAI,WAAWD,CAAU,CAAC,EACjDE,EAAa,KAAK,OAAO,aAAa,GAAGD,CAAS,CAAC,EACzD,MAAO,GAAGH,EAAU,YAAY,EAAE,QAAQ,IAAK,EAAE,CAAC,IAAII,CAAU,EAClE,CAGO,SAASC,EAAoBC,EAAO,CACvC,MAAMC,EAAID,GAAO,MAAM,sBAAsB,EAC7C,GAAIC,EAAG,OAAOA,EAAE,CAAC,CACrB",
+  "names": ["calcDigest", "source", "algorithm", "data", "hashBuffer", "hashArray", "base64Hash", "getIntegritySHA512", "integ", "m"]
+}
