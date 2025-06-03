@@ -75,6 +75,9 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
 * (nset key1=value1 … keyN=valueN)  
   * Synopsis: "Named" set. Equivalent to (set key to=value) repeated for each key/value pair.  
   * Named set only works for top-level keys (there are no key paths).  
+  * **IMPORTANT:** key1=value1, etc. *are NOT assignments* – they're key/value message parameters\! The actual assignments (to storage) are performed within the (nset) message handler, which does not execute until after all of the parameters are evaluated. Of particular consequence is that subsequent key-value pairs cannot depend on earlier key-value pairs within the same (nset).  
+    \#(nset a=1 b=\#a(mul 2)) // Error\! \#a is not yet set when computing the value for key b  
+    \#(nset a=1) \#(nset b=\#a(mul 2)) // OK \- \#a is set before the second (nset) message  
   * Keep in mind that positional values ("without keys") have implied, consecutive index keys, and these will be set too\!  
     (nset x=5 well hello) // means nset(x=5 0=well 1=hello)  
 * (pairs compact)  
