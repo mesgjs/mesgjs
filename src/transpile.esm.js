@@ -154,7 +154,7 @@ export function transpileTree (tree, opts = {}) {
 	}
 	if (!repl) outBuf.unshift(segment(`export function loadMSJS(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
 	if (jsFirst) outBuf.unshift(initialJS);
-	if (!repl) outBuf.push(segment(`}if(!globalThis.msjsModMeta)loadMSJS();\n`));
+	if (!repl) outBuf.push(segment(`}if(!globalThis.msjsNoSelfLoad)loadMSJS();\n`));
     }
 
     function generateJS (node) {

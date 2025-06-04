@@ -492,7 +492,7 @@ export const {
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    if (globalThis.msjsModMeta) throw new Error(`loadModule: Refusing unverified module "${src}"`);
+	    if (globalThis.msjsHasModMeta) throw new Error(`loadModule: Refusing unverified module "${src}"`);
 	    console.log(`loadModule WARNING: Module "${src}" is unverified`);
 	}
 
@@ -515,7 +515,7 @@ export const {
 	    `data:application/javascript;base64,${btoa(code)}`;
 	const mod = await import(URL);
 	if (URL.startsWith('blob:')) URL.revokeObjectURL(URL);
-	if (globalThis.msjsModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
+	if (globalThis.msjsHasModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
     }
 
     function logInterfaces () { console.log(interfaces); }
@@ -787,12 +787,17 @@ export const {
 
     // Set module metadata (once) from a plain object or NANOS
     function setModMeta (meta) {
-	if (globalThis.msjsModMeta) return;	// Only set once
-	setRO(globalThis, 'msjsModMeta', true);	// Now subject to mod meta
+	if (globalThis.msjsHasModMeta) return;	// Already set
 
 	// Deep copy from NANOS or plain object config
 	if (meta instanceof NANOS) modMeta.push(parseSLID(meta.toSLID()));
-	else modMeta.push(parseQJSON(JSON.stringify(meta)));
+	else if (typeof meta === 'object') modMeta.push(parseQJSON(JSON.stringify(meta)));
+	else return;
+
+	setRO(globalThis, {
+	    msjsHasModMeta: true,	// Module metadata added
+	    msjsNoSelfLoad: true,	// Turn off module self-loading
+	});
 
 	// Track features provided by modules
 	addModFeatures(modMeta.at('modules'));
