@@ -26,12 +26,16 @@ export function transpile (input, opts = {}) {
     return { shebang, configSLID, ...transpileTree(tree, { ...opts, errors }) };
 }
 
+// Potentially cross-transpilation next-block for REPL
+let nextBlock = 0;
+
 // Transpile pre-parsed input to JavaScript code (text)
 export function transpileTree (tree, opts = {}) {
     const errors = Array.isArray(opts.errors) ? opts.errors : [];
-    const outBuf = [], blocks = [], outStack = [];
+    const outBuf = [], blocks = opts.repl ? {} : [], outStack = [];
     const aws = opts.addWhiteSpace;
-    let nextBlock = 0, jsFirst = false;
+    let jsFirst = false;
+    if (!opts.repl) nextBlock = 0;
 
     const error = (message, fatal = false) => {
 	    if (fatal) throw new Error(message);
@@ -47,6 +51,8 @@ export function transpileTree (tree, opts = {}) {
      * Node types:
      * '{' - block
      * chn - message chain
+     * dbg - debug-mode block
+     * js  - JS embed
      * '[' - list
      * '=' - named value
      * num - number
@@ -133,21 +139,22 @@ export function transpileTree (tree, opts = {}) {
 	if (node.type !== 'dbg') {
 	    output('}}');
 	    blocks[blockNum] = popOut();
-	    if (blockNum) blocks[blockNum].unshift(',');
+	    if (blockNum && !opts.repl) blocks[blockNum].unshift(',');
 	    // Generate in-band code content
 	    output(`d.b(c[${blockNum}])`);
 	}
     }
 
     function generateFinalOutput () {
-	const initialJS = jsFirst && outBuf.shift();
-	if (blocks.length) {
-	    outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
+	const repl = opts.repl, initialJS = jsFirst && outBuf.shift();
+	if (blocks.length || repl) {
+	    if (repl) for (const en of Object.entries(blocks)) outBuf.unshift(`c[${en[0]}] = ${en[1].join('')};\n`);
+	    else outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	outBuf.unshift(segment(`export function loadMSJS(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
+	if (!repl) outBuf.unshift(segment(`export function loadMSJS(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
 	if (jsFirst) outBuf.unshift(initialJS);
-	outBuf.push(segment(`}if(!globalThis.msjsModMeta)loadMSJS();\n`));
+	if (!repl) outBuf.push(segment(`}if(!globalThis.msjsModMeta)loadMSJS();\n`));
     }
 
     function generateJS (node) {

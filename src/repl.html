@@ -1,0 +1,44 @@
+<!doctype html><html><head>
+<style>
+html { font-family: sans-serif; }
+textarea { width: 95%; resize: vertical; min-height: 100px; }
+</style>
+</head><body>
+<h2>Mesgjs REPL V0</h2>
+<p>If the Mesgjs code in the (first) input box transpiles without error,
+the resulting JavaScript will be executed. See the browser console for any
+generated output.</p>
+<p>@gss, @mps, %, and # storage will all persist during the session.</p>
+<textarea id='inputArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">@c(log 'Hello, world!') // Log Hello, world! on the console
+// #(nset greet={ @c(log Hello, !(at visitor else=world)(join '!')) }(fn))
+// #greet(call visitor=world)
+// #greet(call)</textarea><br>
+<input type='button' value='Transpile' id='execBtn'>
+<p><input id='addWhiteSpace' type='checkbox' checked> Add white space
+<input id='enableJS' type='checkbox' checked> Enable JS embed
+<input id='debugBlocks' type='checkbox' checked> Debug blocks</p>
+<h2>Errors</h2>
+<textarea id='errors' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<h2>JavaScript</h2>
+<textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<script type='module'>
+import './runtime/mesgjs.esm.js';
+import { transpile } from './transpile.esm.js';
+Object.assign(globalThis, { c: [], mid: $u, mp: $u }, $modScope());
+const { mp, sm } = d;
+Object.assign(globalThis, { mp, sm });
+function transpileNow () {
+    const tr = transpile(inputArea.value, { addWhiteSpace: addWhiteSpace.checked, enableJS: enableJS.checked, debugBlocks: debugBlocks.checked, repl: true, location: { src: 'unnamed.msjs' } });
+    const errs = [];
+    codeArea.value = tr.code;
+    if (tr.fatal) errs.push("FATAL: " + tr.fatal);
+    errs.push(...tr.errors);
+    errors.value = errs.join("\n");
+    if (!tr.errors.length && !tr.fatal) (new Function(tr.code))();
+}
+execBtn.addEventListener('click', transpileNow);
+</script>
+<!--
+vim: sw=4:syntax=javascript
+-->
+</body></html>
