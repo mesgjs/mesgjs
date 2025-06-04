@@ -104,7 +104,7 @@ to figuring out what message to send to which object.
 - The `{ !}` version returns the value of the last expression in the block,
   unless a specific return value is returned via the code in the block first.
 - Code blocks normally run in the context in which they were defined
-  (`%`, `#`, and `!` are based on a (load) message to the enclosing
+  (`%`, `#`, and `!` are based on a `(load)` message to the enclosing
   module object).
 - Code blocks registered as message handlers as part of an object interface
   definition run in the context of the receiving object and message dispatch
@@ -121,26 +121,28 @@ to figuring out what message to send to which object.
   base.method1(params).method2(params)`
 - Message handlers are stored in interfaces, and are located by following
   interface chains (starting with the interface associated with an object's
-  type).
+  type). The process is somewhat similar to how JavaScript resolves methods
+  (and other object properties) via object prototype chains.
 - Messages from JavaScript to Mesgjs objects are anonymous, just like object
   method invocation in JavaScript. Messages _between Mesgjs objects_, however,
-  are _attributed_ – the receiving object knows with extreme confidence which
+  are _attributed_ - the receiving object knows with extreme confidence which
   object sent the message, and its assigned type.
-- Code blocks are executed by sending them a (run) message. The message does not
-  use any parameters.
-- Functions are created by sending a (fn) message to a code block. The
-  newly-created function object runs in a new context, disconnected from the
-  original code block's context. The original code block is unaffected. Any
-  message parameters to the `(fn)` message become the new function object's
-  persistent state (`%`). Persistent state will be empty if there are no message
-  parameters.
+- Code blocks are executed by sending them a `(run)` message. The message does
+  not use any parameters.
+- Functions are created by sending a `(fn)` message to a code block (`@code`
+  object instance). The newly-created `@function` object runs in a new context,
+  disconnected from the original code block's context. The original code
+  block is unaffected. Any message parameters to the `(fn)` message become
+  the new function object's persistent state (`%`). Persistent state will
+  simply start out empty if there are no message parameters.
 - Functions are invoked by sending them a `(call)` message.
 - To review, when a function is sent a `(call)` message, `%` contains the message
   parameters from the prior `(fn)` message, `#` contains scratch storage, and `!`
   contains the `(call)` message parameters.
-- _Mesgjs functions do **not** have access to any of the defining context unless
-  you explicitly pass it_ (e.g. as accessors) via `(fn)` params as part of the
-  function setup. See Closures And Bound State, below, for more information.
+- _Mesgjs functions do **not** have access to any of the defining context
+  unless you explicitly pass it_ (e.g. as accessors) via `(fn)` parameters
+  as part of the function setup. See Closures And Bound State, below, for
+  more information.
 
 # Return Values
 
@@ -154,11 +156,12 @@ to figuring out what message to send to which object.
 
 ## Mesgjs
 
-- As described earlier, "non-returning" blocks (`{ }`) return undefined by default
-  and "returning" blocks (`{ !}`) return the value of the last expression by
-  default.
+- As described earlier, "non-returning" blocks (`{ }`) return `@u`
+  (undefined) by default and "returning" blocks (`{ !}`) return the value
+  of the last expression by default.
 - Mesgjs does not have a return statement, but you can send a `(return)` message
-  to the dispatch object, `@d`, at any point with similar effect:\
+  to the dispatch object, `@d`, at any point with similar effect (the
+  dispatch terminates and the value is returned):\
   `@d(return value)`
 
 # Closures And Bound State
@@ -357,7 +360,7 @@ Conditionals are implemented as messages to the global singleton instance of the
 ## JavaScript
 
 "Extended" math operations such as `abs()`, `min()`, `max()`, `sin()`, `cos()`, `tan()`,
-`log()`, etc are static methods of the Math object in JavaScript.
+`log()`, etc are static methods of the `Math` object in JavaScript.
 
 ## Mesgjs
 
@@ -376,8 +379,7 @@ take the form:
 
 - `import {`_`list-of-stuff-to-import`_`} from '`_`location-of-module`_`';`\
   `export {`_`list-of-stuff-to-export`_`};`\
-  `export {`_`list-of-stuff`_`} from '`_`location-of-module`_`';`
-  `// import-then-export`
+  `export {`_`list-of-stuff`_`} from '`_`location-of-module`_`'; // import-then-export`
 - `export` _`thing`_:\
   `export class ...`\
   `export const ...`\
