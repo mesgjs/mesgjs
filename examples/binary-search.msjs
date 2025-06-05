@@ -1,0 +1,14 @@
+%(nset bsearch={
+    #(nset start=0 end=!0(size)(sub 1))
+    @c(get @loop)(while pre={ #start(le #end) !} {
+	#(nset cur=#start(add #end)(div 2)(floor))
+	@c(if
+	    { !0(at #cur)(eq !1) !} { @d(return @t) }
+	    { !0(at #cur)(lt !1) !} { #(nset start=#cur(add 1)) }
+	    else={ #(nset end=#cur(sub 1)) }
+	)
+    })
+    @f
+!}(fn))
+// @c(log %bsearch(call [1 5 6 8 11 15 21] 5))
+// @c(log %bsearch(call [alpha charlie echo golf india kilo] juliet))

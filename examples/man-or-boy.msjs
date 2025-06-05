@@ -1,0 +1,18 @@
+// Donald Knuth's man-or-boy test in Mesgjs
+// https://en.wikipedia.org/wiki/Man_or_boy_test
+// https://rosettacode.org/wiki/Man_or_boy_test
+#(nset A={
+    // scratch #k from message !k; decrement-and-return-k block
+    #(nset k=!k dark={ #(nset k=#k(sub 1)) #k !})
+    #(nset B={
+	// get next scratch #k
+	#(nset k=%dark(run))
+	%A(call k=#k x1=@d(rr) x2=%x1 x3=%x2 x4=%x3 x5=%x4)
+    !}(fn A=@d(rr) dark=#dark x1=!x1 x2=!x2 x3=!x3 x4=!x4))
+    @c(if #k(le 0) { !x4(call)(add !x5(call)) !} else={ #B(call) !})
+!}(fn))
+#(nset kLoop=@c(get @loop))
+#kLoop(run {
+@c(log #kLoop(num)(toString)(join :)
+#A(call k=#kLoop(num) x1={1!}(fn) x2={-1!}(fn) x3={-1!}(fn) x4={1!}(fn) x5={0!}(fn))) }
+times=10)
