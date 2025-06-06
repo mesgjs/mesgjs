@@ -71,15 +71,27 @@ No RIC (run-if-code) values are used in this interface.
   * This is the preferred equivalent of `@c(get @regex init=[`_`receiver`_ `flags])`.
 * `(repeat count)`
   * Synopsis: Returns a new string composed of the original string repeated count times.
-* (replace pattern replacement) \-
-* (replaceAll pattern replacement) \-
+* `(replace pattern replacement)`\
+`(replaceAll pattern replacement)`
+  * Synopsis: Returns a copy of the receiver, replacing one, some, or all
+  matches of a `pattern` (string or regular expression (regex)) based on
+  `replacement`, a string or (JavaScript or Mesgjs) function.
+  * See the JavaScript `String`
+  [.replace](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace) and
+  [.replaceAll](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replaceAll)
+  documentation for more information.
 * `(slice start end)`
   * Synopsis: Returns a new string containing a substring of the receiver
   beginning at the optional `start` position (default: 0) and ending
   _before_ the optional `end` position (default: end-of-string).
   * Either or both of `start` and `end` may be negative, in which case they
   are interpreted relative to the end of the string.
-* (split separator limit) \-
+* `(split separator limit)`
+  * Synopsis: Splits the receiver based on the `separator` string or
+  regular expression (regex). Up to `limit` parts (default: no limit) are
+  returned in an `@jsArray` of results.
+  * See the JavaScript `String` [.split](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split)
+  documentation for more information.
 * `(startsWith string)`
   * Synopsis: Returns `@t` (true) if the receiver starts with `string`, or `@f` (false) otherwise.
 * `(substring a b)`
