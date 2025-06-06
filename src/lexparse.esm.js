@@ -18,7 +18,7 @@ const MSJSPats = {
     dbg: '@debug\\{',		// Start debug-mode code
     stok: '!}|[!%#]\\??|[[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
-    oth: '[^\'"!%#/[(={})\\]\\s]+',// Other
+    oth: '(?:[^\'"!%#/[(={})\\]\\s]|\\/(?![/*]))+',// Other
 };
 
 const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
@@ -50,42 +50,51 @@ export function lex (input, loc = {}) {
     }
 
     return { shebang, configSLID, tokens: input.split(MSJSRE).map(text => {
-	    const loc = { src, line, col };
-	    adv(text);
+	const loc = { src, line, col };
+	adv(text);
 
-	    switch (text[0]) {		// Check *FIRST CHAR* of token
-	    case undefined:
-		return false;
-	    case "'": // Text literal
-	    case '"':
-		{
-		const uesl = unescapeJSString(text.slice(1, -1));
-		return { type: 'txt', loc, text: uesl, staticValue: uesl };
-		}
-	    case '/':
-		return false;		// Comments
-	    case '!':			// Mespar (message parameters)
-		if (text === '!}') return { type: '}', loc, return: true };
-		// Fall through
-	    case '%':			// Persto (persistent storage)
-	    case '#':			// Scratch (transient storage)
-	    case '{':			// Block
-	    case '}':
-	    case '(':			// Message call
-	    case ')':
-	    case '[':			// List
-	    case ']':
-	    case '=':			// Named value
-		return { type: text, loc };
-	    default:
-		if (/^\s/.test(text)) return false;
-		if (MSJSNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) };
-		if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) };
-		if (text === '@debug{') return { type: 'dbg', loc };
-		return { type: 'wrd', loc, text, staticValue: text };
+	switch (text) {			// Standalone, full-match cases
+	case undefined:
+	case '':
+	    return false;
+	case '@debug{':
+	    return { type: 'dbg', loc };
+	case '!}':
+	    return { type: '}', loc, return: true };
+	}
+
+	switch (text[0] + text[1]) {	// Two-char-prefix cases
+	case '//':
+	case '/*':
+	    return false;
+	}
+
+	switch (text[0]) {		// Single-char-prefix cases
+	case "'": // Text literal
+	case '"':
+	    {
+	    const uesl = unescapeJSString(text.slice(1, -1));
+	    return { type: 'txt', loc, text: uesl, staticValue: uesl };
 	    }
-	}).
-	filter(t => t), loc: { src, line, col } };
+	case '!':			// Message parameters
+	case '%':			// Persistent storage
+	case '#':			// Scratch (transient storage)
+	case '{':			// Block
+	case '}':
+	case '(':			// Message call
+	case ')':
+	case '[':			// List
+	case ']':
+	case '=':			// Named value
+	    return { type: text, loc };
+	}
+
+	if (/^\s/.test(text)) return false; // White space
+	if (MSJSNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) }; // Numbers
+	if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) }; // JS Embed
+	return { type: 'wrd', loc, text, staticValue: text }; // Word literal
+    }).
+    filter(t => t), loc: { src, line, col } };
 }
 
 // Generate parse tree from lexical tokens

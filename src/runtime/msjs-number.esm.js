@@ -66,12 +66,6 @@ function opMin (d) {
     return Math.min(js, ...mp.values());
 }
 
-function opMod (d) {
-    const mp = d.mp; let js = d.js;
-    for (const v of mp.values()) js %= toNum(v, NaN);
-    return js;
-}
-
 function opMul (d) {
     const mp = d.mp; let js = d.js;
     for (const v of mp.values()) js *= toNum(v, 1);
@@ -90,6 +84,12 @@ export function install () {
 	handlers: {
 	    '@init': opAtInit,
 	    '@jsv': d => d.js,
+	    '+', opAdd,
+	    '-', opSub,
+	    '*', opMul,
+	    '**': d => perform(d, (a, b) => a ** b, 1),
+	    '/', d => perform(d, (a, b) => a / b, 1),
+	    '/+', d => perform(d, (a, b) => a % b, NaN),
 	    abs: d => Math.abs(d.js),
 	    acos: d => Math.acos(d.js),
 	    acosh: d => Math.acosh(d.js),
@@ -135,7 +135,7 @@ export function install () {
 	    lt: d => d.js < toNum(d.mp.at(0)),
 	    max: opMax,
 	    min: opMin,
-	    mod: opMod,
+	    mod: d => perform(d, (a, b) => a % b, NaN),
 	    mul: opMul,
 	    ne: d => d.js !== toNum(d.mp.at(0)),
 	    neg: d => -d.js,

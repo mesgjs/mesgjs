@@ -6,7 +6,7 @@
   * Simply returns value as-is. Cf. the `(run)` message and the `@try` interface.  
   * This is essentially the Mesgjs equivalent of a parenthesized expression in other languages.  
   * Note: As the Mesgjs language and this operation currently stand, it's extremely unlikely that you'll ever need this or see it in practical use.  
-* `(and value...)`  
+* `(and value...)`
   * Synopsis: Returns the logical "and" of a list of zero or more values.  
   * RIC values: all  
   * Returns the first false value if any are JS-false.  
@@ -58,7 +58,7 @@
   * Synopsis: Returns the logical "not" of its parameter.  
   * RIC values: value  
   * Returns `@t` if the value is JS-false, or `@f` if the value is JS-true.  
-* `(or value...)`  
+* `(or value...)`
   * Synopsis: Returns the logical "or" of zero or more values.  
   * RIC values: all  
   * Returns the first true value if any are JS-true.  
