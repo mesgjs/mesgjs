@@ -87,6 +87,9 @@ export function install () {
 	    '+', opAdd,
 	    '&': d => perform(d, (a, b) => a & b, -1), // and
 	    '/', d => perform(d, (a, b) => a / b, 1), // div
+	    '=': d => d.js === toNum(d.mp.at(0)), // eq
+	    '>=': d => d.js >= toNum(d.mp.at(0)), // ge
+	    '>': d => d.js > toNum(d.mp.at(0)), // gt
 	    '<=': d => d.js <= toNum(d.mp.at(0)), // le
 	    '<<': d => d.js << toNum(d.mp.at(0)), // lshf
 	    '<': d => d.js < toNum(d.mp.at(0)), // lt

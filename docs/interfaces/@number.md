@@ -56,7 +56,8 @@ No operations use RIC (run-if-code) values unless otherwise specified.
 * `(e)`
   * Synopsis: Returns Euler's number, multiplied by the receiver.
   * `0(e) /* 0 */ 1(e) /* ~2.7182 */`
-* `(eq value)`
+* `(eq value)`\
+`(= value)`
   * Synopsis: Returns `@t` (true) if the receiver is equal to value, or `@f` (false) otherwise.
 * `(exp)`
   * Synopsis: Returns Euler's number, e, raised to the power of the receiver.
@@ -64,12 +65,14 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Returns Euler's number, e, raised to the power of the receiver \- 1\.
 * `(floor)`
   * Synopsis: Returns the smallest integer less than or equal to the receiver.
-* `(ge value)`
+* `(ge value)`\
+`(>= value)`
   * Synopsis: Returns `@t` (true) if the receiver is greater than or equal to value, or `@f` (false) otherwise.
 * `(golden)`
   * Synopsis: Returns the golden ratio multiplied by the receiver.
   * `1(golden) // (1+sqrt(5))/2; ~1.618`
-* `(gt value)`
+* `(gt value)`\
+`(> value)`
   * Synopsis: Returns `@t` (true) if the receiver is greater than value, or `@f` (false) otherwise.
 * `(hypot value... of=list)`
   * Synopsis: Returns the hypotenuse of `list` or the receiver and values.
