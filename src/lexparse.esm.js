@@ -10,7 +10,7 @@ import { unescapeJSString } from './vendor.esm.js';
 // Group 1:  ! # %
 // Group 1B: =
 // Group 2:  @ :
-// Group 3:  ` ~ ! # $ % ^ & * | . , < > ?
+// Group 3:  ` ~ ! # $ % ^ & * | . : , ; < > ?
 // Group 3B: + - = /
 //
 // Group 1:  Interrupts a regular word in progress
@@ -24,14 +24,14 @@ const MSJSPats = {
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
     // Number
-    num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+|n)?',
+    num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:n?|(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     dbg: '@debug\\{',		// Start debug-mode code
     spc: '\\s+',		// Space
     net: '!}|[[({})\\]]',	// Non-eager tokens
     // "Operator"-style words
-    opw: '(?![@:])(?:[`~!#$%^&*|.,<>?]|/(?![/*])|!(?![}])|[+-](?!\\d)|=(?![!#%]))+',
+    opw: '=(?=[!#%@:])|(?![@:])(?:[`~!@#$%^&*=|.:,;<>?]|/(?![/*])|!(?![}])|[+-](?!\\d))+',
     wrd: '(?:[^\\s(){}[\\]!#%=/]|/(?![/*]))+', // "Regular" words
 };
 
