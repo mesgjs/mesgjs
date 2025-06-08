@@ -21,14 +21,17 @@ No RIC (run-if-code) values are used in this interface.
   * Synopsis: Returns a non-negative integer that is the Unicode code point of the character starting at the given index (counting UTF-16 code units, not Unicode code points).
 * `(endsWith string)`
   * Synopsis: Returns `@t` (true) if the receiver ends with `string`, or `@f` (false) otherwise.
-* `(eq string)`
+* `(eq string)`\
+`(= string)`
   * Synopsis: Returns `@t` (true) if the strings are equal, or `@f` (false) otherwise.
 * `(escRE)`
   * Synopsis: Returns a new string consisting of the receiver string escaped to use as a literal value in a regular expression.
   * Based on JS RegExp.escape.
-* `(ge string)`
+* `(ge string)`\
+`(>= string)`
   * Synopsis: Returns `@t` (true) if the receiver is greater than or equal to `string`, or `@f` (false) otherwise.
-* `(gt string)`
+* `(gt string)`\
+`(> string)`
   * Synopsis: Returns `@t` (true) if the receiver is greater than `string`, or `@f` (false) otherwise.
 * `(includes string)`
   * Synopsis: Returns `@t` (true) if the receiver string includes (contains) `string`, or `@f` (false) otherwise.
@@ -50,13 +53,16 @@ No RIC (run-if-code) values are used in this interface.
   * Synopsis: Returns the last 0-based index of `string` within the receiver
   having an index less than or equal to the optional `optPosition`, or `-1`
   if not found.
-* `(le string)`
+* `(le string)`\
+`(<= string)`
   * Synopsis: Returns `@t` (true) if the receiver is less than or equal to `string`, or `@f` (false) otherwise.
 * `(length)`
   * Synopsis: Returns the length of the receiver string.
-* `(lt string)`
+* `(lt string)`\
+`(< string)`
   * Synopsis: Returns `@t` (true) if the receiver is less than `string`, or `@f` (false) otherwise.
-* `(ne string)`
+* `(ne string)`\
+`(!= string)`
   * Synopsis: Returns `@t` (true) if the strings are not equal, or `@f` (false) otherwise.
 * `(normalize)`
   * Synopsis: Returns the Unicode Normalization Form of the receiver.

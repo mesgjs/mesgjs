@@ -95,6 +95,13 @@ export function install (name) {
 	handlers: {
 	    '@init': opInit,
 	    '@jsv': d => d.js,
+	    '@': opAt,
+	    '==': opNset,
+	    '>': d => d.js.pop(),
+	    '|+': d => d.js.push(d.mp),
+	    '=', opSet,
+	    '<': d => d.js.shift(),
+	    '+|': d => d.js.unshift(d.mp),
 	    at: opAt,
 	    // autoPromote
 	    clear: d => d.js.clear(),

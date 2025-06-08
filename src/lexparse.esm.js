@@ -7,6 +7,18 @@
 import { unescapeJSString } from './vendor.esm.js';
 
 // Mesgjs lexical token regexps
+// Group 1:  ! # %
+// Group 1B: =
+// Group 2:  @ :
+// Group 3:  ` ~ ! # $ % ^ & * | . , < > ?
+// Group 3B: + - = /
+//
+// Group 1:  Interrupts a regular word in progress
+// Group 1B: Not followed by ! # or %
+// Group 2:  Cannot start an op-word
+// Group 3:  Word/op-word cross-over group
+// Group 3B: Context-sensitive cross-overs
+
 const MSJSPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
@@ -16,12 +28,14 @@ const MSJSPats = {
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     dbg: '@debug\\{',		// Start debug-mode code
-    stok: '!}|[!%#]\\??|[[(={})\\]]',	// Special tokens
     spc: '\\s+',		// Space
-    oth: '(?:[^\'"!%#/[(={})\\]\\s]|\\/(?![/*]))+',// Other
+    net: '!}|[[({})\\]]',	// Non-eager tokens
+    // "Operator"-style words
+    opw: '(?![@:])(?:[`~!#$%^&*|.,<>?]|/(?![/*])|!(?![}])|[+-](?!\\d)|=(?![!#%]))+',
+    wrd: '(?:[^\\s(){}[\\]!#%=/]|/(?![/*]))+', // "Regular" words
 };
 
-const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg stok spc oth'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
+const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg spc net opw wrd'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
 const MSJSNum = new RegExp('^' + MSJSPats.num + '$');
 
 // Simple lexical analyzer
@@ -61,6 +75,13 @@ export function lex (input, loc = {}) {
 	    return { type: 'dbg', loc };
 	case '!}':
 	    return { type: '}', loc, return: true };
+	case '{':			// Block
+	case '}':
+	case '(':			// Message call
+	case ')':
+	case '[':			// List
+	case ']':
+	    return { type: text, loc };
 	}
 
 	switch (text[0] + text[1]) {	// Two-char-prefix cases
@@ -70,31 +91,27 @@ export function lex (input, loc = {}) {
 	}
 
 	switch (text[0]) {		// Single-char-prefix cases
-	case "'": // Text literal
+	case "'":			// Quoted strings
 	case '"':
 	    {
 	    const uesl = unescapeJSString(text.slice(1, -1));
-	    return { type: 'txt', loc, text: uesl, staticValue: uesl };
+	    return { type: 'txt', loc, text: uesl };
 	    }
-	case '!':			// Message parameters
-	case '%':			// Persistent storage
-	case '#':			// Scratch (transient storage)
-	case '{':			// Block
-	case '}':
-	case '(':			// Message call
-	case ')':
-	case '[':			// List
-	case ']':
-	case '=':			// Named value
-	    return { type: text, loc };
 	}
 
 	if (/^\s/.test(text)) return false; // White space
-	if (MSJSNum.test(text)) return { type: 'num', loc, text, staticValue: parseFloat(text) }; // Numbers
+	if (MSJSNum.test(text)) return { type: 'num', loc, text, value: parseFloat(text) }; // Numbers
 	if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) }; // JS Embed
-	return { type: 'wrd', loc, text, staticValue: text }; // Word literal
+	// Some form of word
+	return { type: 'wrd', loc, text };
     }).
     filter(t => t), loc: { src, line, col } };
+}
+
+function showToken (t) {
+    if (!t) return 'end';
+    if (t.text) return '"' + t.text + '"';
+    return t.type;
 }
 
 // Generate parse tree from lexical tokens
@@ -150,7 +167,7 @@ export function parse (tokens) {
 	    const statement = parseStatement();
 	    if (statement) node.statements.push(statement);
 	    else {
-		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
+		error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -201,7 +218,7 @@ export function parse (tokens) {
 	    const item = parseNamedValue() || parseValue();
 	    if (item) items.push(item);
 	    else {
-		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
+		error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -243,7 +260,7 @@ export function parse (tokens) {
 	    const param = parseNamedValue() || parseValue();
 	    if (param) params.push(param);
 	    else {
-		error(`Syntax error: Unexpected ${cur.type} at ${tls()}`);
+		error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
 		++read;
 	    }
 	}
@@ -270,8 +287,8 @@ export function parse (tokens) {
 	// name=value
 	const hit = lookup('=');
 	if (hit) return hit;
-	const read0 = read, name = parseName();
-	if (!name || tokens[read]?.type !== '=') {
+	const read0 = read, name = parseName(), cur = tokens[read];
+	if (!name || cur?.type !== 'wrd' || cur.text != '=') {
 	    read = read0;
 	    return null;
 	}
@@ -294,23 +311,36 @@ export function parse (tokens) {
 
     function parseValue () {
 	// Chain, literal, or variable
-	return parseChain() || parseLiteral() || parseVar(true);
+	return parseChain() || parseVar(true) || parseLiteral();
     }
 
     function parseVar (reqName = false) {
-	// % / %name / # / #name / ! / !name
-	const ns = tokens[read], space = ns?.type?.[0], isOpt = ns?.type?.[1] === '?';
-	if ('!#%'.indexOf(space) < 0) return null;
+	// % / %name / %?name, etc
+	const read0 = read, hit = lookup('var');
+	if (hit) {
+	    if (hit.name || !reqName) return hit;
+	    read = read0;
+	    return null;
+	}
+	const ns = tokens[read], space = ns?.text;
+	if (ns?.type !== 'wrd') return null;
+	switch (space) {
+	case '%': case '%?':		// Object persistent properties
+	case '#': case '#?':		// Transient (scratch) storage
+	case '!': case '!?':		// Message parameters
+	case '%*': case '%*?':		// Global (@gss alias)
+	case '%/': case '%/?':		// Module (@mps alias)
+	    break;
+	default:
+	    return null;
+	}
 	const name = tokens[++read], nType = name?.type;
-	if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.staticValue))) {
+	if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.value))) {
 	    ++read;
-	    return {
-		type: 'var', loc: ns.loc, space, name, isOpt,
-		staticName: name.staticValue,
-	    };
+	    return save(read0, { type: 'var', loc: ns.loc, space, name });
 	}
 	if (reqName) --read;
-	return (reqName ? null : { type: 'var', loc: ns.loc, space });
+	return (reqName ? null : save(read0, { type: 'var', loc: ns.loc, space }));
     }
 
     // ----------
@@ -319,7 +349,8 @@ export function parse (tokens) {
 	const res = parseStatement();
 	if (res) output.push(res);
 	else {
-	    error(`Syntax error: Unexpected ${tokens[read]?.type} at ${tls()}`);
+	    const cur = tokens[read];
+	    error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
 	    ++read;
 	}
     }

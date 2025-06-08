@@ -200,17 +200,25 @@ export function transpileTree (tree, opts = {}) {
     }
 
     function generateVar (node) {
-	const opt = node.isOpt ? ',1' : '';
+	const opt = (node.space.slice(-1) === '?') ? ',1' : '';
 	let space;
 	switch (node.space) {
-	case '!': space = 'mp'; break;	// Mespar (message parameters)
-	case '%': space = 'd.p'; break;	// Persto (persistent storage)
-	case '#': space = 'd.t'; break;	// Scratch (transient storage)
+	// Message parameters
+	case '!': case '!?': space = 'mp'; break;
+	// Object persistent properties
+	case '%': case '%?': space = 'd.p'; break;
+	// Scratch (transient) storage
+	case '#': case '#?': space = 'd.t'; break;
+	// Global shared storage
+	case '%*': case '%*?': space = '$gss'; break;
+	// Module private/persistent storage
+	case '%/': case '%/?': space = 'm.p'; break;
 	default:
 	    error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 	}
-	if (node.name) outseg(`na(${space},'${escapeJSString(node.name.text)}'${opt})`, node, true);
-	else output(space);
+	if (!node.name) output(space)
+	else if (node.name.type === 'num') outseg(`na(${space},${node.name.value}${opt})`, node, true);
+	else outseg(`na(${space},'${escapeJSString(node.name.text)}'${opt})`, node, true);
     }
 
     function generateWord (node) {

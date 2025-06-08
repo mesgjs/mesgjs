@@ -85,11 +85,21 @@ export function install () {
 	    '@init': opAtInit,
 	    '@jsv': d => d.js,
 	    '+', opAdd,
-	    '-', opSub,
+	    '&': d => perform(d, (a, b) => a & b, -1), // and
+	    '/', d => perform(d, (a, b) => a / b, 1), // div
+	    '<=': d => d.js <= toNum(d.mp.at(0)), // le
+	    '<<': d => d.js << toNum(d.mp.at(0)), // lshf
+	    '<': d => d.js < toNum(d.mp.at(0)), // lt
+	    '/+', d => perform(d, (a, b) => a % b, NaN), // mod
 	    '*', opMul,
-	    '**': d => perform(d, (a, b) => a ** b, 1),
-	    '/', d => perform(d, (a, b) => a / b, 1),
-	    '/+', d => perform(d, (a, b) => a % b, NaN),
+	    '!=': d => d.js !== toNum(d.mp.at(0)), // ne
+	    '+-': d => -d.js, // neg
+	    '|': d => perform(d, (a, b) => a | b), // or
+	    '**': d => perform(d, (a, b) => a ** b, 1), // pow
+	    '>>': d => d.js >> toNum(d.mp.at(0)), // rshf
+	    '-', opSub,
+	    '^': d => perform(d, (a, b) => a ^ b), // xor
+	    '>>>': d => d.js >>> toNum(d.mp.at(0)), // zfrs
 	    abs: d => Math.abs(d.js),
 	    acos: d => Math.acos(d.js),
 	    acosh: d => Math.acosh(d.js),
@@ -161,6 +171,10 @@ export function install () {
 	},
 	cacheHints: {
 	    '@init': 'pin',
+	    '+': 'pin',
+	    '-': 'pin',
+	    add: 'pin',
+	    sub: 'pin',
 	},
     });
 }

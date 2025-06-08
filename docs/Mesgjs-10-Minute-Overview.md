@@ -11,20 +11,20 @@
   - `%` => object persistent properties
   - `#` => scratch (local/temporary) variables
   - `!` => message parameters
-  - `@mps` => module private/persistent storage
-  - `@gss` => global shared storage
+  - `%/` or `@mps` => module private/persistent storage
+  - `%*` or `@gss` => global shared storage
 
 ## Basic Syntax
 
 | Element           | Example                                                   | Meaning                                                                                                                                   |
 |-------------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| Word literal      | `hello`                                                   | Basic text, no quotes needed.                                                                                                             |
+| Word literal      | `hello`<br>`?` `!=` `<<`                                  | Basic text, no quotes needed.<br>Symbolic "operators" are a type of word literal.                                                         |
 | Quoted "strings"  | `'hello, world'`<br>`"hello, world"`                      | Text within matching plain single or double quotes.                                                                                       |
 | List literal      | `[x y z key=value]`                                       | List of positional (aka indexed) + named values.                                                                                          |
 | Message           | `object(message parameters...)`                             | Send message to object with parameters.                                                                                                   |
 | Message chain     | `object(message1)(message2)`                              | Send messages to successive results (i.e., send `message2` to the result returned by sending `message1` to `object`).                     |
 | Namespace-at      | `%x #x !x // error if not set`<br>`%?x #?x !?x // @u if not set` | `%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
-| Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | When `(run)`, evaluates the block. "Non-returning" blocks (`}`) return `@u` (undefined). "Returning" blocks (`!}`) return the last value. |
+| Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | When `(run)`, evaluates the block.<br>"Non-returning" blocks (`}`) return `@u` (undefined).<br>"Returning" blocks (`!}`) return the last value. |
 | Comments          | `// single-line`<br>`/* multi-line */`                    | Human-readable descriptions of code.                                                                                                      |
 
 Many messages allow some or all of their parameters to be code blocks. These are known as RIC (run-if-code) values. In such cases, code blocks are sent the `(run)` message, and the resulting value is used in place of the original block value.
@@ -33,12 +33,12 @@ RIC values are especially useful for circumstances where values may or may not b
 
 ## Some Additional Important Objects
 
-Beyond the namespace objects (`%`, `#`, `!`, `@gss`, and `@mps`) already mentioned:
+Beyond the namespace objects (`%`, `#`, `!`, `%*`/`@gss`, and `%/`/`@mps`) already mentioned:
 
 | Object              | Purpose                                                                                                                                                                                                             |
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `@c`                | The core system singleton object (provides access to interfaces and object instances, logic, tools, and more).                                                                                                      |
-| `@d`                | The current dispatch object, a "meta object" that can be messaged for context regarding the current message and handler dispatch. You can also message this object to terminate a handler early and return a value. |
+| `@d`                | The current dispatch object, a "meta object" that can be messaged for context regarding the current message and handler dispatch.<br>You can also message this object to terminate a handler early and return a value. |
 | `@t` `@f` `@n` `@u` | Singletons corresponding to JavaScript `true`, `false`, `null`, `undefined`                                                                                                                                         |
 
 ## Examples
@@ -138,29 +138,59 @@ Note that when a code block is executed as a message handler, it operates using 
 
 * `%x`, `#x`, and `!x` generate an error at runtime if "x" isn't set; `%?x`, `#?x`, and `!?x` use `else=@u` internally to return `@u` (undefined) if "x" isn't set.
 
-* To help avoid accidental data leaks, namespace objects may be used as a base for messages (as in `%(at ...)`), but they are not permitted to be passed directly as values (as in the list literal, `[%]`, which is a transpilation-time syntax error). Use the `(self)` message of the `@list` interface if you really want to pass an entire namespace (e.g., `%(self)`). For consistency, this even applies to `@gss`, despite the fact that it doesn't provide any additional security benefit.
+* To help avoid accidental data leaks, namespace objects may be used
+as a base for messages (as in `%(at ...)`), but they are simply word literals
+(text) when passed directly as values (as in the list literal, `[%]`).
+Use the `(self)` message of the `@list` interface if you really want to pass
+an entire namespace (e.g., `%(self)`). For consistency, this even applies to
+`@gss`, despite the fact that it doesn't provide any additional security
+benefit.
 
-* Note that "`!}`" is a single, indivisible, "lexical token", not two. It ends a code block, and is meant as a visual alert/reminder that the final value will be returned. It is unrelated to the `!` (message parameter) namespace. Further note that "`! }`" (as two separate tokens) is an error, as `!` is not permitted to appear by itself as a value (only as the base object for a message).
+* Note that "`!}`" is a single, indivisible, "lexical token", not two. It
+ends a code block, and is meant as a visual alert/reminder that the final
+value will be returned. It is unrelated to the `!` (message parameter)
+namespace. Further note that "`! }`" (as two separate tokens) is an error,
+as `!` is not permitted to appear by itself as a value (only as the base
+object for a message).
 
-* Namespaces help avoid naming collisions, but you do have to be mindful when reading or writing code so as not to mix them up (or potentially even use an `@` where you meant `%`, `#`, or `!`, or vice-versa).
+* Namespaces help avoid naming collisions, but you do have to be mindful
+when reading or writing code so as not to mix them up (or potentially
+even use an `@` where you meant `%`, `#`, or `!`, or vice-versa).
 
 # Notable Differences From Other Languages
 
 * There is *really* minimal syntax.
 
-* The "`=`" token is used to create key-value associations in list literals and message parameters, not for assignment.
+* The "`=`" token is used to create key-value associations in list
+literals and message parameters, not for assignment.
 
-* You never have to worry about operator precedence (which action happens first) or associativity (left-to-right vs right-to-left evaluation), even without adding extra parentheses.
+* You never have to worry about operator precedence (which action happens
+first) or associativity (left-to-right vs right-to-left evaluation),
+even without adding extra parentheses.
 
-* Mesgjs objects are opaque, even at the JavaScript level, except for what they choose to expose/share.
+* Mesgjs objects are opaque, even at the JavaScript level, except for
+what they choose to expose/share.
 
-* Object message behaviors essentially become a type of contract at the time an object is created - neither the object type nor its referenced interfaces are permitted to change after the object is created.
+* Object message behaviors essentially become a type of contract at the
+time an object is created - neither the object type nor its referenced
+interfaces are permitted to change after the object is created.
 
-* As message handlers are always part of an object's interface(s) and never attached directly to an object, there are never issues with name-collisions between handlers and persistent-state properties or other values.
+* As message handlers are always part of an object's interface(s)
+and never attached directly to an object, there are never issues with
+name-collisions between handlers and persistent-state properties or
+other values.
 
-* Inter-object messages are *attributed* (i.e., not anonymous). Attributed messages allow message receivers to know with extreme confidence which object sent the message, as well as its primary interface type. The only way for an object to spoof the identity of another object is for the spoofed object to explicitly expose object data via a JavaScript-level message handler.
+* Inter-object messages are *attributed* (i.e., not anonymous). Attributed
+messages allow message receivers to know with extreme confidence which
+object sent the message, as well as its primary interface type. The only
+way for an object to spoof the identity of another object is for the
+spoofed object to explicitly expose object data via a JavaScript-level
+message handler.
 
-* Although Mesgjs does not have public/protected/private-style access-control keywords, the secure, attributed-message capability allows message handlers to make well-informed decisions about individual messages and flexibly implement their own policies.
+* Although Mesgjs does not have public/protected/private-style
+access-control keywords, the secure, attributed-message capability allows
+message handlers to make well-informed decisions about individual messages
+and flexibly implement their own policies.
 
 # Static Data \- SLID Format
 

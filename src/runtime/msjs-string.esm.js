@@ -58,8 +58,14 @@ export function install () {
 	handlers: {
 	    '@init': d => setRO(d.octx, 'js', d.mp.at(0, '').toString()),
 	    '@jsv': d => d.js,
+	    '=': d => d.js === d.mp.at(0), // eq
+	    '>=': d => d.js >= d.mp.at(0), // ge
+	    '>': d => d.js > d.mp.at(0), // gt
 	    '+': opJoin,
 	    '-': opJoining,
+	    '<=': d => d.js <= d.mp.at(0), // le
+	    '<': d => d.js < d.mp.at(0), // lt
+	    '!=': d => d.js !== d.mp.at(0), // ne
 	    at: d => d.js.at(d.mp.at(0, 0)),
 	    charAt: d => d.js.charAt(d.mp.at(0, 0)),
 	    charCodeAt: d => d.js.charCodeAt(d.mp.at(0, 0)),

@@ -77,6 +77,7 @@ function opThrow (d) {
     throw ((err instanceof Error) ? err : new Error(err));
 }
 
+// Returns true if exactly one value is true
 function opXor (d) {
     const { mp } = d;
     let result = false;
@@ -100,6 +101,12 @@ export function install (name) {
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    _: d => d.mp.at(0),		// underscore ("basically parentheses")
+	    '&': opAnd,
+	    ':': opCase,
+	    '+': opGet,
+	    '?': opIf,
+	    '~': d => !runIfCode(d.mp.at(0)),	// not
+	    '|': opOr,
 	    and: opAnd,
 	    case: opCase,
 	    debug: d => debugConfig(d.mp),
@@ -126,6 +133,9 @@ export function install (name) {
 	    xor: opXor,
 	},
 	cacheHints: {
+	    ':': 'pin',
+	    '+': 'pin',
+	    '?': 'pin',
 	    case: 'pin',
 	    get: 'pin',
 	    if: 'pin',

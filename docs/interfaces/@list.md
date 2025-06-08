@@ -1,4 +1,4 @@
-# Mesgjs @list Interface
+# Mesgjs `@list` Interface
 
 This is the interface implemented by storage namespaces (`%`, `#`, `!`, `@gss`, `@mps`) and lists.
 
@@ -6,7 +6,8 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
 
 * `(@init list)`
   * Synopsis: Create a new list, optionally providing the JavaScript `NANOS` object list.  
-* `(at key... path=[key...] else=elseBlock)`
+* `(at key... path=[key...] else=elseBlock)`\
+`(@ key... path=[key...] else=elseBlock)`
   * Synopsis: Return the value at the end of the key path (positional or path), if the value is present.  
   * RIC values: elseBlock  
   * The path option, if present, takes precedence over any positional key path.  
@@ -72,8 +73,9 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
   * Synopsis: Sets the next index if the optional index is supplied, otherwise returns the current next index..  
   * In the setting mode, it returns the list object for chaining.  
   * Existing index items with an index greater than or equal to the new index will be removed from the list.  
-* `(nset key1=value1 ... keyN=valueN)`
-  * Synopsis: "Named" set. Equivalent to `(set key to=value)` repeated for each key/value pair.  
+* `(nset key1=value1 ... keyN=valueN)`\
+`(== key1=value1 ... keyN=valueN)`
+  * Synopsis: "Named" set/multiple set. Equivalent to `(set key to=value)` repeated for each key/value pair.  
   * Named set only works for top-level keys (there are no key paths).  
   * **IMPORTANT:** `key1=value1`, etc. *are NOT assignments* - they're key/value message parameters\! The actual assignments (to storage) are performed within the `(nset)` message handler, which does not execute until after all of the parameters are evaluated. Of particular consequence is that subsequent key-value pairs cannot depend on earlier key-value pairs within the same `(nset)`.\
     `#(nset a=1 b=#a(mul 2)) // Error! #a is not yet set when computing the value for key b`\
@@ -83,11 +85,13 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
 * `(pairs compact)`
   * Synopsis: Similar to `(entries)`, but flattened into a single list of key/value pairs.  
   * `[ key1 value1 key2 value2 ... keyN valueN ]`  
-* `(pop)`
+* `(pop)`\
+`(>)`
   * Synopsis: Removes and returns the value at index `(next) - 1`.
   * Returns `@u` if `(next)` is 0 or there is no value at that index.  
   * If `(next)` is not zero, it is reduced by one.  
-* `(push value...)`
+* `(push value...)`\
+`(|+ value...)`
   * Synopsis: Adds the value(s) onto the end of the list.  
   * Indexed items are added, preserving gaps, beginning at `(next)`.  
 * `(redact key...)`
@@ -107,28 +111,35 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
   * If object is `@u` (undefined), `@n` (null), or `@f` (false), any existing RIO is removed.  
 * `(self)`
   * Synopsis: Returns the underlying JS `NANOS` object.  
-  * To prevent accidental data leaks, you are not permitted to pass namespace objects directly as (list or message parameter) values. \[ % \# \! \], for example, results in a transpilation-time error. If you want to deliberately expose an entire namespace, such as to preserve broad namespace access when creating a (fn), use the (self) message. \[ %(self) \#(self) \!(self) \], for example, is permitted.  
-* `(set key... path=\[key...\] to=value insert=bool first=value next=value)`
+  * To prevent accidental data leaks, namespace (storage object) references
+  only have special meaning as message bases (e.g. as in `%(self)`) or with
+  specific keys (e.g. `%x`). Otherwise, they are just word literals, e.g.
+  `[ % ]` is equivalend to `[ '%' ]`.
+  * If you want to deliberately expose an entire namespace, such as to preserve broad namespace access when creating a `(fn)`, use the `(self)` message.\
+  `[ %(self) #(self) !(self) ]`
+* `(set key... path=[key...] to=value insert=bool first=value next=value)`\
+`(= key... path=[key...] to=value insert=bool first=value next=value)`
   * Synopsis: Sets a value in a list at the end of a key path.  
   * The to option is mutually exclusive of first and next.  
   * The path option, if present, takes precedence over any positional key path.  
-  * If to is supplied, the value is added using the final key. It is inserted if insert is supplied and true, or appended otherwise.  
+  * If `to` is supplied, the value is added using the final key. It is inserted if insert is supplied and true, or appended otherwise.  
     JS analogy: `list[key1][key2]...[keyN] = to;`
   * Inserts occur at the earliest point in the list that preserves ascending index order. (Named keys will always be inserted at the beginning of the list.)
   * Appends occur at the latest point in the list that preserves ascending index order. (Named keys will always be appended at the end of the list.)
-  * If first is supplied (and to is not), its value is inserted as a new index 0 value at the front of a list at the final key value.  
+  * If `first` is supplied (and `to` is not), its value is inserted as a new index 0 value at the front of a list at the final key value.  
     JS analogy: `list[key1][key2]...[keyN].unshift(first);`
-  * If next is supplied (and to is not), its value is appended at the end of a list at the final key value.  
+  * If `next` is supplied (and `to` is not), its value is appended at the end of a list at the final key value.  
     JS analogy: `list[key1][key2]...[keyN].push(next);`
-  * insert has no effect on first and next.  
+  * `insert` has no effect on first and next.  
   * Nested lists are created as necessary along the key path.  
     **IMPORTANT WARNING:**  
     **Beware of the potential to create deeply-nested lists and/or overwrite existing values\!**  
 * `(setter key)`
-  * Synopsis: Returns a (call)\-able "setter" function for key  
+  * Synopsis: Returns a `(call)`\-able "setter" function for key  
   * Equivalent to `{ %0(set %1 to=!0) }(fn` _`receiver key`_`)`
   * Use *setter*(call *value*) to set the original receiver's key to value.  
-* `(shift)`
+* `(shift)`\
+`(<)`
   * Synopsis: Removes and returns the value at index 0.  
   * Returns `@u` if `(next)` is 0 or there is no value at that index.  
   * If `(next)` is not zero, it is reduced by one and remaining indexes are renumbered (in their current key position) by one (index 1 becomes the new 0, 2 becomes the new 1, etc.).  
@@ -147,7 +158,8 @@ RIC (run-if-code) values are rarely used in this interface, so assume "none" unl
   * Redacted list: /\*???\*/  
   * Redacted named value: /\*?=?\*/  
   * Redacted index value: /\*?\*/  
-* `(unshift value...)`
+* `(unshift value...)`\
+`(+| value...)`
   * Synopsis: Inserts values, ***from last to first***, at the beginning of the list. Existing index items are renumbered to accommodate newly-inserted index items.  
   * (unshift value1 value2 value3) is equivalent to (unshift value3)(unshift value2)(unshift value1)
 * `(values)`

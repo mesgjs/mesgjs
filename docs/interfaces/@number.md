@@ -25,7 +25,8 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Adds the optional values to the receiver and returns the sum.
   * To calculate the sum of a list, use a 0-receiver and the list-op format instead:\
     **`0`**`([add params=list])`
-* `(and value...)`
+* `(and value...)`\
+`(& value...)`
   * Synopsis: Returns the bit-wise AND of the receiver and the specified values.
 * `(asin)`
   * Synopsis: Returns the inverse sine in radians.
@@ -87,7 +88,8 @@ No operations use RIC (run-if-code) values unless otherwise specified.
 * `(ival ge=value gt=value le=value lt=value)`
   * Synopsis: Returns `@t` (true) if the receiver is within the interval defined by the supplied optional constraints, or `@f` (false) otherwise.
   * `(ival ge=4 lt=10) // tests against interval [4, 10)`
-* `(le value)`
+* `(le value)`\
+`(<= value)`
   * Synopsis: Returns `@t` (true) if the receiver is less than or equal to value, or `@f` (false) otherwise.
 * `(ln)`
   * Synopsis: Returns the natural (base e) logarithm of the receiver.
@@ -110,9 +112,11 @@ No operations use RIC (run-if-code) values unless otherwise specified.
 * `(log2e)`
   * Synopsis: Returns the base-2 logarithm of Euler's number, e, multiplied by the receiver.
   * `1(log2e) // ~1.443`
-* `(lshf value)`
+* `(lshf value)`\
+`(<< value)`
   * Synopsis: Returns the receiver left-shifted by value.
-* `(lt value)`
+* `(lt value)`\
+`(< value)`
   * Synopsis: Returns `@t` (true) if the receiver is less than value, or `@f` (false) otherwise.
 * `(max value... of=list)`
   * Synopsis: Returns the maximum value from the of list (if provided), or the maximum of the receiver and any positional values otherwise.
@@ -125,16 +129,20 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Returns the progressive remainder of the receiver and the specified values.
   * Pneumonic: The additional amount remaining after division (`%` is a storage namespace).
   * `5.1(mod 2.3) // 0.5 (5.1 / 2.3 = 2 remainder 0.5)`
-* `(mul value...)`
+* `(mul value...)`\
+`(* value...)`
   * Synopsis: Returns the product of the receiver and the specified values.
   * To calculate the product of a list, use a 1-receiver and the list-op format instead:\
     **`1`**`([mul params=list])`
-* `(ne value)`
+* `(ne value)`\
+`(!= value)`
   * Synopsis: Returns `@t` (true) if the receiver is not equal to value, or `@f` (false) otherwise.
-* `(neg)`
+* `(neg)`\
+`(+-)`
   * Synopsis: Returns the negative of the receiver.
   * (If the receiver is negative, the result will be positive.)
-* `(or value...)`
+* `(or value...)`\
+`(| value...)`
   * Synopsis: Returns the bit-wise OR of the receiver and the specified values.
 * `(pi)`
   * Synopsis: Returns the value of pi, multiplied by the receiver.
@@ -146,7 +154,8 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Returns a (non-cryptographically-secure\!) random number on the interval `[0, receiver)` if receiver is positive or `(receiver, 0]` if receiver is negative.
 * `(round)`
   * Synopsis: Returns the receiver rounded to the nearest integer.
-* `(rshf value)`
+* `(rshf value)`\
+`(>> value)`
   * Synopsis: Returns the receiver right-shifted by value.
 * `(sign)`
   * Synopsis: Returns \-1, 0, or 1 depending on whether the receiver is negative, zero, or positive.
@@ -172,7 +181,9 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Returns the receiver's underlying number as a string.
 * `(valueOf)`
   * Synopsis: Returns the receiver's underlying JavaScript number (or bigint)
-* `(xor value...)`
+* `(xor value...)`\
+`(^ value...)`
   * Synopsis: Returns the bit-wise XOR of the receiver and the specified values.
-* `(zfrs value)`
+* `(zfrs value)`\
+`(>>> value)`
   * Synopsis: Returns the receiver zero-fill-right-shifted by value.
