@@ -35,7 +35,7 @@ Mesgjs supports four different forms of text strings:
 
 ## Operator-Style Words
 
-Operator-style words ("op-words" for short) may consist of one or more of
+Operator-style words ("op-words") may consist of one or more of
 the special characters from the *Allowed* group:
 
 | | |
@@ -56,7 +56,7 @@ In order for the key/value association operator `=` to work
 in a reasonable way in the absence of white-space, an op-word beginning
 with a lone `=` will not include:
 
-* Adjacent storage-operators (`!`, `#`, or `%`')\
+* Adjacent storage-operators (`!`, `#`, or `%`)\
 `#(nset x=!x)` means `#(nset x = ! x)`
 * Special-use markers for regular-style words (`@` or `:`)\
 `#(nset done=@f)` means `#(nset done = @f)`
@@ -68,7 +68,7 @@ Since regular-style words may begin with the special-use markers
 
 ## Regular Words
 
-Regular-style words (or simply "words", for short) are something of a
+Regular-style words ("words") are something of a
 "catch-all" for everything that is not specifically something else in
 Mesgjs.
 
@@ -81,7 +81,8 @@ other than one of the two special-use markers `@` or `:`. Specifically:
 | Allowed: | `` ` ~ @ $ ^ & * + - \| . : , ; < > ? /`` |
 | Prohibited: | `! # % = ( ) [ ] { } ' "` |
 
-Note that `! # % =` allowed in op-words are prohibited within regular words.
+Note that `! # % =` sometimes allowed in op-words are always prohibited
+within regular words.
 
 "Words" may contain both digits and alphabetic characters. They can start
 with digits (if the digits are followed by letters and don't qualify as actual
@@ -115,7 +116,7 @@ Counter-Examples:
 - `\\` \- backslash
 
 
-# Language-Level Special Operator Words
+# Language-Level Special Operator-Words
 
 The following are interpreted and implemented directly as part of the
 language, not through interface handlers.
@@ -134,7 +135,7 @@ pairs in list literals or the message-parameters portion of messages.
 Otherwise, it has no special meaning.
 * Storage op-words only have storage effects when used for value retrieval
 (i.e. when followed by a named or index/positional key) or as the base object
-for a message (otherwise they have no special meaning).
+for a message. Otherwise they have no special meaning.
 * The storage op-words with the trailing `?` just indicate that `@u`
 (undefined) should be returned for unset values instead of throwing an error.
 
@@ -142,7 +143,7 @@ for a message (otherwise they have no special meaning).
 
 * `@c @d :label`
   * Each of these three words is a regular-style word (`@` and `:` may
-  appear in an operator-style word, but cannot start one).
+  appear in an op-word, but cannot start one).
 * `thx-1138` is also a *regular*-style word (it contains a special
 character, but doesn't start with one and doesn't contain any
 *terminating* special characters).
