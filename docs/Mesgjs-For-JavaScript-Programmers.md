@@ -143,6 +143,29 @@ to figuring out what message to send to which object.
   unless you explicitly pass it_ (e.g. as accessors) via `(fn)` parameters
   as part of the function setup. See Closures And Bound State, below, for
   more information.
+- If you want call parameters to have more meaningful names within function
+  definitions, you can either just used named values for your parameters
+  or you can copy positional message parameters to scratch storage.
+
+  ```
+  // Example JavaScript function declaration and call
+  function linear (slope, x, intercept) { ... }
+  let y = linear(2, 0, 5);
+
+  // Versus Mesgjs:
+  %*(nset linear={ ... !}(fn)) // Function definition
+
+  // Calling using positional parameters:
+  %*linear(call #slope #x #intercept)
+  // Within %*linear, slope is !0, x is !1, and intercept is !2
+  // You can simulate named call parameters by copying into scratch:
+  #(nset slope=!0 x=!1 intercept=!2)
+  // Now you can use #slope, #x, and #intercept
+
+  // Or, simply call using named parameters instead:
+  %*linear(call slope=#slope x=#x intercept=#intercept)
+  // Within %*linear, slope is !slope, x is !x, and intercept is !intercept
+  ```
 
 # Return Values
 
