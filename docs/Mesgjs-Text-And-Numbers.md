@@ -85,8 +85,9 @@ Note that `! # % =` sometimes allowed in op-words are always prohibited
 within regular words.
 
 "Words" may contain both digits and alphabetic characters. They can start
-with digits (if the digits are followed by letters and don't qualify as actual
-numbers). They can contain `+` or `-`, but not start with either.
+with digits if the digits are followed by (non-number-related) letters and
+therefore don't qualify as numbers. They can contain `+` or `-`, but not
+start with either.
 
 Like op-words, regular words terminate at the start of a comment
 (`//` or `/*`). Other than that, `/` is allowed as a non-initial character.
@@ -94,7 +95,7 @@ Like op-words, regular words terminate at the start of a comment
 Examples:
 
 ```
-THX-1138 404NOTFOUND and/or
+THX-1138 42nd 404NOTFOUND and/or
 ```
 
 Counter-Examples:
@@ -119,7 +120,7 @@ Counter-Examples:
 # Language-Level Special Operator-Words
 
 The following are interpreted and implemented directly as part of the
-language, not through interface handlers.
+language (i.e. not through interface handlers).
 
 * `=` - key/value association (**NOT** assignment!)
 * `%` and `%?` - object persistent property storage
