@@ -99,7 +99,7 @@ export function install (name) {
 	    '==': opNset,
 	    '>': d => d.js.pop(),
 	    '|+': d => d.js.push(d.mp),
-	    '=', opSet,
+	    '=': opSet,
 	    '<': d => d.js.shift(),
 	    '+|': d => d.js.unshift(d.mp),
 	    at: opAt,

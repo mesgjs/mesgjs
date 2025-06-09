@@ -84,23 +84,23 @@ export function install () {
 	handlers: {
 	    '@init': opAtInit,
 	    '@jsv': d => d.js,
-	    '+', opAdd,
+	    '+': opAdd,
 	    '&': d => perform(d, (a, b) => a & b, -1), // and
-	    '/', d => perform(d, (a, b) => a / b, 1), // div
+	    '/': d => perform(d, (a, b) => a / b, 1), // div
 	    '=': d => d.js === toNum(d.mp.at(0)), // eq
 	    '>=': d => d.js >= toNum(d.mp.at(0)), // ge
 	    '>': d => d.js > toNum(d.mp.at(0)), // gt
 	    '<=': d => d.js <= toNum(d.mp.at(0)), // le
 	    '<<': d => d.js << toNum(d.mp.at(0)), // lshf
 	    '<': d => d.js < toNum(d.mp.at(0)), // lt
-	    '/+', d => perform(d, (a, b) => a % b, NaN), // mod
-	    '*', opMul,
+	    '/+': d => perform(d, (a, b) => a % b, NaN), // mod
+	    '*': opMul,
 	    '!=': d => d.js !== toNum(d.mp.at(0)), // ne
 	    '+-': d => -d.js, // neg
 	    '|': d => perform(d, (a, b) => a | b), // or
 	    '**': d => perform(d, (a, b) => a ** b, 1), // pow
 	    '>>': d => d.js >> toNum(d.mp.at(0)), // rshf
-	    '-', opSub,
+	    '-': opSub,
 	    '^': d => perform(d, (a, b) => a ^ b), // xor
 	    '>>>': d => d.js >>> toNum(d.mp.at(0)), // zfrs
 	    abs: d => Math.abs(d.js),

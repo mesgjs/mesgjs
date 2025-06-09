@@ -105,6 +105,13 @@ No RIC (run-if-code) values are used in this interface.
   * Negative indexes are treated as `0` rather than relative to the end of
   the string.
   * This behavior is straight from the JavaScript `.substring()` implementation.
+* `(toBigInt)`
+  * Synopsis: Returns the receiver string interpreted as a JavaScript BigInt.
+* `(toFloat)`
+  * Synopsis: Returns the receiver string interpreted as a floating-point number.
+* `(toInt base)`
+  * Synopsis: Returns the receiver string interpreted as an integer in
+  optional base *base* (default: 10).
 * `(toLower)`
   * Synopsis: Returns an all-lower-case version of the string.
 * `(toString)`
