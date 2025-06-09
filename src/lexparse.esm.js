@@ -24,15 +24,15 @@ const MSJSPats = {
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
     // Number
-    num: '[+-]?(?:0[bBoOxX])?[0-9]+(?:n?|(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)?(?![0-9a-zA-Z])',
+    num: '[+-]?(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|[0-9]+)(?:n?|(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     dbg: '@debug\\{',		// Start debug-mode code
     spc: '\\s+',		// Space
     net: '!}|[[({})\\]]',	// Non-eager tokens
     // "Operator"-style words
-    opw: '=(?=[!#%@:])|(?![@:])(?:[`~!@#$%^&*=|.:,;<>?]|/(?![/*])|!(?![}])|[+-](?!\\d))+',
-    wrd: '(?:[^\\s(){}[\\]!#%=/]|/(?![/*]))+', // "Regular" words
+    opw: '=(?=[!#%@:]|[+-]\\d)|(?![@:])(?:[`~@#$%^&*=|.:,;<>?]|/(?![/*])|!(?![}])|[+-](?!\\d))+',
+    wrd: '(?:[^\\s(){}[\\]!#%=\'"/]|/(?![/*]))+', // "Regular" words
 };
 
 const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg spc net opw wrd'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
@@ -82,6 +82,9 @@ export function lex (input, loc = {}) {
 	case '[':			// List
 	case ']':
 	    return { type: text, loc };
+	case "'":			// Unterminated quote :-(
+	case '"':
+	    return { type: 'utq', loc, text };
 	}
 
 	switch (text[0] + text[1]) {	// Two-char-prefix cases
@@ -350,6 +353,10 @@ export function parse (tokens) {
 	if (res) output.push(res);
 	else {
 	    const cur = tokens[read];
+	    if (cur?.type === 'utq') {
+		error(`Unterminated ${cur.text} at ${tls()}`);
+		break;
+	    }
 	    error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
 	    ++read;
 	}
