@@ -1,5 +1,5 @@
-import { lex, parse } from 'syscl/lexparse.esm.js';
-import { transpileTree } from 'syscl/transpile.esm.js';
+import { lex, parse } from 'mesgjs/lexparse.esm.js';
+import { transpileTree } from 'mesgjs/transpile.esm.js';
 
 export let passed = 0, failed = 0;
 
@@ -60,9 +60,9 @@ export async function testAsync (label, fn) {
 export async function testModule (label, source, expectFn) {
     return testAsync(label, async () => {
 	const { tree, errors: parseErrs } = parse(lex(source).tokens);
-	if (parseErrs.length) throw new Error('SysCL parsing failed');
+	if (parseErrs.length) throw new Error('Mesgjs parsing failed');
 	const { code, errors: transpErrs } = transpileTree(tree, { debugBlocks: true, enableJS: true });
-	if (transpErrs.length) throw new Error('SysCL transpilation failed');
+	if (transpErrs.length) throw new Error('Mesgjs transpilation failed');
 	const mod = await loadModuleCode(code);
 	await expectFn(mod);
     });

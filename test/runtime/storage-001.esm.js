@@ -1,6 +1,6 @@
 // Storage/namespace testing
-
-import { loadModuleCode, test, testAsync, testReturns, testSummary, testTranspile } from 'syscl/test.esm.js';
+import 'mesgjs/runtime/mesgjs.esm.js';
+import { loadModuleCode, testAsync, testReturns, testSummary, testTranspile } from 'mesgjs/test/test.esm.js';
 
 await (async () => {
     let txp;

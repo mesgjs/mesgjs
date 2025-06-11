@@ -4,6 +4,7 @@
 	"escape-js/escape.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.0.3/src/escape.esm.js",
 	"nanos/nanos.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.6/src/nanos.esm.js",
 	"reactive/reactive.esm.js": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.2/src/reactive.esm.js",
+        "mesgjs/test/": "./test/",
 	"mesgjs/": "./src/"
     },
     "tasks": {

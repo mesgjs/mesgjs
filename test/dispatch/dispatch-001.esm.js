@@ -1,5 +1,6 @@
-import { getInstance, getInterface } from 'syscl/runtime.esm.js';
-import { test, testReturns, testSummary } from 'syscl/test.esm.js';
+import 'mesgjs/runtime/mesgjs.esm.js';
+import { getInstance, getInterface } from 'mesgjs/runtime/runtime.esm.js';
+import { test, testReturns, testSummary } from 'mesgjs/test/test.esm.js';
 
 const msgd = (d, op, mp) => d.sm(d, op, mp);
 

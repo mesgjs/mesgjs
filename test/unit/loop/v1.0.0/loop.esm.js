@@ -1,4 +1,5 @@
-import { assertEqual, testModule, testSummary } from 'syscl/test.esm.js';
+import 'mesgjs/runtime/mesgjs.esm.js';
+import { assertEqual, testModule, testSummary } from 'mesgjs/test/test.esm.js';
 
 export const version = '1.0.0<2.0.0 :loop';
 

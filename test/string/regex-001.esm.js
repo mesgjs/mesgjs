@@ -1,5 +1,6 @@
-import { testReturns, testSummary } from 'syscl/test.esm.js';
-import { getInstance, jsToSCL } from 'syscl/runtime.esm.js';
+import 'mesgjs/runtime/mesgjs.esm.js';
+import { testReturns, testSummary } from 'mesgjs/test/test.esm.js';
+import { getInstance, jsToSCL } from 'mesgjs/runtime/runtime.esm.js';
 
 console.log('[****] @regex');
 

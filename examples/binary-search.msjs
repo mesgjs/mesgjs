@@ -1,14 +1,18 @@
-%(nset bsearch={
-    #(nset start=0 end=!0(size)(sub 1))
-    @c(get @loop)(while pre={ #start(le #end) !} {
-	#(nset cur=#start(add #end)(div 2)(floor))
-	@c(if
-	    { !0(at #cur)(eq !1) !} { @d(return @t) }
-	    { !0(at #cur)(lt !1) !} { #(nset start=#cur(add 1)) }
-	    else={ #(nset end=#cur(sub 1)) }
-	)
+// Create global function %*bsearch
+%*(nset bsearch={
+    #(nset list=!0 goal=!1) // name positional params in scratch
+    #(nset start=0 end=#list(size)(sub 1)) // search range
+    @c(get @loop)(while pre={ #start(le #end) !} { // while range is open
+        #(nset mid=#start(add #end)(div 2)(floor)) // find the mid-point
+        #(nset val=#list(at #mid)) // get the value at the mid-point
+        @c(if
+            { #val(eq #goal) !} { @d(return @t) } // found
+            { #val(lt #goal) !} { #(nset start=#cur(add 1)) }
+            else={ #(nset end=#cur(sub 1)) }
+        )
     })
-    @f
+    @f // not found
 !}(fn))
-// @c(log %bsearch(call [1 5 6 8 11 15 21] 5))
-// @c(log %bsearch(call [alpha charlie echo golf india kilo] juliet))
+// Example calls, logging output to the console
+// @c(log %*bsearch(call [1 5 6 8 11 15 21] 5))
+// @c(log %*bsearch(call [alpha charlie echo golf india kilo] juliet))

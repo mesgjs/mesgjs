@@ -1,5 +1,6 @@
-import { getInstance } from 'syscl/runtime.esm.js';
-import { loadModuleCode, test, testAsync, testReturns, testSummary, testTranspile } from 'syscl/test.esm.js';
+import 'mesgjs/runtime/mesgjs.esm.js';
+import { getInstance } from 'mesgjs/runtime/runtime.esm.js';
+import { loadModuleCode, test, testAsync, testReturns, testSummary, testTranspile } from 'mesgjs/test/test.esm.js';
 
 console.log('[****] @try');
 
