@@ -1,0 +1,19 @@
+// Binary search - op-word-style syntax
+// Create global function %*bsearch
+%*(== bsearch={
+    #(== list=!0 goal=!1) // name positional params in scratch
+    #(== start=0 end=#list(size)(- 1)) // search range
+    @c(+ @loop)(while pre={ #start(<= #end) !} { // while range is open
+        #(== mid=#start(+ #end)(/ 2)(floor)) // find the mid-point
+        #(== val=#list(@ #mid)) // get the value at the mid-point
+        @c(if
+            { #val(= #goal) !} { @d(return @t) } // found
+            { #val(< #goal) !} { #(== start=#cur(+ 1)) }
+            else={ #(== end=#cur(- 1)) }
+        )
+    })
+    @f // not found
+!}(fn))
+// Example calls, logging output to the console
+// @c(log %*bsearch(call [1 5 6 8 11 15 21] 5))
+// @c(log %*bsearch(call [alpha charlie echo golf india kilo] juliet))
