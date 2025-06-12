@@ -23,8 +23,9 @@ const MSJSPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
-    // Number
-    num: '[+-]?(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|[0-9]+)(?:n?|(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)?(?![0-9a-zA-Z])',
+    // Numbers
+    flt: '[+-]?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?(?![0-9a-zA-Z])',
+    int: '[+-]?(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\\d+)n?(?![0-9a-zA-Z])',
     sqs: "'(?:\\\\'|[^'])*'",	// Single-quoted string
     dqs: '"(?:\\\\"|[^"])*"',	// Double-quoted string
     dbg: '@debug\\{',		// Start debug-mode code
@@ -35,8 +36,8 @@ const MSJSPats = {
     wrd: '(?:[^\\s(){}[\\]!#%=\'"/]|/(?![/*]))+', // "Regular" words
 };
 
-const MSJSRE = new RegExp('(' + 'ejs mlc slc num sqs dqs dbg spc net opw wrd'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
-const MSJSNum = new RegExp('^' + MSJSPats.num + '$');
+const MSJSRE = new RegExp('(' + 'ejs mlc slc flt int sqs dqs dbg spc net opw wrd'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
+const MSJSNum = new RegExp(`^(${MSJSPats.flt}|${MSJSPats.int})$`);
 
 // Simple lexical analyzer
 export function lex (input, loc = {}) {
