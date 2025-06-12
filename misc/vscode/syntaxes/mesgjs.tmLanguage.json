@@ -1,0 +1,153 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Mesgjs",
+  "scopeName": "source.mesgjs",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#storage"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#specials"
+    },
+    {
+      "include": "#blocks"
+    },
+    {
+      "include": "#messages"
+    },
+    {
+      "include": "#lists"
+    },
+    {
+      "include": "#op-words"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.mesgjs",
+          "match": "//.*"
+        },
+        {
+          "name": "comment.block.mesgjs",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.mesgjs",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.mesgjs",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.mesgjs",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.mesgjs",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "storage": {
+      "patterns": [
+        {
+          "name": "keyword.operator.storage.mesgjs",
+          "match": "(!|#|%|%\\*|%/)\\??"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.mesgjs",
+          "match": "\\b-?(0x[0-9a-fA-F]+|(\\d*\\.)?\\d+([eE][+-]?\\d+)?)\\b"
+        }
+      ]
+    },
+    "specials": {
+      "patterns": [
+        {
+          "name": "constant.language.mesgjs",
+          "match": "(@[cdefntu]|@gss|@mid|@mps|@nan|@[pn]eginf)"
+        },
+        {
+          "name": "support.function.mesgjs",
+          "match": "(@debug|@js)\\{"
+        }
+      ]
+    },
+    "blocks": {
+      "patterns": [
+        {
+          "name": "meta.block.mesgjs",
+          "begin": "\\{",
+          "end": "\\!\\}|\\}",
+          "patterns": [
+            {
+              "include": "$self"
+            }
+          ]
+        }
+      ]
+    },
+    "messages": {
+      "patterns": [
+        {
+          "name": "meta.message.mesgjs",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "$self"
+            }
+          ]
+        }
+      ]
+    },
+    "lists": {
+      "patterns": [
+        {
+          "name": "meta.list.mesgjs",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            {
+              "include": "$self"
+            }
+          ]
+        }
+      ]
+    },
+    "op-words": {
+      "patterns": [
+        {
+          "name": "keyword.operator.mesgjs",
+          "match": "=(?=[!#%@:]|[+-]\\\\d)|(?![@:])(?:[`~@#$%^&*=|.:,;<>?]|/(?![/*])|!(?![}])|[+-](?!\\\\d))+"
+        }
+      ]
+    }
+  }
+}

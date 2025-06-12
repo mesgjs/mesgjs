@@ -1,0 +1,43 @@
+{
+  "name": "mesgjs-vscode",
+  "displayName": "Mesgjs Language Support",
+  "description": "Basic syntax highlighting for the Mesgjs language.",
+  "version": "0.0.5",
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mesgjs",
+        "aliases": [
+          "Mesgjs",
+          "mesgjs"
+        ],
+        "extensions": [
+          ".msjs"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mesgjs",
+        "scopeName": "source.mesgjs",
+        "path": "./syntaxes/mesgjs.tmLanguage.json"
+      }
+    ],
+    "tokenColors": [
+      {
+        "name": "Mesgjs Operator",
+        "scope": "keyword.operator.mesgjs",
+        "settings": {
+          "foreground": "#F92672"
+        }
+      }
+    ]
+  }
+}
