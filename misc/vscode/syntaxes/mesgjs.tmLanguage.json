@@ -4,34 +4,37 @@
     "scopeName": "source.mesgjs",
     "patterns": [
         {
-        "include": "#comments"
+            "include": "#comments"
         },
         {
             "include": "#jsembed"
         },
         {
-        "include": "#strings"
+            "include": "#strings"
         },
         {
-        "include": "#numbers"
+            "include": "#numbers"
         },
         {
-        "include": "#specials"
+            "include": "#specials"
         },
         {
-        "include": "#storage"
+            "include": "#storage"
         },
         {
             "include": "#operators"
         },
         {
-        "include": "#blocks"
+            "include": "#blocks"
         },
         {
-        "include": "#messages"
+            "include": "#messages"
         },
         {
-        "include": "#lists"
+            "include": "#lists"
+        },
+        {
+            "include": "#words"
         }
     ],
     "repository": {
@@ -178,6 +181,14 @@
                             "match": "\\\\."
                         }
                     ]
+                }
+            ]
+        },
+        "words": {
+            "patterns": [
+                {
+                    "name": "other.words.mesgjs",
+                    "match": "([^\\s(){}\\[\\]!#%='\"/]|/(?![/*]))+"
                 }
             ]
         }

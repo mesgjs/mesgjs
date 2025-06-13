@@ -1,13 +1,14 @@
 // Single-line comment
 /* Multi-line comment */
-word 'single-quoted string' "double-quoted string"
-0b10 0o71 0xf0 +3 -3 10n 
-3.1415 1.5e5
+'single-quoted string' "double-quoted string"
+words thx-1138 and/or/not bread+butter 42nd
+0 +1 -2 3.1415 9.2e6
+0b101 0o200106157 0xFEE1600D 610841124710n 
 [ a list key=value cool=@t ]
-{ non-returning block }
-{ returning block !}
-@debug{ @c(log debugging mode only) }
-@js{ console.log('inline JavaScript', true, new Date()); @}
-@c(log messages @d(mop) 3(lt 5) 3(< 5))
+{ a non-returning block }
+{ a returning block !}
+@c(log a message @d(mop) 3(lt 5) 3(< 5))
 #(== x=5 y=10) #(== a=#x b=!?y)
 @t @f @n @u // true, false, null, undefined
+@debug{ @c(log debugging mode only) }
+@js{ console.log('inline JavaScript', true, new Date()); @}
