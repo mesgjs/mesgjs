@@ -1,11 +1,13 @@
 // Single-line comment
 /* Multi-line comment */
 word 'single-quoted string' "double-quoted string"
-0b10 0o71 0xf0 +3 -3 10n
+0b10 0o71 0xf0 +3 -3 10n 
 3.1415 1.5e5
 [ a list key=value ]
 { non-returning block }
 { returning block !}
+@debug{ @c(log debugging mode only) }
+@js{ console.log('inline JavaScript'); @}
 @c(log messages @d(mop) 3(lt 5) 3(< 5))
 #(== x=5 y=10) #(== a=#x b=!?y)
 @t @f @n @u // true, false, null, undefined

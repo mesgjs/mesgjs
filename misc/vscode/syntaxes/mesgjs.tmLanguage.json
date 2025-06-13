@@ -28,7 +28,7 @@
       "include": "#lists"
     },
     {
-      "include": "#op-words"
+      "xinclude": "#op-words"
     }
   ],
   "repository": {
@@ -71,19 +71,25 @@
         }
       ]
     },
-    "storage": {
-      "patterns": [
-        {
-          "name": "keyword.operator.storage.mesgjs",
-          "match": "(!|#|%|%\\*|%/)\\??"
-        }
-      ]
-    },
     "numbers": {
       "patterns": [
         {
-          "name": "constant.numeric.mesgjs",
-          "match": "\\b-?(0x[0-9a-fA-F]+|(\\d*\\.)?\\d+([eE][+-]?\\d+)?)\\b"
+          "name": "constant.numeric.float.mesgjs",
+          "match": "[+-]?\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"
+        },
+        {
+            "name": "constant.numeric.int.mesgjs",
+            "match": "[+-]?(0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|\\d+)n?\\b"
+        }
+      ],
+      "xpatterns": [
+      ]
+    },
+    "storage": {
+      "patterns": [
+        {
+          "name": "storage.type.mesgjs",
+          "match": "(\\!|#|%[*/]?)\\??"
         }
       ]
     },
@@ -91,11 +97,18 @@
       "patterns": [
         {
           "name": "constant.language.mesgjs",
-          "match": "(@[cdefntu]|@gss|@mid|@mps|@nan|@[pn]eginf)"
+          "match": "(@[cdefntu]|@gss|@mid|@mps|@nan|@posinf|@neginf)\\b"
         },
         {
           "name": "support.function.mesgjs",
-          "match": "(@debug|@js)\\{"
+          "xmatch": "(@debug|@js)\\{"
+        },
+        {
+            "name": "invalid.jk.block.returning.mesgjs",
+            "match": "!(?=})",
+            "settings": {
+              "foreground": "#FF0000"
+            }
         }
       ]
     },
@@ -104,12 +117,17 @@
         {
           "name": "meta.block.mesgjs",
           "begin": "\\{",
-          "end": "\\!\\}|\\}",
+          "end": "\\}",
           "patterns": [
             {
               "include": "$self"
             }
           ]
+        },
+        {
+            "name": "meta.block.jsembed.mesgjs",
+            "begin": "@js\\{",
+            "end": "@\\}"
         }
       ]
     },
