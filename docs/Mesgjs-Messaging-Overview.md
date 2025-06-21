@@ -14,13 +14,15 @@ explicitly choose to share.
 
 Here is a simplified JavaScript model of typical Mesgjs object creation:
 
-function getInstance (type) {\
-const state \= {}; // object-specific state will stem from here\
-const receiver \= function mesgReceiver (mesgOp, mesgParams) {\
-return processMessage({ receiver, type, state, mesgOp, mesgParams });\
-};\
-return receiver;\
+```javascript
+function getInstance (type) {
+    const state = {}; // object-specific state will stem from here
+    const receiver = function mesgReceiver (mesgOp, mesgParams) {
+        return processMessage({ receiver, type, state, mesgOp, mesgParams });
+    };
+    return receiver;
 }
+```
 
 **Anonymous messages** (for which the message sender and sender type are
 unknown/unverifiable) may be sent, either from another Mesgjs object or directly
@@ -43,8 +45,11 @@ actually process the message.
 
 The handler may return a value (or message the dispatch object with a value) to
 be returned via the message-receiver function to the message sender. In the
-absence of a specific value, the JavaScript value undefined (Mesgjs @u) will be
+absence of a specific value, the JavaScript value `undefined` (Mesgjs `@u`) will be
 returned.
+
+Message sending is *synchronous* – the sending code does not resume execution until
+a reply (even if it's only `@u`/`undefined` or a `Promise`) is received from the receiver.
 
 # Message-Receiver Details
 
@@ -52,17 +57,17 @@ Message-receiver functions accept zero, one, or two function-call parameters.
 The first function-call parameter is a message operation. The second
 function-call parameter is a message parameter object:
 
-mesgReceiver(mesgOp \= undefined, mesgParameters \= undefined)
+`mesgReceiver(mesgOp = undefined, mesgParameters = undefined)`
 
-The message parameter object is typically a Mesgjs list (NANOS ("named and
+The message parameter object is typically a Mesgjs list (`NANOS` ("named and
 numbered ordered storage") JS class instance). Alternatively, the message
-parameters value can also be a JS array or plain object, or even just a scalar
+parameters value can also be a JS `Array` or plain `Object`, or even just a scalar
 value, when called from JS.
 
 Typically these functions invoke a generic message-processing function which is
 responsible for the remainder of the messaging pipeline.
 
-A few object types (such as @code/@function and @dispatch) have custom receiver
+A few object types (such as `@code`/`@function` and `@dispatch`) have custom receiver
 functions with internal, directly-dispatched message handlers in order to
 implement the rest of the messaging paradigm without infinite recursion or
 space-time-melting paradoxes.
@@ -78,8 +83,8 @@ allowing handlers to easily be implemented in either language.
 
 Mesgjs handlers can message the dispatch object for message details. When
 invoking a handler, the dispatch object will also generate and return Mesgjs
-lists (JS NANOS) for persistent object property and transient (scratch) storage
-(% and \#, respectively) upon first access.
+lists (JS `NANOS`) for persistent object property and transient (scratch) storage
+(`%` and `#`, respectively) upon first access.
 
 JavaScript handlers can message the dispatch object too, but for convenience,
 the same information is available as traditional JavaScript properties of the
@@ -113,9 +118,9 @@ interfaces).
 Redispatches get their own dispatch objects, and return their values to the
 parent dispatch that launched them, rather than the original message sender.
 
-New dispatch objects also get a new Mesgjs list (NANOS) for scratch storage (\#)
+New dispatch objects also get a new Mesgjs list (`NANOS`) for scratch storage (`#`)
 upon first access. Of course, once allocated, a list/NANOS for Mesgjs persistent
-object storage (%) is always reused (thus manifesting its persistence).
+object storage (`%`) is always reused (thus manifesting its persistence).
 
 ## Attributed Send-Message Function
 
@@ -129,7 +134,7 @@ receiver identity certainty to include a private send-message function _specific
 to that object_ (also with core runtime scope) that only the message handlers
 can access (as long as they don't leak it).
 
-The send-message function takes _three_ parameters: a recipient object (receiver
+The send-message function takes *three* parameters: a recipient object (receiver
 function), a message operation, and message parameters.
 
 It stores these, along with the known sender and sender type, within a "message
@@ -137,7 +142,7 @@ baton" inside the runtime core (inaccessible to anything outside the runtime
 core).
 
 The send-message function then immediately calls the recipient receiver function
-_with **no** parameters_.
+*with **no** parameters*.
 
 The messaging pipeline, seeing that the receiver was invoked without the
 mandatory (for message dispatch, optional as a receiver call parameter) message

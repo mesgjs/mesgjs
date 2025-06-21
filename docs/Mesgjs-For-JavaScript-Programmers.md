@@ -435,3 +435,90 @@ Module loading works in one of two modes:
 
 - If module metadata has _not_ been supplied, the `loadModule` runtime
   function will load any module with an accessible URL or file path.
+
+# Bridging The Gap: Practical Patterns
+
+While understanding the conceptual differences is important, the real power comes from making the two languages work together. Here are the key patterns for bridging Mesgjs and JavaScript.
+
+## Converting JavaScript Values to Mesgjs Objects
+
+Sometimes, you have a native JavaScript value (like a number, a string, or an array) that you need to send a message to. The global function `$toMSJS()` (exposed on `globalThis`) is the tool for this.
+
+The runtime uses this internally, but you may need it if you are writing complex JavaScript-side handlers.
+
+```javascript
+import { sendAnonMessage } from './runtime.esm.js';
+
+const jsArray = [1, 2, 3];
+
+// This would fail, because a native JS array has no message receiver
+// jsArray('push', 4);
+
+// Convert the JS array to a Mesgjs @jsArray object
+const mesgjsArray = $toMSJS(jsArray);
+
+// Now you can send it a message
+mesgjsArray('push', 4); // This works!
+
+// The underlying JS array is modified
+console.log(jsArray); // [1, 2, 3, 4]
+```
+
+The `$toMSJS` function is smart enough to convert native types to their corresponding Mesgjs foundational interfaces (`@string`, `@number`, `@jsArray`, `@map`, `@set`, etc.).
+
+## Wrapping Native JavaScript Objects
+
+A common use case is to make a native JavaScript object available to Mesgjs. The `@jsArray` interface provides a perfect template for this. It wraps a native JavaScript `Array` and exposes its methods as Mesgjs message handlers.
+
+The pattern is as follows:
+
+1.  **`@init` Handler:** In the `@init` handler, store the native JavaScript object in the Mesgjs object's context (`d.octx.js`).
+2.  **Message Handlers:** Create message handlers that are thin wrappers, calling the corresponding method on the stored JavaScript object.
+
+Here's a simplified look at how `@jsArray` is implemented:
+
+```javascript
+// From: src/runtime/js-array.esm.js
+
+function opAtInit (d) {
+    const { octx, mp } = d, ary = mp.at(0);
+    // Store the native array in the object context
+    setRO(octx, 'js', Array.isArray(ary) ? ary : []);
+}
+
+export function install (name) {
+    getInterface(name).set({
+        handlers: {
+            '@init': opAtInit,
+            // The 'push' handler calls the native .push() method
+            'push': d => d.js.push(...d.mp.values()),
+            // The 'pop' handler calls the native .pop() method
+            'pop': d => d.js.pop(),
+            // ...and so on for other Array methods
+            'length': d => d.js.length,
+        }
+    });
+}
+```
+
+This pattern allows Mesgjs code to manipulate native JavaScript objects in an idiomatic, message-passing way.
+
+## Creating New Bilingual Interfaces
+
+When creating new components that need to be fully interactive from both Mesgjs and JavaScript, there are two primary patterns.
+
+### Pattern 1: JavaScript-Managed State (Open State)
+
+This pattern is best for components where the state is not sensitive and is primarily managed by JavaScript logic. The Mesgjs interface acts as a thin wrapper around a standard JavaScript class or object.
+
+**Use Case:** UI components, non-critical application state, wrappers for existing JS libraries.
+
+For a complete walkthrough of this pattern, see the [`Tutorial-Bilingual-Interfaces.md`](./Tutorial-Bilingual-Interfaces.md) document.
+
+### Pattern 2: Mesgjs-Managed State (Protected State)
+
+This pattern is ideal when the state should be protected by Mesgjs's security model. The state lives in the Mesgjs object's private persistent storage (`%`). The JavaScript methods on the object's prototype send messages *to themselves* to trigger the Mesgjs handlers, which are the only code that can access the state.
+
+**Use Case:** Interfaces dealing with sensitive data, business logic that must be enforced, or when the primary interaction model is Mesgjs-first.
+
+For a complete walkthrough of this pattern, see the [`Tutorial-Bilingual-Interfaces.md`](./Tutorial-Bilingual-Interfaces.md) document.

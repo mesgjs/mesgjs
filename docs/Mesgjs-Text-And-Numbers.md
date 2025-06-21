@@ -11,7 +11,7 @@ Numbers consist of the following parts:
   * `0x` or `0X` - hexadecimal (base 16)
 * One or more "digits" in the base (including upper- or lower-case A through F
 for base 16) representing the integer portion of the number
-* A lower-case 'n' if the number should be a JavaScript "bigint"
+* A lower-case `n` if the number should be a JavaScript `bigint`
 * An optional decimal point followed by one or more digits
 * An optional exponent consisting of:
   * The letter `e` or `E`
@@ -23,6 +23,12 @@ letters.
 
 *If a number is immediately followed by letters, it will be
 processed as a word instead of a number.*
+
+Example:
+
+```mesgjs
+[GulfOfGuinea=[-1.0-1.0-1.0+1.0+1.0+1.0+1.0-1.0]] // Compact lat/lon bounding box
+```
 
 # Text Strings
 
@@ -94,13 +100,13 @@ Like op-words, regular words terminate at the start of a comment
 
 Examples:
 
-```
+```mesgjs
 THX-1138 42nd 404NOTFOUND and/or
 ```
 
 Counter-Examples:
 
-```
+```mesgjs
 404-NOTFOUND // 404 is a number; - is an op-word; NOTFOUND is a word
 ```
 

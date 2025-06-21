@@ -131,9 +131,11 @@ function link (spec, jsIn) {
     if (flags.html) output("<script type='module'>\n");
     output(`import { setModMeta } from '${escJSStr(mapPath(db, 'mesgjs/runtime/mesgjs.esm.js'), { dq: false })}';\n`);
     output(`setModMeta(${JSON.stringify(modMeta)}));\n`);
+    if (jsIn) output('fwait("@loaded").then(() => {\n', jsIn, '\n});\n');
     if (flags.html) output(`</script>`);
 
-    console.log(outbuf.join(''));
+    if (flags.out) Deno.writeTextFileSync(flags.out, outbuf.join(''));
+    else console.log(outbuf.join(''));
 }
 
 // Map module id to module (passing optional version)
@@ -204,7 +206,7 @@ try {
     if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
 	const jsFile = main.replace(/\.msjs$/, '.esm.js');
 	const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
-	link(parseSLID(Deno.readTextFileSync(slidFile)), Deno.readTextFileSync(jsFile));
+	link(parseSLID(Deno.readTextFileSync(slidFile)), Deno.readTextFileSync(jsFile).trim());
     } else if (main.endsWith('.slid')) {
 	link(parseSLID(Deno.readTextFileSync(main)));
     } else {
