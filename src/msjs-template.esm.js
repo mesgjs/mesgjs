@@ -6,7 +6,7 @@
 
 // deno-lint-ignore-file
 
-import { getInterface, jsToMSJS, NANOS, runIfCode, setRO } from 'mesgjs/runtime.esm.js';
+import { getInterface, jsToMsjs, NANOS, runIfCode, setRO } from 'mesgjs/runtime.esm.js';
 
 function opF (d) {
     const { mp } = d;

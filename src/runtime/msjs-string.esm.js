@@ -12,7 +12,7 @@ import { NANOS } from './vendor.esm.js';
 function opJoin (d) {
     const { mp, js } = d, sep = mp.at('with') ?? '', parts = [ js ];
     for (const v of mp.values()) {
-	const so = globalThis.$toMSJS(v);
+	const so = globalThis.$toMsjs(v);
 	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(sep);
@@ -23,7 +23,7 @@ function opJoin (d) {
 function opJoining (d) {
     const { mp, js } = d, parts = [];
     for (const v of mp.values()) {
-	const so = globalThis.$toMSJS(v);
+	const so = globalThis.$toMsjs(v);
 	if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
     }
     return parts.join(js);
@@ -40,10 +40,10 @@ function opSplit (d) {
     return d.js.split(sep, d.mp.at(1, Infinity));
 }
 
-// JS-to-MSJS replacement-function wrapper
+// JS-to-Msjs replacement-function wrapper
 function replWrapper (...args) {
     /*
-     * Transform this rather awkward JS signature to a nice, clean MSJS one
+     * Transform this rather awkward JS signature to a nice, clean Msjs one
      * (match, p1, p2, ..., pN, offset, string, groups?)
      */
     const match = args.shift(), [ groups ] = args.slice(-1), hasG = typeof groups === 'object';

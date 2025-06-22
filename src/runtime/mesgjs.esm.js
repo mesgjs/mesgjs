@@ -23,18 +23,32 @@ import { install as installString } from './msjs-string.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './msjs-undefined.esm.js';
 
-import { getInstance, initialize, msjsInstance, setModMeta, setRO } from './runtime.esm.js';
+import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
 export { setModMeta };
 import { NANOS } from './vendor.esm.js';
 
+const instanceSym = Symbol.for('msjsInstance');
+const convertSym = Symbol.for('toMsjs');
+
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
-    installCore('@core');		// SHOULD ALWAYS BE FIRST
+    installCore('@core');		// @core SHOULD ALWAYS BE FIRST
+    if (!globalThis.$c) throw new Error('@core installation incomplete');
+    setRO($c, 'symbols', {
+        convert: convertSym,
+        instance: instanceSym,
+    });
+    Object.freeze($c.symbols);
+    Object.freeze($c); // Make $c immutable
 
     installBoolean();
     installJSArray('@jsArray');
     installKVIter('@kvIter');
     installList('@list');
+    // Teach toMsjs how to convert NANOS to a Msjs @list
+    NANOS.prototype[convertSym] = function () {
+        return getInstance('@list', [this]);
+    }
     installLoop('@loop');
     installMap('@map');
     installNull();
@@ -48,8 +62,8 @@ function installCoreExtensions () {
     installUndefined();
 }
 
-// Promote a JS object to a MSJS object for messaging
-function toMSJS (jsv) {
+// Promote a JS object to a Msjs object for messaging
+function toMsjs (jsv) {
     if (jsv?.msjsType) return jsv;
     switch (typeof jsv) {
     case 'boolean':
@@ -59,8 +73,12 @@ function toMSJS (jsv) {
 	return getInstance('@number', jsv);
     case 'object':
 	if (jsv === null) return getInstance('@null');
-	if (jsv[msjsInstance]) return jsv[msjsInstance];
-	if (jsv instanceof NANOS) return getInstance('@list', [jsv]);
+        // Check for an existing Msjs instance
+	if (jsv[instanceSym]) return jsv[instanceSym];
+        // Early check for high-frequency NANOS/@list case
+	// if (jsv instanceof NANOS) return getInstance('@list', [jsv]);
+        // Check for a custom converter
+        if (jsv[convertSym]) return jsv[convertSym]();
 	if (jsv instanceof RegExp) return getInstance('@regex', jsv);
 	// Not sure if we'll see many of these "in the wild"
 	// if (jsv?.$reactive) return getInstance('@reactive', jsv);
@@ -80,8 +98,8 @@ function toMSJS (jsv) {
  * avoid circular import dependencies for lots of modules.
  */
 setRO(globalThis, {
-    installMSJSCoreExtensions: installCoreExtensions,
-    $toMSJS: toMSJS,
+    installMsjsCoreExtensions: installCoreExtensions, // For the runtime
+    $toMsjs: toMsjs, // For anything that needs to convert JS values to Mesgjs values
 });
 initialize();
 

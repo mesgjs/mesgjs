@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, MSJSFlow, runIfCode, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, MsjsFlow, runIfCode, setRO, throwFlow } from './runtime.esm.js';
 
 // @try(try code... catch=code always=code)
 function opTry (d) {
@@ -27,7 +27,7 @@ function opTry (d) {
 	}
     }
     catch (ex) {
-	if (ex instanceof MSJSFlow) throw ex;
+	if (ex instanceof MsjsFlow) throw ex;
 	js.exception = ex;
 	if (mp.has('catchers')) for (const en of mp.at('catchers').entries()) {
 	    const clob = globalThis[en[0]];
@@ -39,7 +39,7 @@ function opTry (d) {
 		if (!js.capture) throw ex;
 		if (js.hasFlowRes) {
 		    js.result = js.flowRes;
-		    js.hasFlwoRes = js.flowRes = false;
+		    js.hasFlowRes = js.flowRes = false;
 		}
 	    }
 	    return js.result;

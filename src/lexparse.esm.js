@@ -19,7 +19,7 @@ import { unescapeJSString } from './vendor.esm.js';
 // Group 3:  Word/op-word cross-over group
 // Group 3B: Context-sensitive cross-overs
 
-const MSJSPats = {
+const MsjsPats = {
     ejs: '@js\\{.*?@}',		// Embedded JavaScript
     mlc: '/\\*.*?\\*/',		// Multi-line comment
     slc: '//.*?(?:\r*\n|$)',	// Single-line comment
@@ -36,8 +36,8 @@ const MSJSPats = {
     wrd: '(?:[^\\s(){}[\\]!#%=\'"/]|/(?![/*]))+', // "Regular" words
 };
 
-const MSJSRE = new RegExp('(' + 'ejs mlc slc flt int sqs dqs dbg spc net opw wrd'.split(' ').map(k => MSJSPats[k]).join('|') + ')', 's');
-const MSJSNum = new RegExp(`^(${MSJSPats.flt}|${MSJSPats.int})$`);
+const MsjsRE = new RegExp('(' + 'ejs mlc slc flt int sqs dqs dbg spc net opw wrd'.split(' ').map(k => MsjsPats[k]).join('|') + ')', 's');
+const MsjsNum = new RegExp(`^(${MsjsPats.flt}|${MsjsPats.int})$`);
 
 // Simple lexical analyzer
 export function lex (input, loc = {}) {
@@ -64,7 +64,7 @@ export function lex (input, loc = {}) {
 	adv(configSLID);
     }
 
-    return { shebang, configSLID, tokens: input.split(MSJSRE).map(text => {
+    return { shebang, configSLID, tokens: input.split(MsjsRE).map(text => {
 	const loc = { src, line, col };
 	adv(text);
 
@@ -104,7 +104,7 @@ export function lex (input, loc = {}) {
 	}
 
 	if (/^\s/.test(text)) return false; // White space
-	if (MSJSNum.test(text)) return { type: 'num', loc, text, value: parseFloat(text) }; // Numbers
+	if (MsjsNum.test(text)) return { type: 'num', loc, text, value: parseFloat(text) }; // Numbers
 	if (/^@js\{.*@}$/s.test(text)) return { type: 'js', loc, text: text.slice(4, -2) }; // JS Embed
 	// Some form of word
 	return { type: 'wrd', loc, text };

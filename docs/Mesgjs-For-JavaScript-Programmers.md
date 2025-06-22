@@ -442,7 +442,7 @@ While understanding the conceptual differences is important, the real power come
 
 ## Converting JavaScript Values to Mesgjs Objects
 
-Sometimes, you have a native JavaScript value (like a number, a string, or an array) that you need to send a message to. The global function `$toMSJS()` (exposed on `globalThis`) is the tool for this.
+Sometimes, you have a native JavaScript value (like a number, a string, or an array) that you need to send a message to. The global function `$toMsjs()` (exposed on `globalThis`) is the tool for this.
 
 The runtime uses this internally, but you may need it if you are writing complex JavaScript-side handlers.
 
@@ -455,7 +455,7 @@ const jsArray = [1, 2, 3];
 // jsArray('push', 4);
 
 // Convert the JS array to a Mesgjs @jsArray object
-const mesgjsArray = $toMSJS(jsArray);
+const mesgjsArray = $toMsjs(jsArray);
 
 // Now you can send it a message
 mesgjsArray('push', 4); // This works!
@@ -464,7 +464,7 @@ mesgjsArray('push', 4); // This works!
 console.log(jsArray); // [1, 2, 3, 4]
 ```
 
-The `$toMSJS` function is smart enough to convert native types to their corresponding Mesgjs foundational interfaces (`@string`, `@number`, `@jsArray`, `@map`, `@set`, etc.).
+The `$toMsjs` function is smart enough to convert native types to their corresponding Mesgjs foundational interfaces (`@string`, `@number`, `@jsArray`, `@map`, `@set`, etc.).
 
 ## Wrapping Native JavaScript Objects
 

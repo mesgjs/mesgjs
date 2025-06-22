@@ -76,7 +76,7 @@ class Counter {
 Now, we create the Mesgjs interface. The `@init` handler will create an instance of our `Counter` class and attach it to the Mesgjs object's context (`d.octx.js`). The other handlers will simply delegate to this JS instance.
 
 ```javascript
-// In counter.esm.js, inside loadMSJS()
+// In counter.esm.js, inside loadMsjs()
 
 // The @init handler creates the JS class instance
 function opInit_JS(d) {
@@ -112,7 +112,7 @@ This pattern is ideal when the state should be protected by Mesgjs's security mo
 First, we define a JavaScript prototype. Its methods don't contain logic; they just send messages back to the Mesgjs object (`this`).
 
 ```javascript
-// In counter.esm.js, inside loadMSJS()
+// In counter.esm.js, inside loadMsjs()
 
 const CounterPrototype = Object.setPrototypeOf({
     increment() {
@@ -132,7 +132,7 @@ const CounterPrototype = Object.setPrototypeOf({
 Now, we create the Mesgjs interface. The handlers contain the actual logic and manipulate the private persistent storage (`d.p`).
 
 ```javascript
-// In counter.esm.js, inside loadMSJS()
+// In counter.esm.js, inside loadMsjs()
 
 // The @init handler sets up the private state and attaches the prototype
 function opInit_Mesgjs(d) {

@@ -152,9 +152,9 @@ export function transpileTree (tree, opts = {}) {
 	    else outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
 	    blocks.length = 0;
 	}
-	if (!repl) outBuf.unshift(segment(`export function loadMSJS(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
+	if (!repl) outBuf.unshift(segment(`export function loadMsjs(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
 	if (jsFirst) outBuf.unshift(initialJS);
-	if (!repl) outBuf.push(segment(`}if(!globalThis.msjsNoSelfLoad)loadMSJS();\n`));
+	if (!repl) outBuf.push(segment(`}if(!globalThis.msjsNoSelfLoad)loadMsjs();\n`));
     }
 
     function generateJS (node) {

@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, logInterfaces, runIfCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, logInterfaces, runIfCode, runWhileCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
 import { NANOS, parseQJSON, parseSLID } from './vendor.esm.js';
 
 // (and value...)
@@ -91,11 +91,6 @@ function opXor (d) {
     return result;
 }
 
-function runWhileCode (v) {
-    while (v?.msjsType === '@code') v = v('run');
-    return v;
-}
-
 export function install (name) {
     getInterface(name).set({
 	final: true, lock: true, pristine: true, singleton: true,
@@ -127,7 +122,7 @@ export function install (name) {
 	    run: opRun,
 	    slid: d => parseSLID(d.mp.at(0, '')),
 	    throw: opThrow,
-	    type: d => globalThis.$toMSJS(d.mp.at(0))?.msjsType,
+	    type: d => globalThis.$toMsjs(d.mp.at(0))?.msjsType,
 	    typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
 	    typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
 	    xor: opXor,
@@ -141,7 +136,23 @@ export function install (name) {
 	    if: 'pin',
 	},
     });
-    if (name === '@core') setRO(globalThis, '$c', getInstance('@core'));
+    if (name === '@core') {
+        setRO(globalThis, '$c', getInstance('@core'));
+        // "Re-export" common runtime functions on $c to reduce imports
+        Object.assign($c, {
+            fcheck,
+            fready,
+            fwait,
+            getInstance,
+            getInterface,
+            runIfCode,
+            runWhileCode,
+            setRO,
+            typeAccepts,
+            typeChains,
+        });
+        // BEST PRACTICE: Make $c immutable after loading in mesgjs.esm.js
+    }
 }
 
 // END

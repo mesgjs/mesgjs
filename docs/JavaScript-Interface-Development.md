@@ -22,7 +22,7 @@ From `runtime.esm.js`, you will primarily use the following functions:
 *   `getInterface(name)`: This is the starting point for creating or modifying an interface definition.
 *   `getInstance(type, params)`: This is the factory function for creating all Mesgjs objects. **It is the direct replacement for the `new` keyword.** You do not use `new` to create instances of your interfaces.
 *   `setRO(object, key, value)` or `setRO(object, keyValueObject)`: A utility to create read-only properties on objects. This is used extensively throughout the runtime to enforce immutability where appropriate.
-*   `toMSJS(jsValue)`: A crucial function that converts native JavaScript values (like strings, numbers, booleans, and arrays) into their corresponding Mesgjs object equivalents (e.g., `@string`, `@number`, `@jsArray`) *if* you need to message or otherwise manipulate them as Mesgjs objects instead of accessing them directly. Please note that this function is exposed as `globalThis.$toMSJS`.
+*   `toMsjs(jsValue)`: A crucial function that converts native JavaScript values (like strings, numbers, booleans, and arrays) into their corresponding Mesgjs object equivalents (e.g., `@string`, `@number`, `@jsArray`) *if* you need to message or otherwise manipulate them as Mesgjs objects instead of accessing them directly. Please note that this function is exposed as `globalThis.$toMsjs`.
 
 ## The Add-On Module Workflow
 
@@ -49,7 +49,7 @@ Every add-on module should start with the following boilerplate to get access to
 // ESM module header
 import { fready, getInterface, getInstance, setRO } from './runtime.esm.js'; // Or appropriate path
 
-export function loadMSJS (mid) {
+export function loadMsjs (mid) {
     // Note: $modScope is exposed as a property of globalThis
     const { d, ls, m, na } = $modScope(), { b, mp, sm } = d;
 
@@ -61,12 +61,12 @@ export function loadMSJS (mid) {
 }
 // Self-load if runtime module management isn't enabled
 // If you have mandatory feature deps, you might want to throw instead
-if (!globalThis.msjsNoSelfLoad) loadMSJS();
+if (!globalThis.msjsNoSelfLoad) loadMsjs();
 ```
 
 ### C. Step 1: Get the Interface Object
 
-The first step inside your `loadMSJS` function is to get an interface management object.
+The first step inside your `loadMsjs` function is to get an interface management object.
 
 ```javascript
 const yourInterface = getInterface('your-interface-name');

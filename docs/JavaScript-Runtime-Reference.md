@@ -46,17 +46,17 @@ A utility to create read-only properties on JavaScript objects.
 
 ## Flow Control and Error Handling
 
-### `MSJSFlow`
+### `MsjsFlow`
 
 A custom `Error` class used for non-local flow control, such as implementing `return` from a code block.
 
-### `MSJSFlowError`
+### `MsjsFlowError`
 
-A custom `RangeError` class for errors related to `MSJSFlow`.
+A custom `RangeError` class for errors related to `MsjsFlow`.
 
 ### `throwFlow(dispatch, type, interfaceName)`
 
-Throws an `MSJSFlow` exception.
+Throws an `MsjsFlow` exception.
 
 ## Module and Feature Management
 

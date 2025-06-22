@@ -14,21 +14,20 @@ import { unifiedList } from './unified-list.esm.js';
 import './shim.esm.js';
 
 const gt = globalThis;
-export const msjsInstance = Symbol.for('msjsInstance');
 
-// Flow exception, e.g. @d(return value) throws MSJSFlow('return', value)
-export class MSJSFlow extends Error {
+// Flow exception, e.g. @d(return value) throws MsjsFlow('return', value)
+export class MsjsFlow extends Error {
     constructor (message, info) {
 	super(message);
 	if (info !== undefined) this.info = info;
     }
 
-    get name () { return 'MSJSFlow'; }
+    get name () { return 'MsjsFlow'; }
 }
-export class MSJSFlowError extends RangeError {
+export class MsjsFlowError extends RangeError {
     constructor (...a) {
 	super(...a);
-	this.name = 'MSJSFlowError';
+	this.name = 'MsjsFlowError';
     }
 };
 
@@ -71,10 +70,15 @@ export function namespaceAt  (namespace, key, opt) {
 
 // Get the return value if @code, or the raw value otherwise
 export const runIfCode = v => v?.msjsType === '@code' ? v('run') : v;
+// Run @code chains until reaching a non-@code value
+export function runWhileCode (v) {
+    while (v?.msjsType === '@code') v = v('run');
+    return v;
+}
 
 // Send an anonymous message (promoting JS receiver objects as necessary)
 export function sendAnonMessage (rr, op, mp) {
-    if (!rr?.msjsType) rr = gt.$toMSJS(rr);
+    if (!rr?.msjsType) rr = gt.$toMsjs(rr);
     return rr(op, mp);
 }
 
@@ -113,13 +117,13 @@ export const setRO = (o, ...a) => {
 
 export function throwFlow (d, type, ifName) {
     const { js, mp } = d;
-    if (!js.active) throw new MSJSFlowError(`(${type}) to inactive ${ifName}`);
+    if (!js.active) throw new MsjsFlowError(`(${type}) to inactive ${ifName}`);
     js.capture = true;
     if (mp.has('result')) {
 	js.hasFlowRes = true;
 	js.flowRes = mp.at('result');
     }
-    throw new MSJSFlow(type);
+    throw new MsjsFlow(type);
 }
 
 const hasOwn = Object.hasOwn;
@@ -185,7 +189,7 @@ export const {
     // Bind a code template to a dispatch object and save it
     function bindCode (tpl, disp) {
 	if (tpl.ucid === undefined) setRO(tpl, 'ucid', nextUCID++);
-	return ((disp._bc ||= [])[tpl.ucid] ||= newMSJSCode(tpl.cd, disp));
+	return ((disp._bc ||= [])[tpl.ucid] ||= newMsjsCode(tpl.cd, disp));
     }
 
     /*
@@ -287,13 +291,13 @@ export const {
 	    return result;
 	}
 	catch (e) {
-	    if (disp._capture && e instanceof MSJSFlow) {
+	    if (disp._capture && e instanceof MsjsFlow) {
 		disp._capture = false;
 		if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		return e.info;
 	    }
 	    if (thisDisp !== false) console.log(`[Mesgjs exception ${thisDisp}]`, e);
-	    if (trace && !(e instanceof MSJSFlow)) appendStackTrace(e);
+	    if (trace && !(e instanceof MsjsFlow)) appendStackTrace(e);
 	    throw e;
 	}
 	finally {
@@ -436,7 +440,7 @@ export const {
     }
 
     /*
-     * Return a MSJS interface management object.
+     * Return a Msjs interface management object.
      * As part of the foundation for the object messaging system, it uses
      * a custom message receiver function.
      */
@@ -474,7 +478,7 @@ export const {
 	if (initPhase === 2) {		// Only initialize once
 	    initPhase = 1;
 	    firstInit.forEach(cb => cb());
-	    globalThis.installMSJSCoreExtensions();
+	    globalThis.installMsjsCoreExtensions();
 	    initPhase = 0;
 	    dacHandMctx.sr = dacHandMctx.rr = gt.$c;
 	}
@@ -515,7 +519,7 @@ export const {
 	    `data:application/javascript;base64,${btoa(code)}`;
 	const mod = await import(URL);
 	if (URL.startsWith('blob:')) URL.revokeObjectURL(URL);
-	if (globalThis.msjsHasModMeta && mod.loadMSJS) mod.loadMSJS(meta?.mid);
+	if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(meta?.mid);
     }
 
     function logInterfaces () { console.log(interfaces); }
@@ -555,15 +559,15 @@ export const {
 	getInterface('@module').set({ pristine: true, private: true, lock: true });
     });
 
-    // Return a new MSJS @code object given code and a dispatch
-    function newMSJSCode (cd, od) {
+    // Return a new Msjs @code object given code and a dispatch
+    function newMsjsCode (cd, od) {
 	// Encapsulate the code with a custom receiver function (public i/f)
 	const bfnThis = { cd, od }, bfn = bfnThis.bfn = msjsR$Code.bind(bfnThis);
 	return setRO(bfn, 'msjsType', '@code');
     }
 
-    // Return a new MSJS @function object given code and state
-    function newMSJSFunction (cd, ps) {
+    // Return a new Msjs @function object given code and state
+    function newMsjsFunction (cd, ps) {
 	const type = '@function', octx = {};
 	const bfnThis = { octx, op: 'call', handler: { code: cd, type, op: 'call' } };
 	if (ps !== undefined) setRO(octx, 'ps', ps);
@@ -622,7 +626,7 @@ export const {
 	    codeBaton = { code: this.cd }; // JS function for interface
 	    return;
 	case 'fn':			// Return new function code block
-	    return newMSJSFunction(this.cd, mp);
+	    return newMsjsFunction(this.cd, mp);
 	}
 	if (hasElse) return runIfCode(elseExpr);
 	throw new TypeError(`No Mesgjs handler found for "@code(${op})"`);
@@ -662,7 +666,7 @@ export const {
 	}
 	case 'return':
 	    this.bfn._capture = true;
-	    throw new MSJSFlow('return', mp.at(0));
+	    throw new MsjsFlow('return', mp.at(0));
 	    // Not reached
 	case 'rr': return mctx.rr;
 	case 'rt': return mctx.rt;
@@ -681,7 +685,7 @@ export const {
 	if (op === 'call') return dispatchHandler(cmp, this, mp);
 	switch (op) {		// Function-mode ops
 	case 'fn':			// Return a new function code block
-	    return newMSJSFunction(this.handler.code, mp);
+	    return newMsjsFunction(this.handler.code, mp);
 	case 'jsfn':		// Return a JS wrapper-function
 	    return (this.jsFn ||= jsFnCall.bind(this));
 	}
@@ -707,7 +711,7 @@ export const {
      * attributed message via the message baton.
      */
     function msjsS$SendMessage (rr, op, mp) {
-	if (!rr?.msjsType) rr = gt.$toMSJS(rr);
+	if (!rr?.msjsType) rr = gt.$toMsjs(rr);
 	mesgBaton = { sr: this.sr, st: this.st, rr, op, mp };
 	let result;
 	try { result = rr(); }
@@ -716,7 +720,7 @@ export const {
     }
 
     /*
-     * Interface-object implementation to set/change a MSJS object interface
+     * Interface-object implementation to set/change a Msjs object interface
      *
      * Parameters:
      * - abstract - The interface is incomplete and cannot be instantiated
