@@ -32,14 +32,24 @@ const convertSym = Symbol.for('toMsjs');
 
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
-    installCore('@core');		// @core SHOULD ALWAYS BE FIRST
+    /*
+     * This JavaScript class is foundational to the language.
+     * Help lots of modules (especially JavaScript-based loadable
+     * interface modules) avoid dealing with import-vendoring it.
+     */
+    globalThis.NANOS = NANOS;
+
+    // @core should always be installed first
+    installCore('@core');
     if (!globalThis.$c) throw new Error('@core installation incomplete');
+
+    // Attach some additional runtime-related properties, then lock it
     setRO($c, 'symbols', {
         convert: convertSym,
         instance: instanceSym,
     });
     Object.freeze($c.symbols);
-    Object.freeze($c); // Make $c immutable
+    Object.freeze($c);
 
     installBoolean();
     installJSArray('@jsArray');
@@ -75,8 +85,6 @@ function toMsjs (jsv) {
 	if (jsv === null) return getInstance('@null');
         // Check for an existing Msjs instance
 	if (jsv[instanceSym]) return jsv[instanceSym];
-        // Early check for high-frequency NANOS/@list case
-	// if (jsv instanceof NANOS) return getInstance('@list', [jsv]);
         // Check for a custom converter
         if (jsv[convertSym]) return jsv[convertSym]();
 	if (jsv instanceof RegExp) return getInstance('@regex', jsv);

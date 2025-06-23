@@ -4,13 +4,12 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, msjsInstance, setRO } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { getInterface, setRO } from './runtime.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, set = mp.at(0);
     setRO(octx, 'js', (set instanceof Set) ? set : new Set());
-    setRO(d.js, msjsInstance, d.rr, false);
+    setRO(d.js, $c.symbols.instance, d.rr, false);
 }
 
 export function install (name) {

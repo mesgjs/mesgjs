@@ -5,7 +5,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, msjsInstance, setRO } from './runtime.esm.js';
+import { getInterface, runIfCode, setRO } from './runtime.esm.js';
 import { reactive } from './vendor.esm.js';
 
 let instType;
@@ -37,7 +37,7 @@ function opInit (d) {
 	if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
 	setRO(d.octx, 'js', reactive(mp?.storage || {}));
     }
-    setRO(d.js, msjsInstance, d.rr, false);
+    setRO(d.js, $c.symbols.instance, d.rr, false);
 }
 
 function opBatch (d) { return reactive.batch(() => runIfCode(d.mp.at(0))); }

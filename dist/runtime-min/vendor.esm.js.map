@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../src/runtime/vendor.esm.js"],
-  "sourcesContent": ["export { isIndex, NANOS, parseQJSON, parseSLID } from 'https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.5/dist/nanos.min.esm.js';\nexport { reactive } from 'https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.2/dist/reactive.min.esm.js';\n"],
-  "mappings": "AAAA,OAAS,WAAAA,EAAS,SAAAC,EAAO,cAAAC,EAAY,aAAAC,MAAiB,uEACtD,OAAS,YAAAC,MAAgB",
-  "names": ["isIndex", "NANOS", "parseQJSON", "parseSLID", "reactive"]
-}

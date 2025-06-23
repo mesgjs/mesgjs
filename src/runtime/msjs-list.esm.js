@@ -4,14 +4,13 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, runIfCode, msjsInstance, setRO } from './runtime.esm.js';
+import { getInstance, getInterface, runIfCode, setRO } from './runtime.esm.js';
 import { unifiedList } from './unified-list.esm.js';
-import { NANOS } from './vendor.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
     setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
-    setRO(d.js, msjsInstance, d.rr, false);
+    setRO(d.js, $c.symbols.instance, d.rr, false);
 }
 
 function opAt (d) {
