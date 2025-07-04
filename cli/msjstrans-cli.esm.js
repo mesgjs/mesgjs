@@ -9,24 +9,26 @@
  * --root - The output root directory
  * --tokens - Display lexical tokens
  * --tree - Display parse tree
+ * --upcat - Update the existing module catalog entry without transpiling the module
  * --ver - Use configSLID module version
  * *.msjs - Mesgjs source files
- * *.slid - Matching extra-meta-data (e.g. for modsreqd)
+ * *.slid - Matching extra-meta-data (e.g. for modreq)
  */
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { lex, parse } from 'mesgjs/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/transpile.esm.js';
-import { checkTables } from 'mesgjs/module-catalog-lite.esm.js';
+import { addModule, checkTables } from 'mesgjs/module-catalog-lite.esm.js';
 import { calcDigest } from 'mesgjs/runtime/calc-digest.esm.js';
 import { parseModVer as pmv } from 'mesgjs/semver.esm.js';
 import { parseSLID } from 'nanos/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
-    boolean: [ 'tokens', 'tree', 'mod', 'ver', 'no-js' ],
+    boolean: [ 'tokens', 'tree', 'mod', 'ver', 'no-js', 'upcat' ],
     string: [ 'cat', 'root' ],
 });
+const upcat = flags.upcat;
 // console.log(flags);
 
 let root = flags.root || '';
@@ -80,25 +82,28 @@ async function process (srcPath) {
     console.log(`Processing file ${srcPath}...`);
     const source = Deno.readTextFileSync(srcPath);
 
+    // Split out the final (file) component of the srcPath
     const [ _, inFile ] = srcPath.match(/(?:.*\/)?(.*)/);
     const { configSLID, tokens } = lex(source, { src: inFile });
-    if (flags.tokens) {
+    if (flags.tokens) {     // Show generated lexical tokens
 	console.log('TOKENS');
 	console.dir(tokens, { depth: null });
     }
+    // Grab the intra-file configuration SLID
     const config = configSLID && parseSLID(configSLID);
 
-    const { tree, errors: parseErrors } = parse(tokens);
+    const { tree, errors: parseErrors } = upcat ? {} : parse(tokens);
     if (parseErrors?.length) {
 	console.log(parseErrors.join('\n'));
 	Deno.exit(1);
     }
-    if (flags.tree) {
+    if (flags.tree && !upcat) {       // Show parsed abstract syntax tree (AST)
 	console.log('PARSE TREE');
 	console.dir(tree, { depth: null });
     }
-    if (flags['no-js']) return;
+    if (flags['no-js'] && !upcat) return;
 
+    // Stub a simplified fake NANOS.at that defaults to an empty string
     let meta = { at: (_, def = '') => def };
     try {
 	const slidPath = srcPath.replace(/\.msjs$/, '.slid');
@@ -109,7 +114,7 @@ async function process (srcPath) {
 	console.log('No module dependencies will be recorded.');
     }
 
-    const { code, errors: txpErrors, fatal, segments } = transpileTree(tree);
+    const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree);
     if (txpErrors?.length) console.log(txpErrors.join('\n'));
     if (fatal) console.log(fatal);
     if (txpErrors?.length || fatal) Deno.exit(1);
@@ -117,11 +122,11 @@ async function process (srcPath) {
     const { dir, file } = outPath(srcPath, config);
     const finalDir = root + dir;
     const finalPath = finalDir + file;
-    const mapping = mappingGenerator(segments);
+    const mapping = upcat ? {} : mappingGenerator(segments);
     mapping.file = dir + file;
     mapping.sourcesContent = [ source ];
     const mapJSON = JSON.stringify(mapping);
-    const codePlus = code + `\n//# sourceMappingURL=${file}.map\n`;
+    const codePlus = (code || '') + `\n//# sourceMappingURL=${file}.map\n`;
 
     const version = config && config.at('version'), modPath = config && config.at('modpath');
     const { major, minor, patch, extver } = pmv(version);
@@ -142,15 +147,26 @@ async function process (srcPath) {
     }
     if (skip) return;
 
-    console.log(`Writing ${finalPath} and map...`);
-    //if (finalDir) console.log(`mkdir ${finalDir}`)
-    if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
-    Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
-    Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+    if (!upcat) {
+        console.log(`Writing ${finalPath} and map...`);
+        if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
+        Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
+        Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+    }
 
+    // If we have the appropriate info, add or update this module in the module catalog
     if (db && !([ major, minor, patch ].includes(undefined)) && modPath) {
 	const sha512 = await calcDigest(codePlus, 'SHA-512');
-	db.query('insert or replace into modules (path, major, minor, patch, extver, integ, featpro, featreq, modreq) values (?, ?, ?, ?, ?, ?, ?, ?, ?)', [ modPath, major, minor, patch, extver ?? '', sha512, config.at('featpro', ''), config.at('featreq', ''), meta.at('modreq', '') ]);
+        const modreq = meta.at('modreq', '');
+        const moddefer = meta.at('deferLoad', '');
+        if (upcat) {
+            console.log(`Updating dependencies for ${modPath}@${major}.${minor}.${patch}${extver}...`);
+            db.query(`update modules set modreq = ?, moddefer = ? where path = ? and major = ? and minor = ? and patch = ? and extver = ?`, [ modreq, moddefer, modPath, major, minor, patch, extver ?? '' ]);
+        } else {
+            const featpro = config.at('featpro', ''), featreq = config.at('featreq', '');
+            console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver}...`);
+            addModule(db, `${modPath}@${version}`, { integrity: sha512, featpro, featreq, modreq, moddefer });
+        }
     }
 }
 

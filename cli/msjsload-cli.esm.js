@@ -29,7 +29,6 @@ let db;
 // Module mapping (path <=> mid)
 let nextMid = 0;
 const _midToMod = {}, _modToMid = {};
-const _modCache = {};
 
 // Requirements-to-encode queue (set of modpath@version)
 const requ = new Set();
@@ -79,19 +78,45 @@ function getJSImportMap () {
 }
 
 // Return Mesgjs module metadata
-function getModMeta (finalMods, meta) {
-    const prefixMap = { '': '' }, modules = {};
-    for (const mod of finalMods) {
-	const { module, version } = pmv(mod), { integrity, featpro } = getModule(db, mod, true), meta = { integrity, version };
-	if (featpro) meta.featpro = featpro.split(/[,\s]+/).filter(f => f);
-	const [ url, mapping ] = mapPath(db, module, { detail: true, version });
-	if (!mapping) meta.url = url;
-	else prefixMap[mapping[0]] ||= mapping[1];
-	modules[module] = meta;
-    }
-    delete prefixMap[''];
+function getModMeta (finalMods, spec) {
+    const prefixMap = { '': '' }, modules = {}, eager = {};
+    const entryPointDefers = (spec instanceof NANOS && new Set(getModSpec(spec.at('deferLoad', []), 'deferLoad'))) || new Set();
+    const entryPointReqs = new Set(getModSpec(spec).map(req => pmv(req).module));
 
-    if (meta instanceof NANOS) for (const mod of getModSpec(meta.at('deferLoad', []), 'deferLoad') || []) if (modules[mod]) modules[mod].deferLoad = true;
+    for (const mod of finalMods) {
+        const { module: modPath, version } = pmv(mod);
+        const modInfo = getModule(db, mod, true);
+        const { integrity, featpro, modreq, moddefer } = modInfo;
+        const moduleMeta = { integrity, version };
+
+        if (featpro) moduleMeta.featpro = featpro.split(/[,\s]+/).filter(f => f);
+
+        const [url, mapping] = mapPath(db, modPath, { detail: true, version });
+        if (!mapping) moduleMeta.url = url;
+        else prefixMap[mapping[0]] ||= mapping[1];
+
+        modules[modPath] = moduleMeta;
+
+        // Check deferrals from other modules
+        const deferSet = new Set((moddefer || '').split(/[,\s]+/).filter(f => f));
+        for (const req of (modreq || '').split(/[,\s]+/).filter(f => f)) {
+            const reqPath = pmv(req).module;
+            if (!deferSet.has(reqPath)) eager[reqPath] = true;
+        }
+
+        // Check deferrals from entry point for top-level dependencies
+        if (entryPointReqs.has(modPath) && !entryPointDefers.has(modPath)) {
+            eager[modPath] = true;
+        }
+    }
+
+    for (const modPath in modules) {
+        if (!eager[modPath]) {
+            modules[modPath].deferLoad = true;
+        }
+    }
+
+    delete prefixMap[''];
     return { prefixMap, modules };
 }
 

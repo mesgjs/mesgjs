@@ -14,6 +14,8 @@ msjsload [--cat <catalog>] [--html] [--out <output>] <entry>
 
 The `msjsload` tool links and loads Mesgjs modules, resolving dependencies and generating import maps and metadata for use in JavaScript or HTML environments. It can output a script or wrap the result in a simple HTML page template.
 
+The runtime will signal when all non-deferred modules have completed loading by making the special `@loaded` feature-promise ready. Mesgjs modules wanting to wait for loading to complete can use the `@c(fwait @loaded)(then { block })` pattern.
+
 ## OPTIONS
 
 - `--cat <catalog>`  
@@ -29,6 +31,13 @@ The `msjsload` tool links and loads Mesgjs modules, resolving dependencies and g
 
 - `<entry>`  
   The entry point module or file. This can be a `.msjs`, `.esm.js`, or `.slid` file, or a module name.
+- If the entry point is of the form `file.msjs` or `file.esm.js`, the loader will look for a **JavaScript** file, `file.esm.js`. It's contents will be included in the resulting output file and executed after all non-deferred modules have loaded (as determined by an `fwait` (feature-wait) on the `@loaded` special feature-promise).
+- If the entry point is of the form `file.msjs`, `file.esm.js`, or `file.slid`, the loader will look for an external, "companion" **SLID** file, `file.slid`. It it exists, it will be used to determine any required modules and acceptable versions, and any modules whose loading should be deferred.
+- If the entry point is not of the form `file.msjs`, `file.esm.js`, or `file.slid`, the loader will look for a matching module in the module catalog. If found, the loader will generate output to load that module and its cataloged dependencies. One or more of the loaded modules should `fwait` on the `@loaded` special feature-promise and begin executing the application logic in its `then` handler.
+
+## Module Configuration
+
+Mesgjs modules can be configured in two ways: through an in-source SLID block within the `.msjs` file, or via an external `.slid` file. For detailed information on both methods, see the [Mesgjs Module Configuration](../Mesgjs-Module-Configuration.md) document.
 
 ## USAGE
 

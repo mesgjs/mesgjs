@@ -20,6 +20,12 @@ export function checkTables (db, file) {
     if (!maps.length || !mods.length) throw new Error(`No path map and/or modules in ${file}`);
 }
 
+// Add a module to the catalog
+export function addModule (db, mod, { integrity, featpro, featreq, modreq, moddefer }) {
+    const { path, major, minor, patch, extver } = parseModVer(mod);
+    db.query('insert or replace into modules (path, major, minor, patch, extver, integrity, featpro, featreq, modreq, moddefer) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [ path, major, minor, patch, extver ?? '', integrity, featpro, featreq, modreq, moddefer ]);
+}
+
 // Return module record (modreq-only or detailed)
 export function getModule (db, mod, detail = false) {
     const cached = _modCache[mod];
@@ -28,10 +34,10 @@ export function getModule (db, mod, detail = false) {
     const { path, major, minor, patch, extver } = parseModVer(mod);
     if (major === undefined) return;
 
-    const [ row ] = db.query('select ' + (detail ? 'modreq, integ, featpro, featreq' : 'modreq') + ' from modules where major = ? and minor = ? and patch = ? and extver = ?', [ major, minor, patch, extver ?? '' ]);
+    const [ row ] = db.query('select ' + (detail ? 'modreq, integ, featpro, featreq, moddefer' : 'modreq') + ' from modules where major = ? and minor = ? and patch = ? and extver = ?', [ major, minor, patch, extver ?? '' ]);
     if (row) {
-	const [ modreq, integrity, featpro, featreq ] = row;
-	return (_modCache[mod] = { path, major, minor, patch, extver, integrity, modreq, featpro, featreq });
+	const [ modreq, integrity, featpro, featreq, moddefer ] = row;
+	return (_modCache[mod] = { path, major, minor, patch, extver, integrity, modreq, featpro, featreq, moddefer });
     };
 }
 
@@ -65,6 +71,7 @@ integ TEXT NOT NULL,
 featpro TEXT NOT NULL,
 featreq TEXT NOT NULL,
 modreq TEXT NOT NULL,
+moddefer TEXT NOT NULL,
 PRIMARY KEY (path, major, minor, patch, extver)
 );
     `);

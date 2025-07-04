@@ -50,7 +50,7 @@ export const listFromPairs = pa => new NANOS().fromPairs(pa);
 
 // Types to show in place of values during dispatch/stack traces
 export function loggedType (v) {
-    if (v?.msjsType) return 'S.' + v.msjsType;
+    if (v?.msjsType) return 'M.' + v.msjsType;
     const jt = typeof v;
     switch (jt) {
     case 'boolean': return (v ? '@t' : '@f');
@@ -138,6 +138,7 @@ export const {
     fwait,
     getInstance,
     getInterface,
+    getModMeta,
     initialize,
     loadModule,
     logInterfaces,
@@ -445,8 +446,8 @@ export const {
      * a custom message receiver function.
      */
     function getInterface (name) {
-	if (name === '?') name = '?' + nextAnon++;
-	else if (typeof name !== 'string' || !name || (name[0] === '?' && !interfaces[name]) || (name[0] === '@' && initPhase !== 1)) return;
+	if (name === ':?') name = ':?' + nextAnon++;
+	else if (typeof name !== 'string' || !name || (name.startsWith(':?') && !interfaces[name]) || (name[0] === '@' && initPhase !== 1)) return;
 	const ix = interfaces[name], isFirst = !ix;
 	if (isFirst) interfaces[name] = {
 	    handlers: Object.create(null), chain: new Set([]), refd: false,
@@ -467,7 +468,11 @@ export const {
 	stub('@interface', 'instance', 'name', 'set');
     });
 
-    // Determine next-level message params for redispatch
+    function getModMeta () {
+        return modMeta;
+    }
+
+   // Determine next-level message params for redispatch
     function getRDMP (mp) {
 	const raw = mp.at('params', mp);
 	return ((raw instanceof NANOS) ? raw : new NANOS(raw ?? []));
@@ -798,7 +803,8 @@ export const {
 	else if (typeof meta === 'object') modMeta.push(parseQJSON(JSON.stringify(meta)));
 	else return;
 
-	setRO(globalThis, {
+	modMeta.deepFreeze();
+        setRO(globalThis, {
 	    msjsHasModMeta: true,	// Module metadata added
 	    msjsNoSelfLoad: true,	// Turn off module self-loading
 	});
@@ -853,6 +859,7 @@ export const {
 	fwait,
 	getInstance: coreGetInstance,
 	getInterface,
+        getModMeta,
 	initialize,
 	logInterfaces,
 	loadModule,

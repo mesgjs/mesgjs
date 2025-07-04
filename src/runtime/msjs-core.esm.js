@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, logInterfaces, runIfCode, runWhileCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, runIfCode, runWhileCode, setRO, typeAccepts, typeChains } from './runtime.esm.js';
 import { NANOS, parseQJSON, parseSLID } from './vendor.esm.js';
 
 // (and value...)
@@ -145,6 +145,7 @@ export function install (name) {
             fwait,
             getInstance,
             getInterface,
+            getModMeta,
             runIfCode,
             runWhileCode,
             setRO,
