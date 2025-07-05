@@ -39,6 +39,17 @@ The runtime will signal when all non-deferred modules have completed loading by 
 
 Mesgjs modules can be configured in two ways: through an in-source SLID block within the `.msjs` file, or via an external `.slid` file. For detailed information on both methods, see the [Mesgjs Module Configuration](../Mesgjs-Module-Configuration.md) document.
 
+## Forcing Module Versions
+
+In advanced use cases, such as testing pre-release or specific-build versions, it may be necessary to bypass the normal dependency resolution process. This can be accomplished by adding a `modforce` key to the entry-point SLID file.
+
+- `modforce`
+  A space or comma-separated list of `modpath@version` strings that will be used instead of any version resolved from the module catalog.
+
+When `modforce` is used, `msjsload` will print an informational message listing the modules being forcibly resolved.
+
+If a forced module version falls outside the declared compatible version range required by another module in the final build, `msjsload` will print a warning to the console to alert the user of the potential incompatibility.
+
 ## USAGE
 
 - To link a module and output the import map and metadata:

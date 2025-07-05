@@ -50,11 +50,12 @@ function computeWeights () {
 
 // Encode the specified requirements
 // module spec; module spec; ...
-function encodeReqs (reqs, label) {
+function encodeReqs (reqs, label, forced = new Map()) {
     if (typeof reqs === 'string') reqs = getModSpec(reqs);
     const all = [];
     for (const modSpec of reqs || []) {
 	const [ , mod, spec ] = modSpec.match(/\s*(\S+)\s+(.*)/);
+	if (forced.has(mod)) continue;
 	const mid = modToMid(mod), ranges = new SemVerRanges(spec), majors = ranges.majors(), any = [];
 	// For each allowed module major, allow each in-range module version
 	for (const major of majors) for (const ver of getVersions(db, mod, major, flags.ext)) if (ranges.inRange(ver)) {
@@ -132,10 +133,28 @@ function getModSpec (spec, group = 'modreq') {
     }
 }
 
+// Return map of forced modules
+function getModForceSpec (spec) {
+    const forced = new Map();
+    const list = getModSpec(spec, 'modforce');
+    if (!list) return forced;
+    for (const item of list) {
+	const { module, version } = pmv(item);
+	if (module && version) forced.set(module, item);
+    }
+    return forced;
+}
+
 // Link the main entry point
 function link (spec, jsIn) {
+    // Get forced modules
+    const forced = getModForceSpec(spec);
+
     // Resolve module dependencies
-    const finalMods = resolveModDeps(getModSpec(spec));
+    const finalMods = resolveModDeps(getModSpec(spec), forced);
+
+    // Check for compatibility issues with forced modules
+    checkCompat(finalMods, forced);
 
     // Check for required features not provided
     checkFeatures(finalMods);
@@ -177,14 +196,38 @@ function modToMid (mod) {
 }
 
 // Resolve module dependencies
-function resolveModDeps (spec) {
-    solver.require(encodeReqs(spec, 'entry point'));
+function resolveModDeps (spec, forced = new Map()) {
+    // Announce forced modules
+    if (forced.size) {
+        console.log('Forcing the following module versions:');
+        for (const mod of forced.values()) console.log(`    ${mod}`);
+    }
+
+    const reqs = new Set(spec || []);
+    for (const forcedMod of forced.values()) {
+        const { modreq } = getModule(db, forcedMod, true) || {};
+        if (modreq) for (const req of getModSpec(modreq)) reqs.add(req);
+    }
+
+    const filteredReqs = [...reqs].filter(r => {
+        const match = r.match(/\s*(\S+)\s+.*/);
+        return !match || !forced.has(match[1]);
+    });
+
+    solver.require(encodeReqs(filteredReqs, 'entry point', forced));
+
     // Quasi-"trampoline" until all requirements have been encoded
-    for (const item of requ.keys()) solver.require(Logic.implies(modToMid(item), encodeReqs(getModule(db, item).modreq, item)));
+    for (const item of requ.keys()) {
+        const { module } = pmv(item);
+        if (forced.has(module)) continue;
+        const mod = getModule(db, item);
+        if (mod) solver.require(Logic.implies(modToMid(item), encodeReqs(mod.modreq, item, forced)));
+    }
 
     // Constrain to at most one version of each module
     for (const item of requ.keys()) {
 	const { module, version, extver } = pmv(item);
+        if (forced.has(module)) continue;
 	modVers[module] ||= { std: [], ext: [] };
 	if (extver) modVers[module].ext.push(version);
 	else modVers[module].std.push(version);
@@ -196,20 +239,52 @@ function resolveModDeps (spec) {
 
     // Look for any (trial) solution
     const trial = solver.solve();
-    if (!trial) throw new Error('Unable to resolve all module dependencies');
+    if (!trial) throw new Error('Unable to resolve module dependencies');
 
     // Optimize using newest module versions
     computeWeights();
-    const final = solver.minimizeWeightedSum(trial, Object.keys(weights), Object.values(weights));
-
-    const finalMods = [];
-    for (const midver of final.getTrueVars()) {
-	const modver = midToMod(midver);
-	if (!finalMods.length) console.log('Module dependencies resolved:');
-	finalMods.push(modver);
-	console.log(modver);
+    
+    const solvedMods = [];
+    if (trial) {
+	const final = solver.minimizeWeightedSum(trial, Object.keys(weights), Object.values(weights));
+	for (const midver of final.getTrueVars()) {
+	    const modver = midToMod(midver);
+	    if (!solvedMods.length) console.log('Module dependencies resolved:');
+	    solvedMods.push(modver);
+	    console.log(modver);
+	}
     }
-    return finalMods;
+
+    return [ ...forced.values(), ...solvedMods ];
+}
+
+function checkCompat (finalMods, forced) {
+    if (!forced.size) return;
+
+    for (const mod of finalMods) {
+        const modInfo = getModule(db, mod, true);
+        if (!modInfo) continue;
+        const modReqs = getModSpec(modInfo.modreq);
+        if (!modReqs) continue;
+
+        for (const req of modReqs) {
+            const match = req.match(/\s*(\S+)\s+(.*)/);
+            if (!match) continue;
+            const [, reqMod, reqSpecStr] = match;
+
+            if (forced.has(reqMod)) {
+                const forcedVersionFull = forced.get(reqMod);
+                const forcedVersionInfo = pmv(forcedVersionFull);
+                const ranges = new SemVerRanges(reqSpecStr);
+                const baseVersion = `${forcedVersionInfo.major}.${forcedVersionInfo.minor}.${forcedVersionInfo.patch}`;
+
+                if (!ranges.inRange(forcedVersionFull) && !ranges.inRange(baseVersion)) {
+                    const { module, version } = pmv(mod);
+                    console.warn(`Warning: Module ${module}@${version} might not work with forced ${forcedVersionFull}`);
+                }
+            }
+        }
+    }
 }
 
 function checkFeatures (finalMods) {
