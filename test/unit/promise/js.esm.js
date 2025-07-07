@@ -154,6 +154,25 @@ export default async function runTests() {
         p2.resolve('too late');
         return p;
     }, 'race rejection');
+
+    await testAsync('.result works', async () => {
+      const p1 = getInstance('@promise');
+      assertEqual(p1.result, undefined);
+      p1.resolve('resolved');
+      await p1;
+      assertEqual(p1.result, 'resolved');
+
+      const reason = new Error('rejected');
+      const p2 = getInstance('@promise');
+      p2.catch(() => {}); // Prevent unhandled rejection error
+      p2.reject(reason);
+      try {
+        await p2;
+      } catch (e) {
+        // ignore
+      }
+      assertEqual(p2.result, reason);
+    });
   });
 }
 

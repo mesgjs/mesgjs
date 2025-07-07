@@ -501,8 +501,7 @@ export const {
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    const noVerify = modMeta?.at('disableIntegrity');
-	    if (globalThis.msjsHasModMeta && !noVerify) throw new Error(`loadModule: Refusing unverified module "${src}"`);
+	    if (globalThis.msjsHasModMeta && expect !== 'DISABLED') throw new Error(`loadModule: Refusing unverified module "${src}"`);
 	    console.warn(`loadModule WARNING: Module "${src}" is unverified`);
 	}
 
