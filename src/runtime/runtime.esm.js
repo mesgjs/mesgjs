@@ -160,13 +160,13 @@ export const {
 
     // Assemble the feature map from modules or host modules.
     function addModFeatures (mods) {
-	for (const modKey of mods.keys() || []) {
+	for (const modKey of mods?.keys() || []) {
 	    // Only add features for verifiable mods
 	    const modInf = mods.at(modKey);
 	    if (!getIntegritySHA512(modInf?.at('integrity'))) continue;
 	    for (const f of modInf?.at('featpro')?.values() || []) if (!features.has(f)) {
 		const prom = getInstance('@promise');
-		prom.catch(() => console.log(`loadModule: Feature "${f}" rejected`));
+		prom.catch(() => console.warn(`loadModule: Feature "${f}" rejected`));
 		features.set(f, prom);
 	    }
 	}
@@ -297,7 +297,7 @@ export const {
 		if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
 		return e.info;
 	    }
-	    if (thisDisp !== false) console.log(`[Mesgjs exception ${thisDisp}]`, e);
+	    if (thisDisp !== false) console.warn(`[Mesgjs exception ${thisDisp}]`, e);
 	    if (trace && !(e instanceof MsjsFlow)) appendStackTrace(e);
 	    throw e;
 	}
@@ -501,8 +501,9 @@ export const {
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    if (globalThis.msjsHasModMeta) throw new Error(`loadModule: Refusing unverified module "${src}"`);
-	    console.log(`loadModule WARNING: Module "${src}" is unverified`);
+	    const noVerify = modMeta?.at('disableIntegrity');
+	    if (globalThis.msjsHasModMeta && !noVerify) throw new Error(`loadModule: Refusing unverified module "${src}"`);
+	    console.warn(`loadModule WARNING: Module "${src}" is unverified`);
 	}
 
 	src = remapModURL(src, meta);
@@ -819,8 +820,8 @@ export const {
 	 */
 	const loaded = getInstance('@promise'), loadPros = [];
 	features.set('@loaded', loaded);
-	for (const mod of modMeta.at('modules').entries()) if (!mod[1].at('defLoad')) loadPros.push(loadModule(mod[0]));
-	loaded.allSettled(...loadPros);
+	for (const mod of modMeta.at('modules').entries()) if (!mod[1].at('deferLoad')) loadPros.push(loadModule(mod[0]));
+	loaded.allSettled(loadPros);
     }
 
     function stub (type, ...names) {

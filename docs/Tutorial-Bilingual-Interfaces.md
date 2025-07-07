@@ -99,6 +99,7 @@ counterInterface_JS.set({
 ```
 *Note: By setting the prototype to our `Counter` instance, we directly expose its methods (`increment`, `value`, etc.) on the Mesgjs object (`d.rr`) for the JavaScript side to call.*
 
+*For a more advanced and robust version of this pattern, as used in the Mesgjs Web Interface (MWI), please see the [`Bilingual-Interface-Addendum.md`](Bilingual-Interface-Addendum.md).*
 ---
 
 ## Pattern 2: Mesgjs-Managed State (Protected State)

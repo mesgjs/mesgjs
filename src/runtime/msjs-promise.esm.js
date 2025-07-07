@@ -47,6 +47,14 @@ const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
     all (promises) {
 	if (this[privKey].state !== 'pending') return;
+	if (!Array.isArray(promises)) {
+	    if (typeof promises?.values === 'function') {
+		promises = [...promises.values()];
+	    }
+	    if (!Array.isArray(promises)) {
+		throw new TypeError('@promise(all) requires a list of promises');
+	    }
+	}
 	const results = [];
 	let remaining = promises.length;
 
@@ -62,6 +70,14 @@ const proto = Object.setPrototypeOf({
 
     allSettled (promises) {
 	if (this[privKey].state !== 'pending') return;
+	if (!Array.isArray(promises)) {
+	    if (typeof promises?.values === 'function') {
+		promises = [...promises.values()];
+	    }
+	    if (!Array.isArray(promises)) {
+		throw new TypeError('@promise(allSettled) requires a list of promises');
+	    }
+	}
 	const results = [];
 	let remaining = promises.length;
 
