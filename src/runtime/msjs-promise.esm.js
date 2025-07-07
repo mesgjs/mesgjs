@@ -23,6 +23,21 @@ const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
 const dualStatus = status => Object.assign(new NANOS(status), status);
 
+function arrayFrom (value) {
+    // Pass arrays through as-is
+    if (Array.isArray(value)) {
+        return value;
+    }
+    // Flatten iterables and generators
+    if (typeof value?.[Symbol.iterator] === 'function' || typeof value?.next === 'function') {
+        return Array.from(value);
+    }
+    // Flatten objects with a values method
+    if (typeof value?.values === 'function') {
+        return [...value.values()];
+    }
+}
+
 function callHandlers (list) {
     const { state, result } = this[privKey], ok = state === 'fulfilled';
     if (!ok && !list.length) {
@@ -33,8 +48,12 @@ function callHandlers (list) {
 	const [ onResolve, onReject, next ] = entry;
 	queueMicrotask(() => {
 	    try {
-		const handler = ok ? onResolve : onReject, st = handler.msjsType;
-		if (st) next.resolve(handler((st === '@code') ? 'run' : 'call', ok ? { resolve: result } : { reject: result }));
+		const handler = ok ? onResolve : onReject, mt = handler.msjsType;
+		if (mt) {
+                    const mp = ok ? { state, resolve: result } : { state, reject: result, message: result?.message };
+                    // Note: @function(call) can see the message params; @code(run) cannot!
+                    next.resolve(handler((mt === '@code') ? 'run' : 'call', mp));
+                }
 		else next.resolve(handler(result));
 	    } catch (err) {
 		next.reject(err);
@@ -47,14 +66,10 @@ const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
     all (promises) {
 	if (this[privKey].state !== 'pending') return;
-	if (!Array.isArray(promises)) {
-	    if (typeof promises?.values === 'function') {
-		promises = [...promises.values()];
-	    }
-	    if (!Array.isArray(promises)) {
-		throw new TypeError('@promise(all) requires a list of promises');
-	    }
-	}
+        promises = arrayFrom(promises);
+        if (!Array.isArray(promises)) {
+            throw new TypeError('@promise(all) requires an iterable of promises');
+        }
 	const results = [];
 	let remaining = promises.length;
 
@@ -70,13 +85,9 @@ const proto = Object.setPrototypeOf({
 
     allSettled (promises) {
 	if (this[privKey].state !== 'pending') return;
+        promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
-	    if (typeof promises?.values === 'function') {
-		promises = [...promises.values()];
-	    }
-	    if (!Array.isArray(promises)) {
-		throw new TypeError('@promise(allSettled) requires a list of promises');
-	    }
+            throw new TypeError('@promise(allSettled) requires an iterable of promises');
 	}
 	const results = [];
 	let remaining = promises.length;
@@ -87,8 +98,8 @@ const proto = Object.setPrototypeOf({
 		results[idx] = dualStatus({ status: 'fulfilled', value });
 		if (--remaining === 0) this.resolve(results);
 	    }, reason => {
-		results[idx] = dualStatus({ status: 'rejected', reason });
-		if (--remaining === 0) this.resolve(results);
+                results[idx] = dualStatus({ status: 'rejected', reason });
+                if (--remaining === 0) this.resolve(results);
 	    });
 	});
 	return this;
@@ -98,9 +109,13 @@ const proto = Object.setPrototypeOf({
 
     any (promises) {
 	if (this[privKey].state !== 'pending') return;
+        promises = arrayFrom(promises);
+	if (!Array.isArray(promises)) {
+            throw new TypeError('@promise(any) requires an iterable of promises');
+	}
 	const reasons = [];
 	let remaining = promises.length;
-	const allRejected = () => { throw new AggregateError(reasons, 'All promises were rejected'); };
+	const allRejected = () => this.reject(new AggregateError(reasons, 'All promises were rejected'));
 
 	if (!remaining) allRejected();
 	promises.forEach((p, idx) => {
@@ -126,6 +141,10 @@ const proto = Object.setPrototypeOf({
 
     race (promises) {
 	if (this[privKey].state !== 'pending') return;
+        promises = arrayFrom(promises);
+	if (!Array.isArray(promises)) {
+            throw new TypeError('@promise(race) requires an iterable of promises');
+	}
 	promises.forEach(p => p.then(res => this.resolve(res), err => this.reject(err)));
 	return this;
     },
@@ -179,12 +198,13 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
-	    all: d => d.rr.all(d.mp.values()),
-	    allSettled: d => d.rr.allSettled(d.mp.values()),
+	    all: d => d.rr.all(d.mp),
+	    allSettled: d => d.rr.allSettled(d.mp),
 	    always: d => d.rr.always(d.mp.at(0)),
-	    any: d => d.rr.any(d.mp.values()),
+	    any: d => d.rr.any(d.mp),
 	    catch: d => d.rr.catch(d.mp.at(0)),
-	    race: d => d.rr.race(d.mp.values()),
+            message: d => d.rr.result?.message,
+	    race: d => d.rr.race(d.mp),
 	    reject: d => d.rr.reject(d.mp.at(0)),
 	    resolve: d => d.rr.resolve(d.mp.at(0)),
 	    result: d => d.rr.result,

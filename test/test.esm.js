@@ -74,7 +74,7 @@ export function testRejects (label, fn, expect) {
 	++failed;
 	return false;
     }).catch(err => {
-	if (err.includes(expect)) {
+	if (err.message.includes(expect)) {
 	    console.log(  `[Passed] ${label}`);
 	    ++passed;
 	    return true;

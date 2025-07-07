@@ -21,6 +21,8 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `(catch onRejected)`
   * Synopsis: Registers a `(run)`\-able code block, `(call)`\-able function block, or plain JavaScript function as an `onRejected` handler for the receiver.
   * Returns a new `@promise` for chaining.
+* `(message)`
+  * Synopsis: Returns the message part of the error if rejected, or else `@u`.
 * `(race promise...)`
   * Synopsis: The receiver will resolve or reject based on the first promise to resolve or reject.
 * `(reject error)`
@@ -37,9 +39,15 @@ This interface is "bilingual", supporting both JavaScript object properties and 
   * Synopsis: Registers one or two `(run)`\-able code blocks, `(call)`\-able function blocks, or plain JavaScript functions as the `onResolved` handler and optional `onRejected` handlers, respectively, for the receiver.
   * Returns a new `@promise` for chaining.
 
-Mesgjs event handler functions are passed either a `resolve=result` or `reject=reason` parameter (code blocks can query the `(result)`). JavaScript handlers are just passed the resolution result or rejection reason.
+Event handlers may be Mesgjs `@code` blocks, `@function` blocks, or plain JavaScript functions.
 
-allSettled returns a `@jsArray` of bilingual-result objects. In Mesgjs, these results are lists of either `[ status=fulfilled value=`_`value`_` ]` or `[ status=rejected reason=`_`reason`_` ]`. In JavaScript, the results are `NANOS` class instances augmented by `.status` and either `.value` or `.reason` properties.
+Since `@code` blocks can't be passed parameters when `(run)`, they must access whatever they need by messaging the promise instance, using e.g. `(state)` and `(result)`.
+
+`@function` handlers will be passed either `[state=state resolve=result]` or `[state=state reject=reason message=message]`, where `reason` is a JavaScript `Error` object, and `message` is the error's message text.
+
+JavaScript handlers are just passed the resolution result or rejection reason.
+
+allSettled returns a `@jsArray` of bilingual-result objects. In Mesgjs, each result in the array is either a list containing `[ status=fulfilled value=`_`value`_` ]` or a list containing `[ status=rejected reason=`_`reason`_` ]`. In JavaScript, each result is a `NANOS` class instances augmented by `.status` and either `.value` or `.reason` properties.
 
 ## JavaScript Object Properties
 
@@ -54,13 +62,13 @@ const rejp = getInstance('@promise', { reject: reason }); // Like JS Promise.rej
 
 Methods and properties correspond to Mesgjs messages as described above.
 
-* `.all(...promises)`
-* `.allSettled(...promises)`
+* `.all([promises])`
+* `.allSettled([promises])`
 * `.always(onSettled)`
-* `.any(...promises)`
+* `.any([promises])`
 * `.catch(onRejected)`
 * `.then(onResolved, onRejected = undefined)`
-* `.race(...promises)`
+* `.race([promises])`
 * `.reject(reason) // Promise.withResolvers().reject(), not Promise.reject()!`
 * `.resolve(result) // Promise.withResolvers().resolve(), not Promise.resolve()!`
 * `.result`
