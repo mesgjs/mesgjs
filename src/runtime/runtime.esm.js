@@ -39,10 +39,15 @@ export async function fetchModule (src, { decode, integrity } = {}) {
     let data;
     if (typeof Deno !== 'undefined' && !src.startsWith('https://')) {
 	data = await Deno.readFile(src);
+	if (!data) throw new Error(`fetchModule: File "${src}" not found`);
     } else {
-	data = await fetch(src).then(r => r.arrayBuffer());
+	data = await fetch(src).then(r => {
+	    if (r.ok) {
+		return r.arrayBuffer();
+	    }
+	    throw new Error(`fetchModule: File "${src}" not found`);
+	});
     }
-    if (!data) return new Error(`fetchModule: File "${src}" not found`);
     if (integrity && await calcDigest(data, 'SHA-512') !== integrity) return new Error(`fetchModule: File "${src}" integrity verification failed`);
     return ((decode === false) ? data : new TextDecoder().decode(data));
 }
@@ -162,12 +167,12 @@ export const {
 
     // Assemble the feature map from modules.
     function addModFeatures (mods) {
-	for (const [modKey, modInf] of mods?.namedEntries() || []) {
+	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
 	    // Only add features for verifiable mods
-	    const integrity = modInf.at('integrity');
+	    const integrity = modInfo.at('integrity');
 	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
-	    const featProList = modInf?.at('featpro', '').split(/[\s,]+/).filter(Boolean) || [];
-	    modInf.set('featpro', new NANOS(featProList));
+	    const featProList = modInfo?.at('featpro', '').split(/[\s,]+/).filter(Boolean) || [];
+	    modInfo.set('featpro', new NANOS(featProList));
 	    for (const feature of featProList) {
 		if (!features.has(feature)) {
 		    const prom = getInstance('@promise');
@@ -497,12 +502,12 @@ export const {
 	}
     }
 
-    async function loadModule (src) {
+    async function loadModule (module) {
 	// Prevent reload by source
-	if (modLoaded.has('src-' + src)) return;
-	modLoaded.add('src-' + src);
+	if (modLoaded.has('mod-' + module)) return;
+	modLoaded.add('mod-' + module);
 
-	const meta = modMeta?.at('modules')?.at(src);
+	const meta = modMeta?.at('modules')?.at(module);
 	const integrity = meta.at('integrity', '');
 	const expect = (integrity === 'DISABLED') ? '' : getIntegritySHA512(integrity);
 	if (expect) {
@@ -511,35 +516,38 @@ export const {
 	    modLoaded.add(expect);
 	} else {
 	    if (globalThis.msjsHasModMeta && integrity !== 'DISABLED') {
-		const err = new Error(`loadModule: Refusing unverified module "${src}"`);
+		const err = new Error(`loadModule: Refusing unverified module "${module}"`);
 		console.error(err.message);
 		return err;
 	    }
-	    console.warn(`loadModule WARNING: Module "${src}" is unverified`);
+	    console.warn(`loadModule WARNING: Module "${module}" is unverified`);
 	}
 
-	src = remapModURL(src, meta);
-	const code = await fetchModule(src, { integrity: expect });
-	if (code instanceof Error) {
+	const fetchURL = remapModURL(module, meta);
+	let code, importURL;
+	const mid = Symbol();
+	try {
+	    code = await fetchModule(fetchURL, { integrity: expect });
+	    if (meta) {
+		if (expect) modMap.set(expect, meta);
+		modMap.set(mid, meta);
+	    }
+
+	    const importURL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
+		URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
+		`data:application/javascript;base64,${btoa(code)}`;
+	    const mod = await import(importURL);
+	    if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(mid);
+	} catch (err) {
+	    console.error(`loadModule "${module}" failed: ${err.message}`);
 	    // Reject this module's features, if any
 	    for (const feature of meta?.at('featpro')?.values() || []) {
 		features.get(feature)?.reject(code);
 	    }
-	    return code;
+	    return err;
+	} finally {
+	    if (importURL?.startsWith('blob:')) URL.revokeObjectURL(importURL);
 	}
-
-	let mid;
-	if (meta) {
-	    mid = Symbol();
-	    if (expect) modMap.set(expect, meta);
-	    modMap.set(mid, meta);
-	}
-	const importURL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
-	    URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
-	    `data:application/javascript;base64,${btoa(code)}`;
-	const mod = await import(importURL);
-	if (importURL.startsWith('blob:')) URL.revokeObjectURL(importURL);
-	if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(mid);
     }
 
     function logInterfaces () { console.log(interfaces); }
