@@ -35,12 +35,14 @@ export async function calcIntegrity (src) {
     return calcDigest(await fetchModule(src, { decode: false }), 'SHA-512');
 }
 
-export async function fetchModule (host, path, { decode, integrity } = {}) {
-    const src = host ? `${host}/${path}` : path;
+export async function fetchModule (src, { decode, integrity } = {}) {
     let data;
-    if (host) data = await fetch(src).arrayBuffer();
-    if (typeof Deno !== 'undefined') data = await Deno.readFile(path);
-    if (!data) return new Error(`fetchModule: File "${path}" not found`);
+    if (typeof Deno !== 'undefined' && !src.startsWith('https://')) {
+	data = await Deno.readFile(src);
+    } else {
+	data = await fetch(src).then(r => r.arrayBuffer());
+    }
+    if (!data) return new Error(`fetchModule: File "${src}" not found`);
     if (integrity && await calcDigest(data, 'SHA-512') !== integrity) return new Error(`fetchModule: File "${src}" integrity verification failed`);
     return ((decode === false) ? data : new TextDecoder().decode(data));
 }
@@ -158,16 +160,20 @@ export const {
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
     const modLoaded = new Set(), features = new Map(), modMeta = new NANOS(), modMap = new Map();
 
-    // Assemble the feature map from modules or host modules.
+    // Assemble the feature map from modules.
     function addModFeatures (mods) {
-	for (const modKey of mods?.keys() || []) {
+	for (const [modKey, modInf] of mods?.namedEntries() || []) {
 	    // Only add features for verifiable mods
-	    const modInf = mods.at(modKey);
-	    if (!getIntegritySHA512(modInf?.at('integrity'))) continue;
-	    for (const f of modInf?.at('featpro')?.values() || []) if (!features.has(f)) {
-		const prom = getInstance('@promise');
-		prom.catch(() => console.warn(`loadModule: Feature "${f}" rejected`));
-		features.set(f, prom);
+	    const integrity = modInf.at('integrity');
+	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
+	    const featProList = modInf?.at('featpro', '').split(/[\s,]+/).filter(Boolean) || [];
+	    modInf.set('featpro', new NANOS(featProList));
+	    for (const feature of featProList) {
+		if (!features.has(feature)) {
+		    const prom = getInstance('@promise');
+		    prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
+		    features.set(feature, prom);
+		}
 	    }
 	}
     }
@@ -362,7 +368,7 @@ export const {
     function fcheck (f) {
 	switch (features.get(f)?.state) {
 	case 'pending': return false;	// @f: not ready
-	case 'resolved': return true;	// @t: ready
+	case 'fulfilled': return true;	// @t: ready
 	}
 	// no such feature, or mod load rejected: @u
     }
@@ -376,9 +382,11 @@ export const {
     }
 
     // Mark a feature ready (if module is authorized)
-    function fready (mid, f) {
+    function fready (mid, feature) {
 	const meta = modMap.get(mid);
-	if (meta && meta.featpro?.includes(f)) features.get(f)?.resolve();
+	if (meta?.at('featpro')?.includes(feature)) {
+	    features.get(feature)?.resolve();
+	}
     }
 
     /*
@@ -495,13 +503,18 @@ export const {
 	modLoaded.add('src-' + src);
 
 	const meta = modMeta?.at('modules')?.at(src);
-	const expect = getIntegritySHA512(meta?.at('integrity'));
+	const integrity = meta.at('integrity', '');
+	const expect = (integrity === 'DISABLED') ? '' : getIntegritySHA512(integrity);
 	if (expect) {
 	    // Prevent reload by signature
 	    if (modLoaded.has(expect)) return;
 	    modLoaded.add(expect);
 	} else {
-	    if (globalThis.msjsHasModMeta && expect !== 'DISABLED') throw new Error(`loadModule: Refusing unverified module "${src}"`);
+	    if (globalThis.msjsHasModMeta && integrity !== 'DISABLED') {
+		const err = new Error(`loadModule: Refusing unverified module "${src}"`);
+		console.error(err.message);
+		return err;
+	    }
 	    console.warn(`loadModule WARNING: Module "${src}" is unverified`);
 	}
 
@@ -509,22 +522,24 @@ export const {
 	const code = await fetchModule(src, { integrity: expect });
 	if (code instanceof Error) {
 	    // Reject this module's features, if any
-	    for (const f of meta?.at('featpro')?.values() || []) features.get(f)?.reject(code);
-	    throw code;
+	    for (const feature of meta?.at('featpro')?.values() || []) {
+		features.get(feature)?.reject(code);
+	    }
+	    return code;
 	}
 
+	let mid;
 	if (meta) {
-	    const mid = Symbol();
-	    meta.set('mid', mid);
-	    modMap.set(expect, meta);
+	    mid = Symbol();
+	    if (expect) modMap.set(expect, meta);
 	    modMap.set(mid, meta);
 	}
-	const URL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
+	const importURL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
 	    URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
 	    `data:application/javascript;base64,${btoa(code)}`;
-	const mod = await import(URL);
-	if (URL.startsWith('blob:')) URL.revokeObjectURL(URL);
-	if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(meta?.mid);
+	const mod = await import(importURL);
+	if (importURL.startsWith('blob:')) URL.revokeObjectURL(importURL);
+	if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(mid);
     }
 
     function logInterfaces () { console.log(interfaces); }
@@ -803,7 +818,6 @@ export const {
 	else if (typeof meta === 'object') modMeta.push(parseQJSON(JSON.stringify(meta)));
 	else return;
 
-	modMeta.deepFreeze();
         setRO(globalThis, {
 	    msjsHasModMeta: true,	// Module metadata added
 	    msjsNoSelfLoad: true,	// Turn off module self-loading
@@ -811,6 +825,9 @@ export const {
 
 	// Track features provided by modules
 	addModFeatures(modMeta.at('modules'));
+
+	// No more changes!
+	modMeta.deepFreeze();
 
 	/*
 	 * Allow modules to @c(fwait @loaded) and initiate loading of all
