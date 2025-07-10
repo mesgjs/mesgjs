@@ -24,16 +24,17 @@ echo "Assembling MWI training data..."
 # List of files to assemble
 FILES=(
   "Mesgjs-10-Minute-Overview.md"
-  "Tutorial-Bilingual-Interfaces.md"
   "Mesgjs-Language-Overview.md"
   "Mesgjs-For-JavaScript-Programmers.md"
-  "JavaScript-Interface-Development.md"
   "JavaScript-Runtime-Reference.md"
   "Mesgjs-Messaging-Overview.md"
   "Mesgjs-Syntax.md"
   "Mesgjs-Text-And-Numbers.md"
   "Mesgjs-Module-Configuration.md"
   "Static-List-Data-SLID-Format.md"
+  "JavaScript-Interface-Development.md"
+  "Tutorial-Bilingual-Interfaces.md"
+  "Bilingual-Interface-Addendum.md"
 )
 
 # Append top-level documents

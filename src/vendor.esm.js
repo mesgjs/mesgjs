@@ -1,3 +1,3 @@
 // Mesgjs top-level vendor dependencies
 
-export { escapeJSString, unescapeJSString } from 'https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.0.3/src/escape.esm.js';
+export { escapeJSString, unescapeJSString } from 'escape-js/src/escape.esm.js';

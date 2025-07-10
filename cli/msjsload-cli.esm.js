@@ -16,7 +16,6 @@ import { escapeJSString as escJSStr } from 'escape-js/escape.esm.js';
 import { NANOS, parseSLID } from 'nanos/nanos.esm.js';
 import Logic from 'npm:logic-solver';
 
-const solver = new Logic.Solver();
 const flags = parseArgs(Deno.args, {
     boolean: [ 'ext', 'html' ],
     string: [ 'cat', 'out' ],
@@ -26,49 +25,131 @@ const dbExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
 const dbFile = dbExt(flags.cat || 'modules');
 let db;
 
-// Module mapping (path <=> mid)
-let nextMid = 0;
-const _midToMod = {}, _modToMid = {};
+// Dependency resolver class
+class Resolver {
+    constructor (db) {
+	this.db = db;
+	this.solver = new Logic.Solver();
+	this.requ = new Set();
+	this.modVers = {};
+	this.weights = [];
+	this.nextMid = 0;
+	this._midToMod = {};
+	this._modToMid = {};
+    }
 
-// Requirements-to-encode queue (set of modpath@version)
-const requ = new Set();
-const modVers = {}, weights = [];
-
-// Weight module versions to prefer newer versions
-function computeWeights () {
-    for (const mod of Object.keys(modVers)) {
-	const mid = modToMid(mod);
-	for (const en of modVers[mod].std.map(v => {
-	    const { major, minor, patch } = pmv(v);
-	    return [ major, minor, patch ];
-	  }).sort((a, b) => compareModVer(b, a)).
-	  map((va, i) => [ mid + '@' + va.join('.'), i ])) {
-	    weights[en[0]] = en[1];
+    // Weight module versions to prefer newer versions
+    computeWeights () {
+	for (const mod of Object.keys(this.modVers)) {
+	    const mid = this.modToMid(mod);
+	    for (const en of this.modVers[mod].std.map(v => {
+		const { major, minor, patch } = pmv(v);
+		return [ major, minor, patch ];
+	    }).sort((a, b) => compareModVer(b, a)).
+		ma((va, i) => [ mid + '@' + va.join('.'), i ])) {
+		this.weights[en[0]] = en[1];
+	    }
 	}
     }
-}
 
-// Encode the specified requirements
-// module spec; module spec; ...
-function encodeReqs (reqs, label, forced = new Map()) {
-    if (typeof reqs === 'string') reqs = getModSpec(reqs);
-    const all = [];
-    for (const modSpec of reqs || []) {
-	const [ , mod, spec ] = modSpec.match(/\s*(\S+)\s+(.*)/);
-	if (forced.has(mod)) continue;
-	const mid = modToMid(mod), ranges = new SemVerRanges(spec), majors = ranges.majors(), any = [];
-	// For each allowed module major, allow each in-range module version
-	for (const major of majors) for (const ver of getVersions(db, mod, major, flags.ext)) if (ranges.inRange(ver)) {
-	    any.push(`${mid}@${ver}`);
-	    requ.add(`${mod}@${ver}`);		// Schedule if new mod@ver
+    // Encode the specified requirements
+    // module spec; module spec; ...
+    encodeReqs (reqs, label, forced = new Map()) {
+	if (typeof reqs === 'string') reqs = getModSpec(reqs);
+	const all = [];
+	for (const modSpec of reqs || []) {
+	    const [ , mod, spec ] = modSpec.match(/\s*(\S+)\s+(.*)/);
+	    if (forced.has(mod)) continue;
+	    const mid = this.modToMid(mod), ranges = new SemVerRanges(spec), majors = ranges.majors(), any = [];
+	    // For each allowed module major, allow each in-range module version
+	    for (const major of majors) for (const ver of getVersions(this.db, mod, major, flags.ext)) if (ranges.inRange(ver)) {
+		any.push(`${mid}@${ver}`);
+		this.requ.add(`${mod}@${ver}`);		// Schedule if new mod@ver
+	    }
+	    if (any.length) all.push(Logic.or(...any));
+	    else {
+		console.error(`Error: No module ${mod} version satisfies "${spec.trim()}" for ${label}`);
+		all.push(Logic.FALSE);
+	    }
 	}
-	if (any.length) all.push(Logic.or(...any));
-	else {
-	    console.error(`Error: No module ${mod} version satisfies "${spec.trim()}" for ${label}`);
-	    all.push(Logic.FALSE);
-	}
+	return (all.length ? Logic.and(...all) : Logic.TRUE);
     }
-    return (all.length ? Logic.and(...all) : Logic.TRUE);
+	
+    // Map module id to module (passing optional version)
+    midToMod (mid) {
+	const { module, atVersion } = pmv(mid);
+	return this._midToMod[module] + atVersion;
+    }
+
+    // Map module to module id (passing optional version)
+    modToMid (mod) {
+	const { module, atVersion } = pmv(mod);
+	if (!this._modToMid[module]) this._midToMod[this._modToMid[module] = 'M' + (this.nextMid++).toString(36)] = module;
+	return this._modToMid[module] + atVersion;
+    }
+
+    // Resolve module dependencies
+    resolve (spec, forced = new Map()) {
+	// Announce forced modules
+	if (forced.size) {
+	    console.log('Forcing the following module versions:');
+	    for (const mod of forced.values()) console.log(`    ${mod}`);
+	}
+
+	const reqs = new Set(spec || []);
+	for (const forcedMod of forced.values()) {
+	    const { modreq } = getModule(this.db, forcedMod, true) || {};
+	    if (modreq) for (const req of getModSpec(modreq)) reqs.add(req);
+	}
+
+	const filteredReqs = [...reqs].filter(r => {
+	    const match = r.match(/\s*(\S+)\s+.*/);
+	    return !match || !forced.has(match[1]);
+	});
+
+	this.solver.require(this.encodeReqs(filteredReqs, 'entry point', forced));
+
+	// Quasi-"trampoline" until all requirements have been encoded
+	for (const item of this.requ.keys()) {
+	    const { module } = pmv(item);
+	    if (forced.has(module)) continue;
+	    const mod = getModule(this.db, item);
+	    if (mod) this.solver.require(Logic.implies(this.modToMid(item), this.encodeReqs(mod.modreq, item, forced)));
+	}
+
+	// Constrain to at most one version of each module
+	for (const item of this.requ.keys()) {
+	    const { module, version, extver } = pmv(item);
+	    if (forced.has(module)) continue;
+	    this.modVers[module] ||= { std: [], ext: [] };
+	    if (extver) this.modVers[module].ext.push(version);
+	    else this.modVers[module].std.push(version);
+	}
+	for (const mod of Object.keys(this.modVers)) {
+	    const mid = this.modToMid(mod);
+	    this.solver.require(Logic.atMostOne(...([...this.modVers[mod].std, ...this.modVers[mod].ext].map(v => mid + '@' + v))));
+	}
+
+	// Look for any (trial) solution
+	const trial = this.solver.solve();
+	if (!trial) throw new Error('Unable to resolve module dependencies');
+
+	// Optimize using newest module versions
+	this.computeWeights();
+	    
+	const solvedMods = [];
+	if (trial) {
+	    const final = this.solver.minimizeWeightedSum(trial, Object.keys(this.weights), Object.values(this.weights));
+	    for (const midver of final.getTrueVars()) {
+		const modver = this.midToMod(midver);
+		if (!solvedMods.length) console.log('Module dependencies resolved:');
+		solvedMods.push(modver);
+		console.log(modver);
+	    }
+	}
+
+	return [ ...forced.values(), ...solvedMods ];
+    }
 }
 
 // Return the JS import map in JSON format
@@ -146,116 +227,57 @@ function getModForceSpec (spec) {
 }
 
 // Link the main entry point
-function link (spec, jsIn) {
-    // Get forced modules
-    const forced = getModForceSpec(spec);
+function link (mainSpec, clientSpec, mainJsIn) {
+    // Main entry point resolution
+    const mainResolver = new Resolver(db);
+    const mainForced = getModForceSpec(mainSpec);
+    const mainFinalMods = mainResolver.resolve(getModSpec(mainSpec), mainForced);
+    checkCompat(mainFinalMods, mainForced);
+    checkFeatures(mainFinalMods);
+    const modMeta = getModMeta(mainFinalMods, mainSpec);
 
-    // Resolve module dependencies
-    const finalMods = resolveModDeps(getModSpec(spec), forced);
-
-    // Check for compatibility issues with forced modules
-    checkCompat(finalMods, forced);
-
-    // Check for required features not provided
-    checkFeatures(finalMods);
+    // Client-side resolution
+    if (clientSpec) {
+	const clientResolver = new Resolver(db);
+	const clientForced = getModForceSpec(clientSpec);
+	const clientFinalMods = clientResolver.resolve(getModSpec(clientSpec), clientForced);
+	checkCompat(clientFinalMods, clientForced);
+	checkFeatures(clientFinalMods);
+	modMeta.client = getModMeta(clientFinalMods, clientSpec);
+    }
 
     // JS import map
     const jsImportMap = getJSImportMap();
-
-    // Mesgjs mod meta
-    const modMeta = getModMeta(finalMods, spec);
-
-    // Module loading loop
-    // JS code (if supplied)
-    ({ jsIn, jsImportMap, modMeta });
 
     const outbuf = [], output = (...c) => outbuf.push(...c);
 
     output(`${flags.html ? '' : '// '}<script type='importmap'>${jsImportMap}</script>\n`);
     if (flags.html) output("<script type='module'>\n");
     output(`import { setModMeta } from '${escJSStr(mapPath(db, 'mesgjs/runtime/mesgjs.esm.js'), { dq: false })}';\n`);
-    output(`setModMeta(${JSON.stringify(modMeta)}));\n`);
-    if (jsIn) output('fwait("@loaded").then(() => {\n', jsIn, '\n});\n');
+    output(`setModMeta(${JSON.stringify(modMeta, null, 2)}));\n`);
+
+    if (mainJsIn) {
+        output('$c.fwait("@loaded").then(() => {\n', mainJsIn, '\n});\n');
+    }
+
     if (flags.html) output(`</script>`);
 
     if (flags.out) Deno.writeTextFileSync(flags.out, outbuf.join(''));
     else console.log(outbuf.join(''));
 }
 
-// Map module id to module (passing optional version)
-function midToMod (mid) {
-    const { module, atVersion } = pmv(mid);
-    return _midToMod[module] + atVersion;
-}
-
-// Map module to module id (passing optional version)
-function modToMid (mod) {
-    const { module, atVersion } = pmv(mod);
-    if (!_modToMid[module]) _midToMod[_modToMid[module] = 'M' + (nextMid++).toString(36)] = module;
-    return _modToMid[module] + atVersion;
-}
-
-// Resolve module dependencies
-function resolveModDeps (spec, forced = new Map()) {
-    // Announce forced modules
-    if (forced.size) {
-        console.log('Forcing the following module versions:');
-        for (const mod of forced.values()) console.log(`    ${mod}`);
+// Deeply merge two NANOS objects
+function mergeSpecs (base, overlay) {
+    const merged = base.clone(); // Create a shallow copy first
+    for (const [key, value] of overlay.entries()) {
+        const baseValue = merged.at(key);
+        if (baseValue instanceof NANOS && value instanceof NANOS) {
+            merged.set(key, mergeSpecs(baseValue, value));
+        } else {
+            merged.set(key, value);
+        }
     }
-
-    const reqs = new Set(spec || []);
-    for (const forcedMod of forced.values()) {
-        const { modreq } = getModule(db, forcedMod, true) || {};
-        if (modreq) for (const req of getModSpec(modreq)) reqs.add(req);
-    }
-
-    const filteredReqs = [...reqs].filter(r => {
-        const match = r.match(/\s*(\S+)\s+.*/);
-        return !match || !forced.has(match[1]);
-    });
-
-    solver.require(encodeReqs(filteredReqs, 'entry point', forced));
-
-    // Quasi-"trampoline" until all requirements have been encoded
-    for (const item of requ.keys()) {
-        const { module } = pmv(item);
-        if (forced.has(module)) continue;
-        const mod = getModule(db, item);
-        if (mod) solver.require(Logic.implies(modToMid(item), encodeReqs(mod.modreq, item, forced)));
-    }
-
-    // Constrain to at most one version of each module
-    for (const item of requ.keys()) {
-	const { module, version, extver } = pmv(item);
-        if (forced.has(module)) continue;
-	modVers[module] ||= { std: [], ext: [] };
-	if (extver) modVers[module].ext.push(version);
-	else modVers[module].std.push(version);
-    }
-    for (const mod of Object.keys(modVers)) {
-	const mid = modToMid(mod);
-	solver.require(Logic.atMostOne(...([...modVers[mod].std, ...modVers[mod].ext].map(v => mid + '@' + v))));
-    }
-
-    // Look for any (trial) solution
-    const trial = solver.solve();
-    if (!trial) throw new Error('Unable to resolve module dependencies');
-
-    // Optimize using newest module versions
-    computeWeights();
-    
-    const solvedMods = [];
-    if (trial) {
-	const final = solver.minimizeWeightedSum(trial, Object.keys(weights), Object.values(weights));
-	for (const midver of final.getTrueVars()) {
-	    const modver = midToMod(midver);
-	    if (!solvedMods.length) console.log('Module dependencies resolved:');
-	    solvedMods.push(modver);
-	    console.log(modver);
-	}
-    }
-
-    return [ ...forced.values(), ...solvedMods ];
+    return merged;
 }
 
 function checkCompat (finalMods, forced) {
@@ -297,21 +319,57 @@ function checkFeatures (finalMods) {
     }
 }
 
+function parseEntryPoint(path) {
+    if (path.endsWith('.slid')) {
+        return parseSLID(Deno.readTextFileSync(path));
+    }
+    return path;
+}
+
 try {
     db = new DB(dbFile, { mode: 'read' });
     checkTables(db, dbFile);
 
     const main = flags._[0];
     if (!main) throw new Error('Entry point module or .esm.js/.msjs/.slid file required');
-    if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
-	const jsFile = main.replace(/\.msjs$/, '.esm.js');
-	const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
-	link(parseSLID(Deno.readTextFileSync(slidFile)), Deno.readTextFileSync(jsFile).trim());
+    
+    let mainSpec, clientSpec, mainJsIn;
+
+    if (flags._[1]) {
+        // Dual entry-point mode (server+client)
+        const clientEntryPoint = flags._[1];
+        if (clientEntryPoint.endsWith('.msjs') || clientEntryPoint.endsWith('.esm.js')) {
+     throw new Error('The client entry point must be a .slid file or module path.');
+        }
+
+        mainSpec = parseEntryPoint(main);
+        clientSpec = parseEntryPoint(clientEntryPoint);
+
+        if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
+            mainJsIn = Deno.readTextFileSync(main.replace(/\.msjs$/, '.esm.js')).trim();
+        }
     } else if (main.endsWith('.slid')) {
-	link(parseSLID(Deno.readTextFileSync(main)));
+        const nanosSpec = parseSLID(Deno.readTextFileSync(main));
+        const serverOverlay = nanosSpec.at('server');
+        const clientOverlay = nanosSpec.at('client');
+
+        if (serverOverlay || clientOverlay) {
+            mainSpec = serverOverlay ? mergeSpecs(nanosSpec, serverOverlay) : nanosSpec;
+            if (clientOverlay) clientSpec = mergeSpecs(nanosSpec, clientOverlay);
+        } else {
+            mainSpec = nanosSpec;
+        }
+    } else if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
+ const jsFile = main.replace(/\.msjs$/, '.esm.js');
+ const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
+ mainSpec = parseSLID(Deno.readTextFileSync(slidFile));
+ mainJsIn = Deno.readTextFileSync(jsFile).trim();
     } else {
-	link(main);
+ mainSpec = main;
     }
+    
+    link(mainSpec, clientSpec, mainJsIn);
+
 } catch (err) {
     if (Deno.env.has('DEBUG')) throw err;
     console.error('Error:', err.message);

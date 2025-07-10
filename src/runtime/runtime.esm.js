@@ -168,12 +168,10 @@ export const {
     // Assemble the feature map from modules.
     function addModFeatures (mods) {
 	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
-	    // Only add features for verifiable mods
 	    const integrity = modInfo.at('integrity');
 	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
-	    const featProList = modInfo?.at('featpro', '').split(/[\s,]+/).filter(Boolean) || [];
-	    modInfo.set('featpro', new NANOS(featProList));
-	    for (const feature of featProList) {
+            const featPro = modInfo?.at('featpro', []);
+            for (const feature of featPro.values()) {
 		if (!features.has(feature)) {
 		    const prom = getInstance('@promise');
 		    prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
