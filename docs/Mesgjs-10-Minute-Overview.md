@@ -5,7 +5,7 @@
 - Mesgjs is officially pronounced like "messages" (but "message J S" works too).
 - Everything is an object. Objects are collections of data, with an associated, immutable type, and behaviors (message handlers) separately/externally defined by one or more interfaces.
 - Everything happens by sending a message to an object. Objects may accept, reject, or route messages based on logic / sender / sender type.
-- There are no statements or operators - control flow and computations are just messages.
+- While blocks can contain statements in the sense of executional units and the language recognizes certain "operator-like" sequences for variable access, there are no statements in the sense of declarations or flow control, and no infix-style computational operators; those functions are performed using messages to objects.
 - Many language- and runtime-supplied assets have names or values beginning with `@` to distinguish them from user-supplied assets. The `@` is part of the name or value, *not part of the syntax*. For protection against future extensions, users are strongly encouraged to respect this convention and not use `@` as the first character, even under circumstances in which it is not enforced.
 - Namespaces are live, storage objects for variables. They help avoid naming conflicts, and eliminate the need for pre-declarations. There are namespaces for each of the following scopes/contexts:
   - `%` => object persistent properties
@@ -75,7 +75,7 @@ Evaluates to the text "positive" when `#x` is greater than zero, and "not positi
 // 0 1 2 3 4
 
 #(nset i2=@c(get @loop) po2=1) // get another iterator; set #po2 to 1
-#i2(while { @c(log #po2) } mid={ #po2(lt 1024)! } { #(nset po2=#po2(mul 2)) })
+#i2(while { @c(log #po2) } mid={ #po2(lt 1024) !} { #(nset po2=#po2(mul 2)) })
 // 1 2 4 8 16 32 64 128 256 512 1024
 ```
 
@@ -90,7 +90,7 @@ Loops may also have pre and/or post tests, which run before the main block and a
 ```mesgjs
 #(nset linear = { // Implements slope-intercept y = mx + b  
     !(at m else=%(at m else=1))       // call's !m else fn's %m else 1  
-    (mul !0)                      // call x (first positional, required)  
+    (mul !0)                      // call's x (first positional, !0, required)  
     (add !(at b else=%(at b else=0))) // call's !b else fn's %b else 0  
 !}(fn)) // no m or b; if absent at (call), defaults will be m=1, b=0  
 
@@ -118,7 +118,7 @@ Handles exceptions safely. You can also message `#t1` for things like the error 
 (set handlers = [          // Chain-message the returned interface  
     @init = { %(nset count=0) } // Upon instantiation, set %count to zero  
     inc = { %(nset count=%count(add 1)) } // (inc) adds 1  
-    get = { %count ! }     // (get) returns the current count  
+    get = { %count !}     // (get) returns the current count  
 ])                         // Add the interface's message handlers  
 
 #(nset c1 = @c(get counter)) // Create counter instance c1  
@@ -149,9 +149,8 @@ benefit.
 * Note that "`!}`" is a single, indivisible, "lexical token", not two. It
 ends a code block, and is meant as a visual alert/reminder that the final
 value will be returned. It is unrelated to the `!` (message parameter)
-namespace. Further note that "`! }`" (as two separate tokens) is an error,
-as `!` is not permitted to appear by itself as a value (only as the base
-object for a message).
+namespace. Further note that "`! }`" (as two separate tokens) is a non-returning
+block with a final value consisting of `!`, an operator-style word literal.
 
 * Namespaces help avoid naming collisions, but you do have to be mindful
 when reading or writing code so as not to mix them up (or potentially

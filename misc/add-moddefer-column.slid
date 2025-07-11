@@ -1,0 +1,7 @@
+[(
+  add=[
+    modules=[
+      moddefer='TEXT NOT NULL DEFAULT ""'
+    ]
+  ]
+)]
