@@ -16,7 +16,7 @@ function parseEach (...a) {
 
 // Parse module@version string into components
 export function parseModVer (mod) {
-    let [ , module, version, major, minor, patch, extver, tail ] = mod.match(/(?:^\s*(\D.*?))?(?:(?:^|@)((\d+)\.(\d+)\.(\d+)([+-][^\/]+)?)(\/.*)?)?$/) || [];
+    let [ , module, version, major, minor, patch, extver, tail ] = typeof mod?.match === 'function' && mod.match(/(?:^\s*(\D.*?))?(?:(?:^|@)((\d+)\.(\d+)\.(\d+)([+-][^\/]+)?)(\/.*)?)?$/) || [];
     [ major, minor, patch ] = parseEach(major, minor, patch);
     const atVersion = (module && version) ? ('@' + version) : (version ?? '');
     return { module, atVersion, version, major, minor, patch, extver, tail };

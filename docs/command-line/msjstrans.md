@@ -2,12 +2,12 @@
 
 ## NAME
 
-**msjstrans** — Mesgjs-to-JavaScript transpiler
+**msjstrans** - Mesgjs-to-JavaScript transpiler
 
 ## SYNOPSIS
 
 ```
-msjstrans [--cat <catalog>] [--mod] [--no-js] [--tokens] [--tree] [--root <dir>] [--upcat] [--ver] *.msjs
+msjstrans [--add-white-space] [--cat <catalog>] [--enable-debug-blocks] [--enable-js-embeds] [--mod] [--no-js] [--root <dir>] [--tokens] [--tree] [--upcat] [--ver] *.msjs
 ```
 
 ## DESCRIPTION
@@ -16,13 +16,22 @@ The `msjstrans` tool transpiles Mesgjs source files (`.msjs`) to JavaScript, gen
 
 ## OPTIONS
 
-- `--cat <catalog>`  
+- `--add-white-space`
+  Add extra white space to the JavaScript output to improve readability for development and debugging.
+
+- `--cat <catalog>`
   Specify the module catalog database file.
 
-- `--mod`  
+- `--enable-debug-blocks`
+  Enable code generation for `@debug{...}` debugging blocks, which must always parse correctly, but are excluded from the transpiled code by default.
+
+- `--enable-js-embeds`
+  Enable `@js{...@}` embedded-JavaScript blocks, which are normally prohibited (resulting in an error message if encountered) for security reasons.
+
+- `--mod`
   Use the `modpath` from configSLID for output pathing.
 
-- `--no-js`  
+- `--no-js`
   Do not generate JavaScript or a source map.
 
 - `--root <dir>`  

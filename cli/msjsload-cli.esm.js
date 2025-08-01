@@ -10,10 +10,10 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
-import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/semver.esm.js';
-import { escapeJSString as escJSStr } from 'escape-js/escape.esm.js';
-import { NANOS, parseSLID } from 'nanos/nanos.esm.js';
+import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/src/module-catalog-lite.esm.js';
+import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/src/semver.esm.js';
+import { escapeJSString as escJSStr } from 'escape-js/src/escape.esm.js';
+import { NANOS, parseSLID } from 'nanos/src/nanos.esm.js';
 import Logic from 'npm:logic-solver';
 
 const flags = parseArgs(Deno.args, {

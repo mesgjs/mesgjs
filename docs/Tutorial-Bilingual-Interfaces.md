@@ -34,8 +34,8 @@ Our goal is to create a `counter` object that works identically from both Mesgjs
 
 ```javascript
 const myCounter = getInstance('counter', { initialValue: 10 });
-myCounter.increment();
-console.log(myCounter.value());
+myCounter.jsv.increment();
+console.log(myCounter.jsv.value());
 ```
 
 ---
@@ -80,9 +80,12 @@ Now, we create the Mesgjs interface. The `@init` handler will create an instance
 
 // The @init handler creates the JS class instance
 function opInit_JS(d) {
-    const initialValue = d.mp.has('initialValue') ? d.mp.at('initialValue') : 0;
-    d.octx.js = new Counter(initialValue);
-    Object.setPrototypeOf(d.rr, d.octx.js); // Attach the JS instance as the prototype
+    const initialValue = d.mp.at('initialValue', 0);
+    const counterInstance = new Counter(initialValue);
+
+    // Attach the JS instance for internal and external access.
+    setRO(d.octx, 'js', counterInstance);  // For internal handlers via d.js
+    setRO(d.rr, 'jsv', counterInstance);   // For external JS consumers via .jsv
 }
 
 const counterInterface_JS = getInterface('counter_js');
@@ -97,9 +100,7 @@ counterInterface_JS.set({
     }
 });
 ```
-*Note: By setting the prototype to our `Counter` instance, we directly expose its methods (`increment`, `value`, etc.) on the Mesgjs object (`d.rr`) for the JavaScript side to call.*
-
-*For a more advanced and robust version of this pattern, as used in the Mesgjs Web Interface (MWI), please see the [`Bilingual-Interface-Addendum.md`](Bilingual-Interface-Addendum.md).*
+*Note: By attaching the `Counter` instance to the `.jsv` property, we make the API contract explicit. JavaScript code will access the pure JS methods via `myCounter.jsv.increment()`.*
 ---
 
 ## Pattern 2: Mesgjs-Managed State (Protected State)

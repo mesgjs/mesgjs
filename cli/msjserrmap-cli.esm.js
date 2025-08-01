@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { decodeMappings, findSegment } from 'mesgjs/decode-source-map.esm.js';
+import { decodeMappings, findSegment } from 'mesgjs/src/decode-source-map.esm.js';
 
 let sourceMap, segments;
 

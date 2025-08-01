@@ -33,9 +33,9 @@ FILES=(
   "Mesgjs-Module-Configuration.md"
   "Static-List-Data-SLID-Format.md"
   "JavaScript-Interface-Development.md"
-  "Tutorial-Bilingual-Interfaces.md"
-  "Bilingual-Interface-Addendum.md"
 )
+# "Tutorial-Bilingual-Interfaces.md"
+# "Bilingual-Interface-Addendum.md"
 
 # Append top-level documents
 for FILE in "${FILES[@]}"; do

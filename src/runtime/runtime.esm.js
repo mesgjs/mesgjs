@@ -165,19 +165,23 @@ export const {
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
     const modLoaded = new Set(), features = new Map(), modMeta = new NANOS(), modMap = new Map();
 
+    function addFeatures (featureList) {
+	for (const feature of featureList.values()) {
+	    if (!features.has(feature)) {
+		const prom = getInstance('@promise');
+		prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
+		features.set(feature, prom);
+	    }
+	}
+    }
+
     // Assemble the feature map from modules.
     function addModFeatures (mods) {
 	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
 	    const integrity = modInfo.at('integrity');
 	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
-            const featPro = modInfo?.at('featpro', []);
-            for (const feature of featPro.values()) {
-		if (!features.has(feature)) {
-		    const prom = getInstance('@promise');
-		    prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
-		    features.set(feature, prom);
-		}
-	    }
+            const features = modInfo?.at('featpro', []);
+	    addFeatures(features);
 	}
     }
 
@@ -387,7 +391,7 @@ export const {
     // Mark a feature ready (if module is authorized)
     function fready (mid, feature) {
 	const meta = modMap.get(mid);
-	if (meta?.at('featpro')?.includes(feature)) {
+	if (meta?.at('featpro')?.includes(feature) || modMeta.at('testMode')) {
 	    features.get(feature)?.resolve();
 	}
     }
@@ -505,7 +509,7 @@ export const {
 	if (modLoaded.has('mod-' + module)) return;
 	modLoaded.add('mod-' + module);
 
-	const meta = modMeta?.at('modules')?.at(module);
+	const meta = modMeta.at('modules')?.at(module);
 	const integrity = meta.at('integrity', '');
 	const expect = (integrity === 'DISABLED') ? '' : getIntegritySHA512(integrity);
 	if (expect) {
@@ -829,8 +833,11 @@ export const {
 	    msjsNoSelfLoad: true,	// Turn off module self-loading
 	});
 
-	// Track features provided by modules
+	// Track features provided by modules (or test mode)
 	addModFeatures(modMeta.at('modules'));
+	if (modMeta.at('testMode')) {
+	    addFeatures(modMeta.at('features', []));
+	}
 
 	// No more changes!
 	modMeta.deepFreeze();
@@ -842,7 +849,7 @@ export const {
 	 */
 	const loaded = getInstance('@promise'), loadPros = [];
 	features.set('@loaded', loaded);
-	for (const mod of modMeta.at('modules').entries()) if (!mod[1].at('deferLoad')) loadPros.push(loadModule(mod[0]));
+	for (const mod of modMeta.at('modules')?.entries() || []) if (!mod[1].at('deferLoad')) loadPros.push(loadModule(mod[0]));
 	loaded.allSettled(loadPros);
     }
 

@@ -14,7 +14,7 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { catalogExt, escapeLike, initTables, mapPath } from 'mesgjs/module-catalog-lite.esm.js';
+import { catalogExt, escapeLike, initTables, mapPath } from 'mesgjs/src/module-catalog-lite.esm.js';
 
 const flags = parseArgs(Deno.args, {
     boolean: [ 'lsmap', 'lsmod', 'rmmap' ],

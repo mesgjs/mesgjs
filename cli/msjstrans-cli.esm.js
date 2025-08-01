@@ -3,7 +3,10 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  *
+ * --add-white-space - Add extra white space to the output for development/debugging
  * --cat - The module catalog database
+ * --enable-debug-blocks - Enable @debug{...} debuggin blocks
+ * --enable-js-embeds - Enable @js{...@} JavaScript embeds
  * --mod - Use configSLID module path
  * --no-js - Do not generate JavaScript or source map
  * --root - The output root directory
@@ -17,15 +20,15 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { lex, parse } from 'mesgjs/lexparse.esm.js';
-import { transpileTree, mappingGenerator } from 'mesgjs/transpile.esm.js';
-import { addModule, checkTables } from 'mesgjs/module-catalog-lite.esm.js';
-import { calcDigest } from 'mesgjs/runtime/calc-digest.esm.js';
-import { parseModVer as pmv } from 'mesgjs/semver.esm.js';
-import { parseSLID } from 'nanos/nanos.esm.js';
+import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
+import { transpileTree, mappingGenerator } from 'mesgjs/src/transpile.esm.js';
+import { addModule, checkTables } from 'mesgjs/src/module-catalog-lite.esm.js';
+import { calcDigest } from 'mesgjs/src/runtime/calc-digest.esm.js';
+import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
+import { parseSLID } from 'nanos/src/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
-    boolean: [ 'tokens', 'tree', 'mod', 'ver', 'no-js', 'upcat' ],
+    boolean: [ 'add-white-space', 'enable-debug-blocks', 'enable-js-embeds', 'mod', 'no-js', 'tokens', 'tree', 'upcat', 'ver' ],
     string: [ 'cat', 'root' ],
 });
 const upcat = flags.upcat;
@@ -114,7 +117,12 @@ async function process (srcPath) {
 	console.log('No module dependencies will be recorded.');
     }
 
-    const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree);
+    const txpOpts = {
+        addWhiteSpace: flags['add-white-space'],
+        debugBlocks: flags['enable-debug-blocks'],
+        enableJS: flags['enable-js-embeds']
+    };
+    const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
     if (txpErrors?.length) console.log(txpErrors.join('\n'));
     if (fatal) console.log(fatal);
     if (txpErrors?.length || fatal) Deno.exit(1);

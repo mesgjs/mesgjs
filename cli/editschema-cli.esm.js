@@ -6,7 +6,7 @@
 
 import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
-import { parseSLID } from 'nanos/nanos.esm.js';
+import { parseSLID } from 'nanos/src/nanos.esm.js';
 
 // --- Main ---
 
