@@ -150,3 +150,30 @@ operation, checks the message baton. Upon confirming that the message recipient
 in the baton matches the responding object, it saves the message and sender
 information from the baton, clears the baton, and processes the securely-passed
 message from the known sender.
+
+## Module-Signed Messages
+
+If a message is sent using a "list-op"-style message, including a `mid`
+attribute with the module's runtime-assigned ID in the list-op value will
+result in the message being a "module-signed message".
+
+`receiver([operation mid=@mid] parameters)`
+
+When sending module-signed messages, the runtime messaging pipeline will include
+the sending-module identifier (the sending module's "modpath" value) in the
+receiver's dispatch object, accessible as `@d(smi)` from Mesgjs or `d.smi`
+from JavaScript.
+
+The receiver does not gain access to the sender's mid via the list-op; it is
+only accessible to the Mesgjs runtime system. (Just be sure you're putting it
+in the list-op and not in the message parameters, especially if you're using
+list-op `params=` to supply message parameters.)
+
+The sending-module identifier is useful for looking up access-controlled
+capabilities in the runtime module meta-data (under the `modcaps` key).
+
+For non-module-signed messages, the `smi` value is `@u`/`undefined`.
+
+Module-signing of messages works for both anonymous messages (e.g. from
+JavaScript) and attributed messages (between two runtime-created Mesgjs
+objects).

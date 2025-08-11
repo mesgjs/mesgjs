@@ -26,15 +26,15 @@ const dualStatus = status => Object.assign(new NANOS(status), status);
 function arrayFrom (value) {
     // Pass arrays through as-is
     if (Array.isArray(value)) {
-        return value;
+	return value;
     }
     // Flatten iterables and generators
     if (typeof value?.[Symbol.iterator] === 'function' || typeof value?.next === 'function') {
-        return Array.from(value);
+	return Array.from(value);
     }
     // Flatten objects with a values method
     if (typeof value?.values === 'function') {
-        return [...value.values()];
+	return [...value.values()];
     }
 }
 
@@ -50,10 +50,10 @@ function callHandlers (list) {
 	    try {
 		const handler = ok ? onResolve : onReject, mt = handler.msjsType;
 		if (mt) {
-                    const mp = ok ? { state, resolve: result } : { state, reject: result, message: result?.message };
-                    // Note: @function(call) can see the message params; @code(run) cannot!
-                    next.resolve(handler((mt === '@code') ? 'run' : 'call', mp));
-                }
+		    const mp = ok ? { state, resolve: result } : { state, reject: result, message: result?.message };
+		    // Note: @function(call) can see the message params; @code(run) cannot!
+		    next.resolve(handler((mt === '@code') ? 'run' : 'call', mp));
+		}
 		else next.resolve(handler(result));
 	    } catch (err) {
 		next.reject(err);
@@ -66,10 +66,10 @@ const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
     all (promises) {
 	if (this[privKey].state !== 'pending') return;
-        promises = arrayFrom(promises);
-        if (!Array.isArray(promises)) {
-            throw new TypeError('@promise(all) requires an iterable of promises');
-        }
+	promises = arrayFrom(promises);
+	if (!Array.isArray(promises)) {
+	    throw new TypeError('@promise(all) requires an iterable of promises');
+	}
 	const results = [];
 	let remaining = promises.length;
 
@@ -85,9 +85,9 @@ const proto = Object.setPrototypeOf({
 
     allSettled (promises) {
 	if (this[privKey].state !== 'pending') return;
-        promises = arrayFrom(promises);
+	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
-            throw new TypeError('@promise(allSettled) requires an iterable of promises');
+	    throw new TypeError('@promise(allSettled) requires an iterable of promises');
 	}
 	const results = [];
 	let remaining = promises.length;
@@ -98,8 +98,8 @@ const proto = Object.setPrototypeOf({
 		results[idx] = dualStatus({ status: 'fulfilled', value });
 		if (--remaining === 0) this.resolve(results);
 	    }, reason => {
-                results[idx] = dualStatus({ status: 'rejected', reason });
-                if (--remaining === 0) this.resolve(results);
+		results[idx] = dualStatus({ status: 'rejected', reason });
+		if (--remaining === 0) this.resolve(results);
 	    });
 	});
 	return this;
@@ -109,9 +109,9 @@ const proto = Object.setPrototypeOf({
 
     any (promises) {
 	if (this[privKey].state !== 'pending') return;
-        promises = arrayFrom(promises);
+	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
-            throw new TypeError('@promise(any) requires an iterable of promises');
+	    throw new TypeError('@promise(any) requires an iterable of promises');
 	}
 	const reasons = [];
 	let remaining = promises.length;
@@ -141,9 +141,9 @@ const proto = Object.setPrototypeOf({
 
     race (promises) {
 	if (this[privKey].state !== 'pending') return;
-        promises = arrayFrom(promises);
+	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
-            throw new TypeError('@promise(race) requires an iterable of promises');
+	    throw new TypeError('@promise(race) requires an iterable of promises');
 	}
 	promises.forEach(p => p.then(res => this.resolve(res), err => this.reject(err)));
 	return this;
@@ -203,7 +203,7 @@ export function install (name) {
 	    always: d => d.rr.always(d.mp.at(0)),
 	    any: d => d.rr.any(d.mp),
 	    catch: d => d.rr.catch(d.mp.at(0)),
-            message: d => d.rr.result?.message,
+	    message: d => d.rr.result?.message,
 	    race: d => d.rr.race(d.mp),
 	    reject: d => d.rr.reject(d.mp.at(0)),
 	    resolve: d => d.rr.resolve(d.mp.at(0)),

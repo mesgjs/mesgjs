@@ -1,0 +1,7 @@
+[(
+  add=[
+    modules=[
+      modcaps='TEXT NOT NULL DEFAULT ""'
+    ]
+  ]
+)]

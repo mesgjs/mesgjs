@@ -15,6 +15,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `(return value?)` \- returns from the current dispatch (either to the parent dispatch or the message sender), optionally including a value to return in instead of `@u` (undefined).  
 * `(rr)` \- the object receiving the message  
 * `(rt)` \- the receiver type  
+* `(smi)` \- the sending-module identifer ("modpath"), for module-signed messages  
 * `(sr)` \- the sender (for attributed messages, otherwise undefined)  
 * `(st)` \- the sender's type (for attributed messages, otherwise undefined
 
@@ -32,6 +33,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `.rt` \- the receiver type  
 * `.msjsType` \- the type of the *dispatch* object ("@dispatch")  
 * `.sm` \- the receiver's private send-message function (sm(recipient, mesgOp, mesgParams))  
+* `.smi` \- the sending-module identifer ("modpath"), for module-signed messages  
 * `.sr` \- the sending object's public interface/receiver function (for attributed messages, otherwise undefined)  
 * `.st` \- the sender's type (for attributed messages, otherwise undefined)  
 * `d.t` \- JIT transient-storage (scratch) `NANOS` getter

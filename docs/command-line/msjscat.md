@@ -23,7 +23,7 @@ The `msjscat` tool provides utilities for managing and querying the Mesgjs modul
   List all path-map entries in the database.
 
 - `--lsmod`  
-  List all module entries in the database. Can be filtered with `--mod`.
+  List all module entries in the database. Can be filtered with `--mod`. This will display all fields for each module, including `featpro`, `featreq`, `modreq`, `moddefer`, and `modcaps`.
 
 - `--mapin <input>`  
   Specify the input path for path-map operations.

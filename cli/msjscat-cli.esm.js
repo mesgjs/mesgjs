@@ -60,13 +60,15 @@ if (flags.lsmod) {
     if (major !== undefined) addCond('major', major);
     if (minor !== undefined) addCond('minor', minor);
     if (patch !== undefined) addCond('patch', patch);
-    const query = 'select path, major, minor, patch, extver, integ, featpro, featreq, modreq from modules' + (where.length ? (' where ' + where.join(' and ')) : '');
-    for (const [path, major, minor, patch, extver, integ, featpro, featreq, modreq] of db.query(query, params)) {
-	console.log('*', path, `${major}.${minor}.${patch}${extver}:`);
-	console.log('Integrity:', integ);
-	if (featpro) console.log('Features provided:', featpro);
-	if (featreq) console.log('Features required:', featreq);
-	if (modreq) console.log('Modules required:', modreq);
+    const query = 'select path, major, minor, patch, extver, integ, featpro, featreq, modreq, moddefer, modcaps from modules' + (where.length ? (' where ' + where.join(' and ')) : '');
+    for (const [path, major, minor, patch, extver, integ, featpro, featreq, modreq, moddefer, modcaps] of db.query(query, params)) {
+ console.log('*', path, `${major}.${minor}.${patch}${extver}:`);
+ console.log('Integrity:', integ);
+ if (featpro) console.log('Features provided:', featpro);
+ if (featreq) console.log('Features required:', featreq);
+ if (modreq) console.log('Modules required:', modreq);
+ if (moddefer) console.log('Modules deferred:', moddefer);
+ if (modcaps) console.log('Module capabilities:', modcaps);
 	console.log('---');
     }
 }

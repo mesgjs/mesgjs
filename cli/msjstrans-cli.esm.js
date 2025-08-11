@@ -118,9 +118,9 @@ async function process (srcPath) {
     }
 
     const txpOpts = {
-        addWhiteSpace: flags['add-white-space'],
-        debugBlocks: flags['enable-debug-blocks'],
-        enableJS: flags['enable-js-embeds']
+	addWhiteSpace: flags['add-white-space'],
+	debugBlocks: flags['enable-debug-blocks'],
+	enableJS: flags['enable-js-embeds']
     };
     const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
     if (txpErrors?.length) console.log(txpErrors.join('\n'));
@@ -156,25 +156,25 @@ async function process (srcPath) {
     if (skip) return;
 
     if (!upcat) {
-        console.log(`Writing ${finalPath} and map...`);
-        if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
-        Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
-        Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+	console.log(`Writing ${finalPath} and map...`);
+	if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
+	Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
+	Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
     }
 
     // If we have the appropriate info, add or update this module in the module catalog
     if (db && !([ major, minor, patch ].includes(undefined)) && modPath) {
 	const sha512 = await calcDigest(codePlus, 'SHA-512');
-        const modreq = meta.at('modreq', '');
-        const moddefer = meta.at('deferLoad', '');
-        if (upcat) {
-            console.log(`Updating dependencies for ${modPath}@${major}.${minor}.${patch}${extver}...`);
-            db.query(`update modules set modreq = ?, moddefer = ? where path = ? and major = ? and minor = ? and patch = ? and extver = ?`, [ modreq, moddefer, modPath, major, minor, patch, extver ?? '' ]);
-        } else {
-            const featpro = config.at('featpro', ''), featreq = config.at('featreq', '');
-            console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver}...`);
-            addModule(db, `${modPath}@${version}`, { integrity: sha512, featpro, featreq, modreq, moddefer });
-        }
+	const modreq = meta.at('modreq', '');
+	const moddefer = meta.at('deferLoad', '');
+	if (upcat) {
+	    console.log(`Updating dependencies for ${modPath}@${major}.${minor}.${patch}${extver}...`);
+	    db.query(`update modules set modreq = ?, moddefer = ? where path = ? and major = ? and minor = ? and patch = ? and extver = ?`, [ modreq, moddefer, modPath, major, minor, patch, extver ?? '' ]);
+	} else {
+	    const featpro = config.at('featpro', ''), featreq = config.at('featreq', ''), modcaps = config.at('modcaps', '');
+	    console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver}...`);
+	    addModule(db, `${modPath}@${version}`, { integrity: sha512, featpro, featreq, modreq, moddefer, modcaps });
+	}
     }
 }
 

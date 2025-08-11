@@ -149,6 +149,7 @@ export const {
     initialize,
     loadModule,
     logInterfaces,
+    modHasCap,
     moduleScope,
     setModMeta,
     typeAccepts,
@@ -163,25 +164,22 @@ export const {
     }, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
-    const modLoaded = new Set(), features = new Map(), modMeta = new NANOS(), modMap = new Map();
+    const features = new Map();
+    const modMeta = new NANOS(), modMap = new Map(), modLoaded = new Set();
+    const modMidToName = new Map();
 
+    // Add features from a string / array / list
     function addFeatures (featureList) {
+	if (typeof featureList === 'string') {
+	    featureList = featureList.split(/\s+/).filter(Boolean);
+	}
+	if (typeof featureList?.values !== 'function') return;
 	for (const feature of featureList.values()) {
 	    if (!features.has(feature)) {
 		const prom = getInstance('@promise');
 		prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
 		features.set(feature, prom);
 	    }
-	}
-    }
-
-    // Assemble the feature map from modules.
-    function addModFeatures (mods) {
-	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
-	    const integrity = modInfo.at('integrity');
-	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
-            const features = modInfo?.at('featpro', []);
-	    addFeatures(features);
 	}
     }
 
@@ -213,8 +211,8 @@ export const {
      * - Checks (and clears) the message baton
      * - Processes (NANOS or plain JS object) list-op messages
      */
-    function canMesgProps (ctx, checkBaton = true) {
-	let sr, st, { rr, rt, op, mp } = ctx, hasElse = false, elseExpr;
+    function canMesgProps(ctx, checkBaton = true) {
+	let sr, st, smi, { rr, rt, op, mp } = ctx, hasElse = false, elseExpr;
 	if (checkBaton) {
 	    const mb = mesgBaton;
 	    mesgBaton = undefined;
@@ -223,14 +221,18 @@ export const {
 	if (op instanceof NANOS) op = op.storage;
 	if (typeof op === 'object') {	// List-op message
 	    const hp = prop => hasOwn(op, prop);
-	    if (hp('else')) [ hasElse, elseExpr ] = [ true, op.else ];
+	    if (hp('else')) [hasElse, elseExpr] = [true, op.else];
+	    if (hp('mid')) {
+		const moduleName = modMidToName.get(op.mid);
+		if (moduleName) smi = moduleName;
+	    }
 	    if (hp('params')) mp = op.params;
 	    if (hp('op')) op = op.op;
 	    else if (hp('0')) op = op[0];
 	    else throw new SyntaxError('Missing operation in Mesgjs list-op message');
 	}
 	if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
-	return { sr, st, rr, rt, op, mp, hasElse, elseExpr };
+	return { sr, st, smi, rr, rt, op, mp, hasElse, elseExpr };
     }
 
     // Core version of getInstance (works with public interfaces)
@@ -274,7 +276,7 @@ export const {
 
     // Dispatch a handler, passing it a fresh @dispatch object
     function dispatchHandler (mctx, dhctx, mp) {
-	const { sr, st, rr, rt } = mctx; // message context
+	const { sr, st, smi, rr, rt } = mctx; // message context
 	const { op, octx, handler, sm } = dhctx; // dH context
 
 	/*
@@ -292,6 +294,7 @@ export const {
 	disp.sm = sm;
 	disp.sr = sr;
 	disp.st = st;
+	disp.smi = smi;
 
 	const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
 	try {
@@ -340,7 +343,7 @@ export const {
     }
     firstInit.push(() => {
 	getInterface('@dispatch').set({ pristine: true, private: true, lock: true });
-	stub('@dispatch', 'ht', 'js', 'op', 'redis', 'return', 'rr', 'rt', 'sr', 'st');
+	stub('@dispatch', 'ht', 'js', 'op', 'redis', 'return', 'rr', 'rt', 'sr', 'st', 'smi');
     });
 
     // Return flattened chain set by interface type
@@ -483,8 +486,10 @@ export const {
 	stub('@interface', 'instance', 'name', 'set');
     });
 
+    // Return the current modMeta (if configured)
     function getModMeta () {
-        return modMeta;
+	// Never give access to unfrozen modMeta!
+	return Object.isFrozen(modMeta) ? modMeta : undefined;
     }
 
    // Determine next-level message params for redispatch
@@ -528,6 +533,7 @@ export const {
 	const fetchURL = remapModURL(module, meta);
 	let code, importURL;
 	const mid = Symbol();
+	modMidToName.set(mid, module);
 	try {
 	    code = await fetchModule(fetchURL, { integrity: expect });
 	    if (meta) {
@@ -553,6 +559,12 @@ export const {
     }
 
     function logInterfaces () { console.log(interfaces); }
+
+    // Determine whether a module has a capability
+    function modHasCap (module, cap) {
+	const caps = modMeta?.at(['modules', module, 'modcaps']) || [];
+	return caps.includes(cap);
+    }
 
     // Return a module dispatch object
     function moduleScope () {
@@ -618,6 +630,25 @@ export const {
 	});
 	getInterface('@handler').set({ pristine: true, private: true, lock: true });
     });
+
+    // Process module entries.
+    function processModules (mods) {
+	const listify = (base, key, sep = /[\s,]+/) => {
+	    const value = base.at(key);
+	    if (typeof value === 'string') {
+		base.set(key, new NANOS(value.split(sep).filter(Boolean)));
+	    }
+	};
+	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
+	    const integrity = modInfo.at('integrity');
+	    listify(modInfo, 'featpro');
+	    listify(modInfo, 'featreq');
+	    listify(modInfo, 'modcaps');
+	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
+	    const features = modInfo?.at('featpro', []);
+	    addFeatures(features);
+	}
+    }
 
     // Use modMeta to remap the module source location
     function remapModURL (src, meta) {
@@ -698,10 +729,11 @@ export const {
 	    this.bfn._capture = true;
 	    throw new MsjsFlow('return', mp.at(0));
 	    // Not reached
-	case 'rr': return mctx.rr;
-	case 'rt': return mctx.rt;
-	case 'sr': return mctx.sr;
-	case 'st': return mctx.st;
+	case 'rr': return mctx.rr;      // Receiver
+	case 'rt': return mctx.rt;      // Receiver type
+	case 'sr': return mctx.sr;      // Sender
+	case 'st': return mctx.st;      // Sender type
+	case 'smi': return mctx.smi;    // Sending-module identifier
 	}
 	return runIfCode(elseExpr);
     }
@@ -828,16 +860,18 @@ export const {
 	else if (typeof meta === 'object') modMeta.push(parseQJSON(JSON.stringify(meta)));
 	else return;
 
-        setRO(globalThis, {
+	setRO(globalThis, {
 	    msjsHasModMeta: true,	// Module metadata added
 	    msjsNoSelfLoad: true,	// Turn off module self-loading
 	});
 
 	// Track features provided by modules (or test mode)
-	addModFeatures(modMeta.at('modules'));
+	processModules(modMeta.at('modules'));
 	if (modMeta.at('testMode')) {
 	    addFeatures(modMeta.at('features', []));
 	}
+
+	modMeta.set('allFeatures', new NANOS(...features.keys()));
 
 	// No more changes!
 	modMeta.deepFreeze();
@@ -889,10 +923,11 @@ export const {
 	fwait,
 	getInstance: coreGetInstance,
 	getInterface,
-        getModMeta,
+	getModMeta,
 	initialize,
 	logInterfaces,
 	loadModule,
+	modHasCap,
 	moduleScope,
 	setModMeta,
 	typeAccepts,

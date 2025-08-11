@@ -166,36 +166,37 @@ function getModMeta (finalMods, spec) {
     const entryPointReqs = new Set(getModSpec(spec).map(req => pmv(req).module));
 
     for (const mod of finalMods) {
-        const { module: modPath, version } = pmv(mod);
-        const modInfo = getModule(db, mod, true);
-        const { integrity, featpro, modreq, moddefer } = modInfo;
-        const moduleMeta = { integrity, version };
+	const { module: modPath, version } = pmv(mod);
+	const modInfo = getModule(db, mod, true);
+	const { integrity, featpro, modreq, moddefer, modcaps } = modInfo;
+	const moduleMeta = { integrity, version };
 
-        if (featpro) moduleMeta.featpro = featpro.split(/[,\s]+/).filter(f => f);
+	if (featpro) moduleMeta.featpro = featpro.split(/[,\s]+/).filter(Boolean);
+	if (modcaps) moduleMeta.modcaps = modcaps.split(/[,\s]+/).filter(Boolean);
 
-        const [url, mapping] = mapPath(db, modPath, { detail: true, version });
-        if (!mapping) moduleMeta.url = url;
-        else prefixMap[mapping[0]] ||= mapping[1];
+	const [url, mapping] = mapPath(db, modPath, { detail: true, version });
+	if (!mapping) moduleMeta.url = url;
+	else prefixMap[mapping[0]] ||= mapping[1];
 
-        modules[modPath] = moduleMeta;
+	modules[modPath] = moduleMeta;
 
-        // Check deferrals from other modules
-        const deferSet = new Set((moddefer || '').split(/[,\s]+/).filter(f => f));
-        for (const req of (modreq || '').split(/[,\s]+/).filter(f => f)) {
-            const reqPath = pmv(req).module;
-            if (!deferSet.has(reqPath)) eager[reqPath] = true;
-        }
+	// Check deferrals from other modules
+	const deferSet = new Set((moddefer || '').split(/[,\s]+/).filter(Boolean));
+	for (const req of (modreq || '').split(/[,\s]+/).filter(Boolean)) {
+	    const reqPath = pmv(req).module;
+	    if (!deferSet.has(reqPath)) eager[reqPath] = true;
+	}
 
-        // Check deferrals from entry point for top-level dependencies
-        if (entryPointReqs.has(modPath) && !entryPointDefers.has(modPath)) {
-            eager[modPath] = true;
-        }
+	// Check deferrals from entry point for top-level dependencies
+	if (entryPointReqs.has(modPath) && !entryPointDefers.has(modPath)) {
+	    eager[modPath] = true;
+	}
     }
 
     for (const modPath in modules) {
-        if (!eager[modPath]) {
-            modules[modPath].deferLoad = true;
-        }
+	if (!eager[modPath]) {
+	    modules[modPath].deferLoad = true;
+	}
     }
 
     delete prefixMap[''];
@@ -210,7 +211,7 @@ function getModSpec (spec, group = 'modreq') {
     } else if (group !== 'modreq') return;
     if (typeof spec === 'string') {
 	const sep = (group === 'modreq') ? /\s*;\s*/ : /[,;\s]+/;
-	return spec.split(sep).filter(f => f);
+	return spec.split(sep).filter(Boolean);
     }
 }
 
@@ -257,7 +258,7 @@ function link (mainSpec, clientSpec, mainJsIn) {
     output(`setModMeta(${JSON.stringify(modMeta, null, 2)}));\n`);
 
     if (mainJsIn) {
-        output('$c.fwait("@loaded").then(() => {\n', mainJsIn, '\n});\n');
+	output('$c.fwait("@loaded").then(() => {\n', mainJsIn, '\n});\n');
     }
 
     if (flags.html) output(`</script>`);
@@ -270,12 +271,12 @@ function link (mainSpec, clientSpec, mainJsIn) {
 function mergeSpecs (base, overlay) {
     const merged = base.clone(); // Create a shallow copy first
     for (const [key, value] of overlay.entries()) {
-        const baseValue = merged.at(key);
-        if (baseValue instanceof NANOS && value instanceof NANOS) {
-            merged.set(key, mergeSpecs(baseValue, value));
-        } else {
-            merged.set(key, value);
-        }
+	const baseValue = merged.at(key);
+	if (baseValue instanceof NANOS && value instanceof NANOS) {
+	    merged.set(key, mergeSpecs(baseValue, value));
+	} else {
+	    merged.set(key, value);
+	}
     }
     return merged;
 }
@@ -284,28 +285,28 @@ function checkCompat (finalMods, forced) {
     if (!forced.size) return;
 
     for (const mod of finalMods) {
-        const modInfo = getModule(db, mod, true);
-        if (!modInfo) continue;
-        const modReqs = getModSpec(modInfo.modreq);
-        if (!modReqs) continue;
+	const modInfo = getModule(db, mod, true);
+	if (!modInfo) continue;
+	const modReqs = getModSpec(modInfo.modreq);
+	if (!modReqs) continue;
 
-        for (const req of modReqs) {
-            const match = req.match(/\s*(\S+)\s+(.*)/);
-            if (!match) continue;
-            const [, reqMod, reqSpecStr] = match;
+	for (const req of modReqs) {
+	    const match = req.match(/\s*(\S+)\s+(.*)/);
+	    if (!match) continue;
+	    const [, reqMod, reqSpecStr] = match;
 
-            if (forced.has(reqMod)) {
-                const forcedVersionFull = forced.get(reqMod);
-                const forcedVersionInfo = pmv(forcedVersionFull);
-                const ranges = new SemVerRanges(reqSpecStr);
-                const baseVersion = `${forcedVersionInfo.major}.${forcedVersionInfo.minor}.${forcedVersionInfo.patch}`;
+	    if (forced.has(reqMod)) {
+		const forcedVersionFull = forced.get(reqMod);
+		const forcedVersionInfo = pmv(forcedVersionFull);
+		const ranges = new SemVerRanges(reqSpecStr);
+		const baseVersion = `${forcedVersionInfo.major}.${forcedVersionInfo.minor}.${forcedVersionInfo.patch}`;
 
-                if (!ranges.inRange(forcedVersionFull) && !ranges.inRange(baseVersion)) {
-                    const { module, version } = pmv(mod);
-                    console.warn(`Warning: Module ${module}@${version} might not work with forced ${forcedVersionFull}`);
-                }
-            }
-        }
+		if (!ranges.inRange(forcedVersionFull) && !ranges.inRange(baseVersion)) {
+		    const { module, version } = pmv(mod);
+		    console.warn(`Warning: Module ${module}@${version} might not work with forced ${forcedVersionFull}`);
+		}
+	    }
+	}
     }
 }
 
@@ -321,7 +322,7 @@ function checkFeatures (finalMods) {
 
 function parseEntryPoint(path) {
     if (path.endsWith('.slid')) {
-        return parseSLID(Deno.readTextFileSync(path));
+	return parseSLID(Deno.readTextFileSync(path));
     }
     return path;
 }
@@ -336,29 +337,29 @@ try {
     let mainSpec, clientSpec, mainJsIn;
 
     if (flags._[1]) {
-        // Dual entry-point mode (server+client)
-        const clientEntryPoint = flags._[1];
-        if (clientEntryPoint.endsWith('.msjs') || clientEntryPoint.endsWith('.esm.js')) {
+	// Dual entry-point mode (server+client)
+	const clientEntryPoint = flags._[1];
+	if (clientEntryPoint.endsWith('.msjs') || clientEntryPoint.endsWith('.esm.js')) {
      throw new Error('The client entry point must be a .slid file or module path.');
-        }
+	}
 
-        mainSpec = parseEntryPoint(main);
-        clientSpec = parseEntryPoint(clientEntryPoint);
+	mainSpec = parseEntryPoint(main);
+	clientSpec = parseEntryPoint(clientEntryPoint);
 
-        if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
-            mainJsIn = Deno.readTextFileSync(main.replace(/\.msjs$/, '.esm.js')).trim();
-        }
+	if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
+	    mainJsIn = Deno.readTextFileSync(main.replace(/\.msjs$/, '.esm.js')).trim();
+	}
     } else if (main.endsWith('.slid')) {
-        const nanosSpec = parseSLID(Deno.readTextFileSync(main));
-        const serverOverlay = nanosSpec.at('server');
-        const clientOverlay = nanosSpec.at('client');
+	const nanosSpec = parseSLID(Deno.readTextFileSync(main));
+	const serverOverlay = nanosSpec.at('server');
+	const clientOverlay = nanosSpec.at('client');
 
-        if (serverOverlay || clientOverlay) {
-            mainSpec = serverOverlay ? mergeSpecs(nanosSpec, serverOverlay) : nanosSpec;
-            if (clientOverlay) clientSpec = mergeSpecs(nanosSpec, clientOverlay);
-        } else {
-            mainSpec = nanosSpec;
-        }
+	if (serverOverlay || clientOverlay) {
+	    mainSpec = serverOverlay ? mergeSpecs(nanosSpec, serverOverlay) : nanosSpec;
+	    if (clientOverlay) clientSpec = mergeSpecs(nanosSpec, clientOverlay);
+	} else {
+	    mainSpec = nanosSpec;
+	}
     } else if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
  const jsFile = main.replace(/\.msjs$/, '.esm.js');
  const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');

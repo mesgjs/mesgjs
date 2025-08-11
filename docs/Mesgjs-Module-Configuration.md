@@ -16,6 +16,7 @@ This configuration block must appear at the beginning of the file, optionally pr
 | `version` | The semantic version of the module. | `1.2.3` |
 | `featpro` | A space- or comma-separated list of "features" this module provides to the runtime environment. | `"caching dataTransform"` |
 | `featreq` | A space- or comma-separated list of "features" this module requires from other modules in the runtime environment. | `"authUserInfo"` |
+| `modcaps` | A space- or comma-separated list of "capabilities" this module provides. | `"file-access network-io"` |
 
 ### Example `.msjs` File
 

@@ -4,7 +4,7 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, runIfCode, runWhileCode, setModMeta, setRO, typeAccepts, typeChains } from './runtime.esm.js';
+import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, modHasCap, runIfCode, runWhileCode, setModMeta, setRO, typeAccepts, typeChains } from './runtime.esm.js';
 import { NANOS, parseQJSON, parseSLID } from './vendor.esm.js';
 
 // (and value...)
@@ -116,6 +116,7 @@ export function install (name) {
 	    logErr: d => console.error(...d.mp.values()),
 	    logInterfaces,
 	    logWarn: d => console.warn(...d.mp.values()),
+	    modHasCap: d => modHasCap(d.mp.at(0), d.mp.at(1)),
 	    not: d => !runIfCode(d.mp.at(0)),
 	    or: opOr,
 	    qjson: d => parseQJSON(d.mp.at(0, '')),
@@ -137,23 +138,24 @@ export function install (name) {
 	},
     });
     if (name === '@core') {
-        setRO(globalThis, '$c', getInstance('@core'));
-        // "Re-export" common runtime functions on $c to reduce imports
-        Object.assign($c, {
-            fcheck,
-            fready,
-            fwait,
-            getInstance,
-            getInterface,
-            getModMeta,
-            runIfCode,
-            runWhileCode,
+	setRO(globalThis, '$c', getInstance('@core'));
+	// "Re-export" common runtime functions on $c to reduce imports
+	Object.assign($c, {
+	    fcheck,
+	    fready,
+	    fwait,
+	    getInstance,
+	    getInterface,
+	    getModMeta,
+	    modHasCap,
+	    runIfCode,
+	    runWhileCode,
 	    setModMeta,
-            setRO,
-            typeAccepts,
-            typeChains,
-        });
-        // BEST PRACTICE: Make $c immutable after loading in mesgjs.esm.js
+	    setRO,
+	    typeAccepts,
+	    typeChains,
+	});
+	// BEST PRACTICE: Make $c immutable after loading in mesgjs.esm.js
     }
 }
 

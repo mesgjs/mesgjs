@@ -2,7 +2,6 @@
 
 * `(_ value)`
   * Synopsis: The elusive, (mythical?), "basically parentheses" operation.
-  * RIC values: none
   * Simply returns value as-is. Cf. the `(run)` message and the `@try` interface.
   * This is essentially the Mesgjs equivalent of a parenthesized expression in other languages.
   * Note: As the Mesgjs language and this operation currently stand, it's extremely unlikely that you'll ever need this or see it in practical use.
@@ -23,7 +22,6 @@
 * `(debug dispatch=@f dispatchSource=@f dispatchType=@f)`
   `(debug stack=0 stackSource=@f stackType=@f)`
   * Synopsis: Optionally sets, and then returns, the runtime debugging configuration.
-  * RIC values: none
   * All parameters are optional, and may be combined in a single message.
   * dispatch enables dispatch/return/exception logging to the console.
   * dispatchSource enables inclusion of JS file/line/column in dispatch logging.
@@ -34,20 +32,16 @@
   * Returns a list with the current settings.
 * `(fcheck feature)`
   * Synopsis: Returns `@t` (true) if feature is ready, `@f` (false) if feature is not ready, or `@u` (undefined) if feature is unknown or has been rejected due to an unloadable module.
-  * RIC values: none
 * `(fready mid=@mid feature)`
   * Synopsis: Marks feature ready (if the module id, @mid, is associated with the feature).
-  * RIC values: none
   * Features depend on the presence of module metadata.
 * `(fwait feature...)`
   * Synopsis: Returns a @promise instance that waits for the specified feature(s) to be ready. The promise will resolve when all the features are ready, or will reject if any of the features are rejected.
-  * RIC values: none
   * See @promise(then) for additional information about running code or function blocks after a feature becomes ready.
   * Features depend on the presence of module metadata.
 * `(get type init=params)`\
 `(+ type init=params)`
   * Synopsis: Returns an object instance of the specified interface type (always returning the same (first) instance for singleton interfaces).
-  * RIC values: none
   * If the init parameter is present, it's passed to the object's @init handler. This parameter should generally be a list.
 * `(if test1 action1 test2 action2 ... else=default)`\
 `(? test1 action1 test2 action2 ... else=default)`
@@ -57,12 +51,12 @@
   * RIC values: all
 * `(interface name)`
   * Synopsis: Attempts to return an @interface management object for the named interface.
-  * RIC values: none
 * `(log value...)`
   * Synopsis: Log values to the console
-  * RIC values: none
 * `(logInterfaces)`
   * Synopsis: Log the raw interface configuration data to the console
+* `(modHasCap modpath capability)`
+  * Synopsis: Returns true if the module with the specified `modpath` exists in the module metadata and includes the specified `capability` in its list of `modcaps`.
 * `(not value)`\
 `(~ value)`
   * Synopsis: Returns the logical "not" of its parameter.
@@ -76,7 +70,6 @@
   * Returns the last false value if all are JS-false (default: `@f`).
 * `(qjson string)`
   * Synopsis: Creates (possibly-nested) lists from relaxed, quasi-JSON string (accepts JSON and more).
-  * RIC values: none
   * Allows double-quoted or unquoted keys/values; bigints; ":" or "\=" between keys and values; commas are optional when whitespace is present.
 * `(run value... collect=@f)`
   * Synopsis: Sends (run) to each value that is a (run)\-able code block
@@ -84,18 +77,14 @@
   * Returns a list of all of the return values if collect is supplied and JS-true (default is `@f`), otherwise returns the last value.
 * `(slid string)`
   * Synopsis: Creates (possibly-nested) lists from SLID-format string.
-  * RIC values: none
 * `(type object)`
   * Synopsis: Returns the Mesgjs type of object.
-  * RIC values: none
 * `(typeAccepts type operation)`
   * Synopsis: Returns information about operations an interface-type accepts.
-  * RIC values: none
   * With two parameters, it returns whether a type responds, either directly or indirectly, via a specific or default handler, to a specific message operation.
   * With one parameter, it returns a list of directly-supported message operations (unless the interface is private, in which case it returns `@u`).
 * `(typeChains type1 type2)`
   * Synopsis: Returns information about whether a non-private interface-type chains another interface-type.
-  * RIC values: none
   * With two parameters, it returns whether the second type is ever chained by the first type, either **directly or indirectly** (i.e. if the second type exists in the first interface's flat-chain).
   * With one parameter, it returns the unexpanded list of types **directly** chained by the first interface-type.
   * Returns `@u` for private interfaces.

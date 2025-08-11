@@ -45,8 +45,8 @@ function installCoreExtensions () {
 
     // Attach some additional runtime-related properties, then lock it
     setRO($c, 'symbols', {
-        convert: convertSym,
-        instance: instanceSym,
+	convert: convertSym,
+	instance: instanceSym,
     });
     Object.freeze($c.symbols);
     Object.freeze($c);
@@ -57,7 +57,7 @@ function installCoreExtensions () {
     installList('@list');
     // Teach toMsjs how to convert NANOS to a Msjs @list
     NANOS.prototype[convertSym] = function () {
-        return getInstance('@list', [this]);
+	return getInstance('@list', [this]);
     }
     installLoop('@loop');
     installMap('@map');
@@ -83,10 +83,10 @@ function toMsjs (jsv) {
 	return getInstance('@number', jsv);
     case 'object':
 	if (jsv === null) return getInstance('@null');
-        // Check for an existing Msjs instance
+	// Check for an existing Msjs instance
 	if (jsv[instanceSym]) return jsv[instanceSym];
-        // Check for a custom converter
-        if (jsv[convertSym]) return jsv[convertSym]();
+	// Check for a custom converter
+	if (jsv[convertSym]) return jsv[convertSym]();
 	if (jsv instanceof RegExp) return getInstance('@regex', jsv);
 	// Not sure if we'll see many of these "in the wild"
 	// if (jsv?.$reactive) return getInstance('@reactive', jsv);
@@ -111,4 +111,4 @@ setRO(globalThis, {
 });
 initialize();
 
-// END;
+// END
