@@ -10,6 +10,7 @@ function opInit (d) {
     const { octx, mp } = d, set = mp.at(0);
     setRO(octx, 'js', (set instanceof Set) ? set : new Set());
     setRO(d.js, $c.symbols.instance, d.rr, false);
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 export function install (name) {

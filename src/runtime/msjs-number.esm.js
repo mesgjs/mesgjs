@@ -26,9 +26,10 @@ function opAdd (d) {
     return js;
 }
 
-function opAtInit (d) {
+function opInit (d) {
     const { octx, mp } = d, num = mp.at(0), type = typeof num;
     setRO(octx, 'js', (type === 'number' || type === 'bigint') ? num : parseFloat(num));
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 function opHypot (d) {
@@ -82,7 +83,7 @@ export function install () {
     getInterface('@number').set({
 	lock: true, pristine: true,
 	handlers: {
-	    '@init': opAtInit,
+	    '@init': opInit,
 	    '@jsv': d => d.js,
 	    '+': opAdd,
 	    '&': d => perform(d, (a, b) => a & b, -1), // and

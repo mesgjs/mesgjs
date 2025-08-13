@@ -17,18 +17,10 @@ const gt = globalThis;
 
 // Flow exception, e.g. @d(return value) throws MsjsFlow('return', value)
 export class MsjsFlow extends Error {
-    constructor (message, info) {
-	super(message);
-	if (info !== undefined) this.info = info;
-    }
-
     get name () { return 'MsjsFlow'; }
 }
 export class MsjsFlowError extends RangeError {
-    constructor (...a) {
-	super(...a);
-	this.name = 'MsjsFlowError';
-    }
+    get name () { return 'MsjsFlowError'; }
 };
 
 export async function calcIntegrity (src) {
@@ -37,7 +29,7 @@ export async function calcIntegrity (src) {
 
 export async function fetchModule (src, { decode, integrity } = {}) {
     let data;
-    if (typeof Deno !== 'undefined' && !src.startsWith('https://')) {
+    if (typeof Deno !== 'undefined' && !src.startsWith('https://') && !src.startsWith('data:')) {
 	data = await Deno.readFile(src);
 	if (!data) throw new Error(`fetchModule: File "${src}" not found`);
     } else {
@@ -248,11 +240,11 @@ export const {
 	    const type = typeof dbgCfg[k];
 	    switch (type) {
 	    case 'boolean':
-		if (set.has(k)) dbgCfg[k] = !!set.at(k);
+		if (set?.has?.(k)) dbgCfg[k] = !!set.at(k);
 		break;
 	    case 'number':
 	    {
-		const v = set.at(k);
+		const v = set?.at?.(k);
 		// deno-lint-ignore valid-typeof
 		if (typeof v === type) dbgCfg[k] = v;
 		break;
@@ -299,8 +291,9 @@ export const {
 	const trace = dbgCfg.stack, thisDisp = dbgCfg.dispatch && (dispNo++).toString(16);
 	try {
 	    if (dbgCfg.dispatch) {
-		const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
-		console.log(`[Mesgjs dispatch ${thisDisp}] ${st} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+		const dispOp = (typeof op === 'symbol') ? 'J.Symbol' : op;
+                const lst = loggedType(st);
+		console.log(`[Mesgjs dispatch ${thisDisp}] ${lst} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
 	    }
 	    if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
 	    const result = handler.code(disp);

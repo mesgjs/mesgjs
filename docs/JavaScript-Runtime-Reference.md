@@ -20,7 +20,7 @@ Gets or creates an interface definition object. This is the entry point for defi
 
 ### `getInstance(type, params)`
 
-Creates a new instance of a Mesgjs object. This is the factory function for all Mesgjs objects and replaces the `new` keyword.
+Creates a new instance of a Mesgjs object. This is the factory function for all Mesgjs objects and replaces the `new` keyword. The optional `params` argument is passed to the object's `@init` handler. It can be any JavaScript value; Arrays, Sets, Maps, and plain Objects are assimilated, while other types are added opaquely.
 
 ### `initialize()`
 
@@ -28,11 +28,11 @@ Initializes the Mesgjs runtime, setting up core interfaces and extensions. This 
 
 ## Cryptography and Integrity
 
-### `calcIntegrity(source)`
+### `async calcIntegrity(source)`
 
 Calculates the SHA-512 integrity digest for a given source.
 
-### `fetchModule(host, path, options)`
+### `async fetchModule(host, path, options)`
 
 Fetches a module's source code, with options for decoding and integrity verification.
 
@@ -74,11 +74,11 @@ Checks if a given Mesgjs type accepts a specific message operation.
 - With two parameters, it returns `[type, 'specific' | 'default']` or `undefined`.
 - With one parameter, it returns an array of directly-supported message operations for that type.
 
-### `typeChains(type1, type2)`
+### `typeChains(subtype, supertype)`
 
-Checks if one Mesgjs type is in the inheritance chain of another.
+Checks if `supertype` is in the inheritance chain of `subtype`.
 - With two parameters, it returns a boolean.
-- With one parameter, it returns an array of directly-chained types.
+- With one parameter (for `subtype`), it returns an array of its directly-chained types.
 
 ## Messaging Functions
 
@@ -98,11 +98,11 @@ Checks if a feature is ready without blocking.
 
 ### `fready(moduleId, featureName)`
 
-Signals that a feature provided by a module is ready.
+Signals that a feature provided by a module is ready. The `moduleId` is a unique `Symbol` provided by the runtime to a module's `msjsLoad(mid)` export; this ensures only an authorized module can ready a feature it claims to provide.
 
-### `fwait(featureName, ...)`
+### `async fwait(featureName, ...)`
 
-Returns a promise that resolves when the specified feature(s) are ready.
+Asynchronously waits for one or more features to be ready. Returns a `Promise` that resolves when all specified features have been signaled as ready via `fready`.
 
 ### `getModMeta()`
 
@@ -116,9 +116,9 @@ Loads a Mesgjs module from the given source path.
 
 ### `moduleScope()`
 
-Returns a module dispatch object for use in module-level code. It is exposed globally as `globalThis.$modScope`.
+Returns an object with core module-level properties and functions. It is exposed globally as `globalThis.$modScope`.
 
-Example: `const {d, ls, m, na} = $modScope(), {mp, sm} = d;`
+Example: `const { d, m, ls, na } = $modScope();`
 
 ### `setModMeta(metadata)`
 
@@ -138,6 +138,6 @@ Example: `ls(['key1', 'value1', , 'indexedValue'])` results in a list where `'va
 
 Retrieves a value from a namespace (typically a `NANOS` instance). If the key is not found and `optional` is not true, a `ReferenceError` is thrown. This function is commonly destructured from the module scope as `na`.
 
-### `setRO(object, key, value)` or `setRO(object, keyValueObject)`
+### `setRO(object, key, value, enumerable = true)` or `setRO(object, { key: value, ... }, enumerable = true)`
 
 A utility to create read-only properties on JavaScript objects.

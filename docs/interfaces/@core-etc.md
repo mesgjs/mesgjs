@@ -33,7 +33,7 @@
 * `(fcheck feature)`
   * Synopsis: Returns `@t` (true) if feature is ready, `@f` (false) if feature is not ready, or `@u` (undefined) if feature is unknown or has been rejected due to an unloadable module.
 * `(fready mid=@mid feature)`
-  * Synopsis: Marks feature ready (if the module id, @mid, is associated with the feature).
+  * Synopsis: Marks `feature` ready (but only if the module's id, available as Mesgjs value `@mid`, is associated with the feature, i.e. the feature appears in the module's `featpro` list in the module meta-data).
   * Features depend on the presence of module metadata.
 * `(fwait feature...)`
   * Synopsis: Returns a @promise instance that waits for the specified feature(s) to be ready. The promise will resolve when all the features are ready, or will reject if any of the features are rejected.
@@ -53,8 +53,12 @@
   * Synopsis: Attempts to return an @interface management object for the named interface.
 * `(log value...)`
   * Synopsis: Log values to the console
+* `(logErr value...)`
+  * Synopsis: Log values to the console as an error.
 * `(logInterfaces)`
-  * Synopsis: Log the raw interface configuration data to the console
+  * Synopsis: Log the raw interface configuration data to the console.
+* `(logWarn value...)`
+  * Synopsis: Log values to the console as a warning.
 * `(modHasCap modpath capability)`
   * Synopsis: Returns true if the module with the specified `modpath` exists in the module metadata and includes the specified `capability` in its list of `modcaps`.
 * `(not value)`\
@@ -71,12 +75,15 @@
 * `(qjson string)`
   * Synopsis: Creates (possibly-nested) lists from relaxed, quasi-JSON string (accepts JSON and more).
   * Allows double-quoted or unquoted keys/values; bigints; ":" or "\=" between keys and values; commas are optional when whitespace is present.
-* `(run value... collect=@f)`
-  * Synopsis: Sends (run) to each value that is a (run)\-able code block
+* `(run value... collect=@f repeat=@f)`
+  * Synopsis: Sends `(run)` to each value that is a runnable code block.
   * RIC values: all
-  * Returns a list of all of the return values if collect is supplied and JS-true (default is `@f`), otherwise returns the last value.
+  * `collect`: If true, returns a list of all return values. Otherwise, returns the last value (default `@u`).
+  * `repeat`: If true, continues to run code blocks until they no longer return a runnable code block.
 * `(slid string)`
   * Synopsis: Creates (possibly-nested) lists from SLID-format string.
+* `(throw value)`
+  * Synopsis: Throws the value as a JavaScript exception.
 * `(type object)`
   * Synopsis: Returns the Mesgjs type of object.
 * `(typeAccepts type operation)`

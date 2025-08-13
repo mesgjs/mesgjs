@@ -43,11 +43,17 @@ to figuring out what message to send to which object.
   JavaScript sense. All values are stored in lists, which are a hybrid of
   JavaScript arrays and plain objects, but accessed more like Maps. Values may
   have named or positional/index keys.
+- The `=` token is for key/value association within message parameters or list
+  literals. It is **not** an assignment operator. Assignment is only performed
+  by the execution of messages like `(nset)` or `(set)`.
 - Global shared storage - this storage object is accessible everywhere as
-  special object `@gss`.\
-  `@gss(nset x=5) @gss(set y to=10) @gss(at x) // 5`
+  special object `%*` or `@gss`.\
+  `%*(nset x=5) // Sets x to 5 in global shared storage`\
+  `%*x // 5; shortcut for %*(at x)`
 - Module private/protected storage - each module has its own storage, accessible
-  anywhere within the module as special object `@mps`.
+  anywhere within the module as special object `%/` or `@mps`.\
+  `%/(nset x=5) // Sets x to 5 in module-private storage`\
+  `%/x // shortcut for %/(at x)`
 - Object persistent properties are accessible via a storage object called "`%`".
   It's similar to JavaScript's "`this`", except it doesn't store any message
   handlers (Mesgjs' closest equivalent to JavaScript methods).\
@@ -97,12 +103,13 @@ to figuring out what message to send to which object.
 ## Mesgjs
 
 - Mesgjs' code blocks appear between `{` and `}` or `{` and `!}`.
-  They are object literals, and can be stored, retrieved, passed,
+  They are object literals (`@code` interface), and can be stored, retrieved, passed,
   messaged, etc.
 - The `{ }` version returns `@u` (undefined) unless a specific return value
   is returned via the code in the block.
 - The `{ !}` version returns the value of the last expression in the block,
   unless a specific return value is returned via the code in the block first.
+- The `@code` interface for code blocks is *private*; you cannot generate them with `@c(get @code)`.
 - Code blocks normally run in the context in which they were defined
   (`%`, `#`, and `!` are based on a `(load)` message to the enclosing
   module object).
@@ -127,14 +134,10 @@ to figuring out what message to send to which object.
   method invocation in JavaScript. Messages _between Mesgjs objects_, however,
   are _attributed_ - the receiving object knows with extreme confidence which
   object sent the message, and its assigned type.
-- Code blocks are executed by sending them a `(run)` message. The message does
-  not use any parameters.
-- Functions are created by sending a `(fn)` message to a code block (`@code`
-  object instance). The newly-created `@function` object runs in a new context,
-  disconnected from the original code block's context. The original code
-  block is unaffected. Any message parameters to the `(fn)` message become
-  the new function object's persistent state (`%`). Persistent state will
-  simply start out empty if there are no message parameters.
+- Code blocks are executed by sending them a `(run)` message. The message does not use any parameters.
+- Functions are created *exclusively* by sending a `(fn)` message to a code block (`@code` object instance) or function (existing `@function` instance). The `@function` interface is *private* and cannot be instantiated via `@c(get)`.
+- `@function` objects run in a new context, disconnected from the original code block's context.
+- The original code block is unaffected. Any message parameters to the `(fn)` message become the new function object's persistent state (`%`). Persistent state will simply start out empty if there are no message parameters to `(fn)`.
 - Functions are invoked by sending them a `(call)` message.
 - To review, when a function is sent a `(call)` message, `%` contains the message
   parameters from the prior `(fn)` message, `#` contains scratch storage, and `!`

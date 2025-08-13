@@ -6,6 +6,9 @@
 
 import { getInterface, setRO } from './runtime.esm.js';
 
+const retTrue = () => true;
+const retFalse = () => false;
+
 export function install () {
     getInterface('@boolean').set({
 	abstract: true, lock: true, pristine: true,
@@ -14,20 +17,26 @@ export function install () {
 	final: true, lock: true, pristine: true, singleton: true,
 	chain: [ '@boolean' ],
 	handlers: {
-	    '@init': d => setRO(d.octx, 'js', false),
-	    '@jsv': () => false,
+	    '@init': d => {
+		setRO(d.octx, 'js', false);
+		setRO(d.rr, { jsv: false, valueOf: retFalse });
+	    },
+	    '@jsv': retFalse,
 	    toString: () => '@f',
-	    valueOf: () => false,
+	    valueOf: retFalse,
 	},
     });
     getInterface('@true').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	chain: [ '@boolean' ],
 	handlers: {
-	    '@init': d => setRO(d.octx, 'js', true),
-	    '@jsv': () => true,
+	    '@init': d => {
+		setRO(d.octx, 'js', true);
+		setRO(d.rr, { jsv: true, valueOf: retTrue });
+	    },
+	    '@jsv': retTrue,
 	    toString: () => '@t',
-	    valueOf: () => true,
+	    valueOf: retTrue,
 	},
     });
 }

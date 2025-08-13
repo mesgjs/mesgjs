@@ -6,15 +6,21 @@
 
 import { getInterface, setRO } from './runtime.esm.js';
 
+const retNull = () => null;
+const retUndef = () => undefined;
+
 export function install () {
     getInterface('@null').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
-	    '@init': d => setRO(d.octx, 'js', null),
-	    '@jsv': () => null,
-	    has: () => undefined,
+	    '@init': d => {
+		setRO(d.octx, 'js', null);
+		setRO(d.rr, { jsv: null, valueOf: retNull });
+	    },
+	    '@jsv': retNull,
+	    has: retUndef,
 	    toString: () => '@n',
-	    valueOf: () => null,
+	    valueOf: retNull,
 	},
     });
 }

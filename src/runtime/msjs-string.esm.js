@@ -7,6 +7,11 @@
 import { getInstance, getInterface, setRO, typeAccepts } from './runtime.esm.js';
 import { NANOS } from './vendor.esm.js';
 
+function opInit (d) {
+    setRO(d.octx, 'js', d.mp.at(0, '').toString());
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
+}
+
 // Join strings together with an optional separator
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
@@ -56,7 +61,7 @@ export function install () {
     getInterface('@string').set({
 	final: true, lock: true, pristine: true,
 	handlers: {
-	    '@init': d => setRO(d.octx, 'js', d.mp.at(0, '').toString()),
+	    '@init': opInit,
 	    '@jsv': d => d.js,
 	    '=': d => d.js === d.mp.at(0), // eq
 	    '>=': d => d.js >= d.mp.at(0), // ge

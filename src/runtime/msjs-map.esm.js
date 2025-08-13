@@ -10,6 +10,7 @@ function opInit (d) {
     const { octx, mp } = d, map = mp.at(0);
     setRO(octx, 'js', (map instanceof Map) ? map : new Map());
     setRO(d.js, $c.symbols.instance, d.rr, false);
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 export function install (name) {
@@ -28,7 +29,7 @@ export function install (name) {
 	    keys: d => new NANOS([...d.js.keys()]),
 	    set: d => d.js.set(d.mp.at(0), d.mp.at(1)),
 	    size: d => d.js.size,
-	    values: d => new NANOS([...d.values()]),
+	    values: d => new NANOS([...d.js.values()]),
 	},
     });
 }
