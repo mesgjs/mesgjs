@@ -42,7 +42,7 @@ function opReplace (d, all = false) {
 
 function opSplit (d) {
     const rawSep = d.mp.at(0, ''), sep = (rawSep?.msjsType === '@regex') ? rawSep.jsv : rawSep;
-    return d.js.split(sep, d.mp.at(1, Infinity));
+    return new NANOS(d.js.split(sep, d.mp.at(1)));
 }
 
 // JS-to-Msjs replacement-function wrapper

@@ -64,8 +64,9 @@ function callHandlers (list) {
 
 const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
-    all (promises) {
+    all (promises, toList = false) {
 	if (this[privKey].state !== 'pending') return;
+        this[privKey].toList = toList;
 	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
 	    throw new TypeError('@promise(all) requires an iterable of promises');
@@ -83,8 +84,9 @@ const proto = Object.setPrototypeOf({
 	return this;
     },
 
-    allSettled (promises) {
+    allSettled (promises, toList = false) {
 	if (this[privKey].state !== 'pending') return;
+        this[privKey].toList = toList;
 	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
 	    throw new TypeError('@promise(allSettled) requires an iterable of promises');
@@ -169,7 +171,7 @@ const proto = Object.setPrototypeOf({
 	    return;
 	}
 	priv.state = 'fulfilled';
-	priv.result = result;
+	priv.result = (priv.toList && Array.isArray(result)) ? new NANOS(result) : result;
 	queueMicrotask(() => {
 	    callHandlers.call(this, priv.handlers);
 	    priv.handlers = null;
@@ -198,8 +200,8 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
-	    all: d => d.rr.all(d.mp),
-	    allSettled: d => d.rr.allSettled(d.mp),
+	    all: d => d.rr.all(d.mp, true), // all - Mesgjs (NANOS) style
+	    allSettled: d => d.rr.allSettled(d.mp, true), // allSettled - Mesgjs (NANOS) style
 	    always: d => d.rr.always(d.mp.at(0)),
 	    any: d => d.rr.any(d.mp),
 	    catch: d => d.rr.catch(d.mp.at(0)),

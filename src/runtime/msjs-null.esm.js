@@ -8,6 +8,10 @@ import { getInterface, setRO } from './runtime.esm.js';
 
 const retNull = () => null;
 const retUndef = () => undefined;
+const isNull = (d) => {
+    const value = d.mp.at(0);
+    return value === null || value?.msjsType === '@null';
+};
 
 export function install () {
     getInterface('@null').set({
@@ -18,7 +22,9 @@ export function install () {
 		setRO(d.rr, { jsv: null, valueOf: retNull });
 	    },
 	    '@jsv': retNull,
+            eq: d => isNull(d),
 	    has: retUndef,
+            ne: d => !isNull(d),
 	    toString: () => '@n',
 	    valueOf: retNull,
 	},

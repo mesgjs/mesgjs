@@ -19,7 +19,7 @@ export function install (name) {
 	handlers: {
 	    '@init': opInit,
 	    '@jsv': d => d.js,
-	    clear: d => d.js.clear(),
+	    clear: d => (d.js.clear(), d.js),
 	    delete: d => d.js.delete(d.mp.at(0)),
 	    entries: d => new NANOS([...d.js.entries()]),
 	    // forEach - use @kvIter
@@ -27,7 +27,7 @@ export function install (name) {
 	    has: d => d.js.has(d.mp.at(0)),
 	    keyIter: d => d.js.keys(),
 	    keys: d => new NANOS([...d.js.keys()]),
-	    set: d => d.js.set(d.mp.at(0), d.mp.at(1)),
+	    set: d => (d.js.set(d.mp.at(0), d.mp.at(1)), d.js),
 	    size: d => d.js.size,
 	    values: d => new NANOS([...d.js.values()]),
 	},

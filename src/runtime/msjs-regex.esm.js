@@ -6,13 +6,13 @@
 
 import { getInterface, setRO, throwFlow } from './runtime.esm.js';
 
-const listize = res => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
+const listize = (res) => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
 function opInit (d) {
     const raw = d.mp.at(0, ''), re = (raw instanceof RegExp) ? raw : new RegExp(raw, d.mp.at(1, ''));
     setRO(d.rr, { jsv: re, valueOf: () => re });
     setRO(d.octx, 'js', { re });
-    setRO(d.js, $c.symbols.instance, d.rr, false);
+    setRO(d.js.re, $c.symbols.instance, d.rr, false);
 }
 
 // regex(matchAll string each={block!} else={block!} collect=@f)

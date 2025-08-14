@@ -80,14 +80,14 @@ function toMsjs (jsv) {
 	return getInstance(jsv ? '@true' : '@false');
     case 'bigint':
     case 'number':
-	return getInstance('@number', jsv);
+	return getInstance('@number', [jsv]);
     case 'object':
 	if (jsv === null) return getInstance('@null');
 	// Check for an existing Msjs instance
 	if (jsv[instanceSym]) return jsv[instanceSym];
 	// Check for a custom converter
 	if (jsv[convertSym]) return jsv[convertSym]();
-	if (jsv instanceof RegExp) return getInstance('@regex', jsv);
+	if (jsv instanceof RegExp) return getInstance('@regex', [jsv]);
 	// Not sure if we'll see many of these "in the wild"
 	// if (jsv?.$reactive) return getInstance('@reactive', jsv);
 	if (Array.isArray(jsv)) return getInstance('@jsArray', [jsv]);
@@ -95,7 +95,7 @@ function toMsjs (jsv) {
 	if (jsv instanceof Set) return getInstance('@set', [jsv]);
 	return getInstance('@undefined');
     case 'string':
-	return getInstance('@string', jsv);
+	return getInstance('@string', [jsv]);
     default:
 	return getInstance('@undefined');
     }

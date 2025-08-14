@@ -7,6 +7,10 @@
 import { getInterface, setRO } from './runtime.esm.js';
 
 const retUndef = () => undefined;
+const isUndef = (d) => {
+    const value = d.mp.at(0);
+    return value === undefined || value?.msjsType === '@undefined';
+};
 
 export function install () {
     getInterface('@undefined').set({
@@ -17,7 +21,9 @@ export function install () {
 		setRO(d.rr, { jsv: undefined, valueOf: retUndef });
 	    },
 	    '@jsv': retUndef,
+            eq: d => d.isUndef(),
 	    has: retUndef,
+            ne: d => !d.isUndef(),
 	    toString: () => '@u',
 	    valueOf: retUndef,
 	},

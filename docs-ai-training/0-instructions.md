@@ -1,20 +1,20 @@
 # Process for Generating Condensed Training Data
 
-This document outlines the process for generating a condensed, LLM-optimized version of training data.
+This document outlines the process for generating a condensed, LLM-optimized version of training data from more-general documentation.
 
 ## 1. Objective
 
-The goal is to create and maintain a partial mirror of the `docs` directory in a directory named `docs-ai-training/`. This directory will contain a compact, fact-based version of (some) source `docs/` content, structured for an AI development partner. It should retain all essential technical information relevant to architectural planning, coding, and debugging.
+The goal is to create and maintain a partial mirror of the `docs` directory in a directory named `docs-ai-training/`. This directory will contain a compact, fact-based version of (some) source `docs/` content, structured for an AI development partner. It should retain all essential technical information relevant to architectural planning, coding, and debugging. These condensed documents are concatenated to become "chapters" in `docs-ai-training/0-Training-Data.md` for use in this and other projects.
 
 ## 2. Methodology: Mirrored Subtree Condensation
 
-To ensure maintainability and efficiency, the process relies on creating a parallel, condensed version of the `docs` directory structure. Each included source file will have a corresponding condensed file in the `docs-ai-training` subtree. This approach keeps the condensed files organized and makes it trivial to locate the condensed version of any given source document.
+To ensure maintainability and efficiency, the process relies on creating a parallel, condensed version of the `docs` directory structure. Each included source file will have a corresponding condensed file ("chapter") in the `docs-ai-training` subtree. This approach keeps the condensed files organized and makes it trivial to locate the condensed version of any given source document.
 
-When a source document is updated, only its mirrored file in `docs-ai-training` needs to be regenerated.
+When a source document is updated, only its mirrored chapter file in `docs-ai-training` needs to be regenerated.
 
 ## 3. Source and Target Structure
 
-The process operates on the source documents within the `docs/` directory and produces a mirrored output in `docs-ai-training/`.
+The process operates on the source documents within the `docs/` directory tree and produces a mirrored chapter output in `docs-ai-training/`.
 
 -   **Source:** `docs/`
 -   **Target:** `docs-ai-training/`
@@ -26,15 +26,20 @@ The process operates on the source documents within the `docs/` directory and pr
 
 ## 4. Condensation Guidelines for AI
 
-The following rules should be applied when transforming a source document into its counterpart in the `docs-ai-training` directory:
+The following rules should be applied when transforming a source document into its chapter counterpart in the `docs-ai-training` directory:
 
--   **Prioritize Facts Over Prose:** Retain technical specifications, API signatures, syntax rules, and configuration details. Remove lengthy introductions, narrative-style explanations, and redundant examples.
+-   **Prioritize Facts Over Prose:** For example, retain technical specifications, API signatures, syntax rules, and configuration details, but remove lengthy introductions, narrative-style explanations, and redundant examples.
 -   **Use Structure:** Employ markdown headings, lists, and tables to structure information for easy parsing.
--   **Extract Key Information:** For each function or interface, distill its purpose, full signature (parameters, return value, async, generator), and any critical side effects or usage notes.
+-   **Extract Key Information:** For each function or interface, distill its purpose, full signature (parameters, return value, async, generator), and any critical side effects or usage notes. (If you can't properly code or architect without a detail from the source document, it's an essential detail.)
 -   **Be Concise:** Use clear, unambiguous language. Avoid jargon where simpler terms suffice. Don't add or include content that doesn't add value or isn't strictly required (examples: code samples and explanatory comments are perfectly reasonable, but don't use unnecessary white space if less still gets the job done). Compact efficiency takes priority over "prettiness" or "human readability" (as long as content accuracy can reasonably be verified visually) in this context.
 -   **Preserve Code Examples:** Retain essential code snippets that demonstrate core functionality. Remove examples that are purely illustrative or repetitive.
--   **Maintain Header Context:** The beginning of each file should include a `Source:` entry, consisting of the original `docs/` document path, and a `Laat-condensed:` entry consisting of the `YYYY-MM-DD`-format date the condensed file was generated. These help identify portions of the content and its freshness when the individual parts are combined into a single, concatenated training-data file.
--   **Concatenation:** The final training-data result (generated by a user-run script) will be the concatenation of the condensed documentation components. It is critical that all files "end properly" (no unterminated code fences, for example) so that the following content does not begin from an improper state.
+-   **Context Block:** In order to determine the original source of chapters and their "freshness" in the assembed `0-Training-Data.md` file, each chapter should include a standard context header block:
+```
+# <the original document title>
+Source: <the original doc/ path (plain, not a link)>\
+Condensed: <YYYY-MM-DD condensed-chapter latest-generation-date>
+```
+-   **"Clean" Endings:** Every chapter file should be written on the assumption that it will be followed by another, in no particular order, within `0-Training-Data.md`. Don't leave any unterminated state (including, but not limited to, code fences) that could carry over into the next chapter.
 
 ## 5. Task Execution Details
 

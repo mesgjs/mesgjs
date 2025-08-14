@@ -22,12 +22,12 @@ Deno.test("Lexer", async (t) => {
         const tokens = getTokens(`'hello' "world\\n"`);
         assertEquals(tokens.length, 2);
         assertObjectMatch(tokens[0], { type: 'txt', text: 'hello' });
-        assertObjectMatch(tokens[1], { type: 'txt', text: 'world\\n' });
+        assertObjectMatch(tokens[1], { type: 'txt', text: 'world\n' });
     });
 
     await t.step("should tokenize non-eager tokens and blocks", () => {
-        const tokens = getTokens("{ ( [ ] ) }");
-        const expected = ['{', '(', '[', ']', ')', '}'];
+        const tokens = getTokens("{ ( [ ] ) } !}");
+        const expected = ['{', '(', '[', ']', ')', '}', '}'];
         assertEquals(tokens.length, expected.length);
         tokens.forEach((token, i) => {
             assertObjectMatch(token, { type: expected[i] });

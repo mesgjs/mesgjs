@@ -5,6 +5,7 @@
  */
 
 import { getInterface, setRO } from './runtime.esm.js';
+import { NANOS } from './vendor.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, set = mp.at(0);
@@ -13,14 +14,17 @@ function opInit (d) {
     setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
+// List of (keys or) values
+const kv = (d) => new NANOS([...d.js.values()]);
+
 export function install (name) {
     getInterface(name).set({
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
 	    '@jsv': d => d.js,
-	    add: d => d.js.add(d.mp.at(0)),
-	    clear: d => d.js.clear(),
+	    add: d => (d.js.add(d.mp.at(0)), d.js),
+	    clear: d => (d.js.clear(), d.js),
 	    delete: d => d.js.delete(d.mp.at(0)),
 	    // difference
 	    entries: d => new NANOS([...d.js.entries()]),
@@ -31,9 +35,10 @@ export function install (name) {
 	    // isSubsetOf
 	    // isSupersetOf
 	    keyIter: d => d.js.keys(),
-	    keys: d => new NANOS([...d.js.keys()]),
+	    keys: kv,
+            size: d => d.js.size,
 	    // union
-	    values: d => new NANOS([...d.values()]),
+	    values: kv,
 	},
     });
 }

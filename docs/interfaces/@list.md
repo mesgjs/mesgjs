@@ -2,8 +2,6 @@
 
 This is the interface implemented by storage namespaces (`%`, `#`, `!`, `@gss`, `@mps`) and lists.
 
-RIC (run-if-code) values are rarely used in this interface, so assume "none" unless otherwise stated.
-
 * `(@init list)`
   * Synopsis: Create a new list, optionally providing the JavaScript `NANOS` object list.  
 * `(at key... path=[key...] else=elseBlock)`\

@@ -152,7 +152,7 @@ values except where otherwise indicated.
 * `(last)`
   * Synopsis: Returns the regex's "lastIndex" (essentially, where the next match can start).
 * `(match)`
-  * Synopsis: Returns the current match value during `(matchAll)`.
+  * Synopsis: Returns the current match value during `(matchAll)` as a Mesgjs `@list` (JS NANOS), with a nested list for `groups` (when applicable).
 * `(match1 string)`
   * Synopsis: Matches the regex against string, returning the first match or `@n` (null).
   * Based on JS `string.match(regex)`.

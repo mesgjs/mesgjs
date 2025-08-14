@@ -191,6 +191,12 @@ This section documents key learnings and established patterns for writing tests 
   ```
 - **Primitive vs. Object Returns**: Be aware of the return type of a message. "Primitive" interfaces like `@number` or `@jsArray` often return raw JavaScript primitives (numbers, booleans, arrays), not Mesgjs objects. Use `assertEquals` directly on these values without `.valueOf()`.
 
+- **Mesgjs Object Instantiation**:
+  - Mesgjs wrappers for JS objects (where supported), can be generated using the pattern `const mObj = $toMsjs(jsObj);`. You can then "message" this object via `mObj(op, params);`, where `params` must be a *single value* (scalar, plain object, array, or NANOS).
+  - For other Mesgjs objects, you can either send a `(get)` message to `$c` (JS global representing Mesgjs' `@core` singleton instance), or (more simply) you can use `getInstance`:
+    - `const instance = $c('get', ls(, 'type', 'init', ls([...]))); // transpilation of Mesgjs' @c(get type init=[...])`
+    - `const { getInstance } = globalThis.$c, instance = getInstance('type', optInitParam);` (what `@c(get ...)` does "under the hood")
+
 ## 7. Current Status & Next Steps
 
 This section provides a summary of the test migration progress.
@@ -206,13 +212,13 @@ This section provides a summary of the test migration progress.
   - `@list` (`test-new/interfaces/list.test.js`)
   - `@loop` (`test-new/interfaces/loop.test.js`)
   - `@map` (`test-new/interfaces/map.test.js`)
+  - `@null` (`test-new/interfaces/null.test.js`)
+  - `@number` (`test-new/interfaces/number.test.js`)
+  - `@promise` (`test-new/interfaces/promise.test.js`)
+  - `@reactive` (`test-new/interfaces/reactive.test.js`)
 
 ### To Do
 - **Complete Interface Tests**: Create documentation and tests for the remaining interfaces in `src/runtime/`:
-  - `@null`
-  - `@number`
-  - `@promise`
-  - `@reactive`
   - `@regex`
   - `@set`
   - `@string`
