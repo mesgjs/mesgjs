@@ -1,2 +1,1 @@
-export { isIndex, NANOS, parseQJSON, parseSLID } from 'https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.11/dist/nanos.min.esm.js';
-export { reactive } from 'https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.3/dist/reactive.min.esm.js';
+import{isIndex as r,NANOS as t,parseQJSON as n,parseSLID as i}from"https://cdn.jsdelivr.net/gh/mesgjs/nanos@0.0.14/src/nanos.esm.js";import{reactive as o}from"https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.0.3/src/reactive.esm.js";export{t as NANOS,r as isIndex,n as parseQJSON,i as parseSLID,o as reactive};
