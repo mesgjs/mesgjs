@@ -9,15 +9,15 @@ This interface is "bilingual", supporting both JavaScript object properties and 
   * `@c(get @promise init=[resolve=value]) // Equivalent to JS Promise.resolve(value)`
   * `@c(get @promise init=[reject=reason]) // Equivalent to JS Promise.reject(reason)`
 * `(all promise...)`
-  * Synopsis: Called from Mesgjs, resolves to a `@list` of individual results if all promises resolve, or reject if any promise rejects.
+  * Synopsis: Resolves to a `@jsArray` of individual results if all promises resolve, or rejects if any promise rejects. Resolves to an empty `@jsArray` if there are no promises.
 * `(allSettled promise...)`
-  * Synopsis: Called from Mesgjs, resolves to a `@list` of bilingual settlement results for each of the promises.
+  * Synopsis: Resolves to a `@jsArray` of bilingual settlement results for each of the promises. Resolves to an empty `@jsArray` if there are no promises.
   * See below for the format of settlement results.
 * `(always onSettled)`
   * Synopsis: Registers a single `(run)`\-able code block, `(call)`\-able function block, or plain JavaScript function, `onSettled`, as both an `onResolved` and an `onRejected` handler for the receiver.
   * Returns a new `@promise` for chaining.
 * `(any promise...)`
-  * Synopsis: The receiver will resolve to the value of the first promise that resolves, or reject if all promises reject.
+  * Synopsis: The receiver will resolve to the value of the first promise that resolves, or reject if all promises reject. Rejects if there are no promises.
 * `(catch onRejected)`
   * Synopsis: Registers a `(run)`\-able code block, `(call)`\-able function block, or plain JavaScript function as an `onRejected` handler for the receiver.
   * Returns a new `@promise` for chaining.
@@ -47,7 +47,7 @@ Since `@code` blocks can't be passed parameters when `(run)`, they must access w
 
 JavaScript handlers are just passed the resolution result or rejection reason.
 
-`(allSettled)` returns a `@list` of bilingual-result objects. In Mesgjs, each result in the list is either a list containing `[ status=fulfilled value=`_`value`_` ]` or a list containing `[ status=rejected reason=`_`reason`_` ]`. In JavaScript, each result is a `NANOS` class instances augmented by `.status` and either `.value` or `.reason` properties.
+`(allSettled)` returns a `@jsArray` of bilingual-result objects. In Mesgjs, each result in the array is either a list containing `[ status=fulfilled value=`_`value`_` ]` or a list containing `[ status=rejected reason=`_`reason`_` ]`. In JavaScript, each result is a `NANOS` class instances augmented by `.status` and either `.value` or `.reason` properties.
 
 ## JavaScript Object Properties
 
@@ -62,8 +62,8 @@ const rejp = getInstance('@promise', { reject: reason }); // Like JS Promise.rej
 
 Methods and properties correspond to Mesgjs messages as described above.
 
-* `.all([promises])` - Called from JavaScript, resolves to a *JavaScript array* of promise resolutions
-* `.allSettled([promises])` - Called from JavaScript, resolves to a *JavaScript array* of bilingual settlement results
+* `.all([promises])`
+* `.allSettled([promises])`
 * `.always(onSettled)`
 * `.any([promises])`
 * `.catch(onRejected)`
