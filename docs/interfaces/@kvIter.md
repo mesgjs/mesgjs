@@ -7,7 +7,7 @@
   * RIC values: `index`, `named`, `bothBlock`, `elseBlock`
   * If the current key is an index key (non-negative integer), the `indexBlock` is run.  
   * If the current key is a named key (not an index key), the `namedBlock` is run.  
-  * If the `bothBlock` is present, it is run for every key (after the applicable index or named block, if present).  
+  * If the `bothBlock` is present, it is run for every key (after the applicable index or named block, if present). **Note**: This is a *positional* parameter.
   * If there are no keys in the source and the `elseBlock` is present, it is evaluated and its value is returned instead.  
   * If collect is `@f` (the default), the last executed block (or `(next)` or `(stop)`) return value is returned.  
   * If collect is `@t`, all of the block, `(next)`, and `(stop)` return values are collected and returned as a list.  

@@ -90,10 +90,10 @@
   * Synopsis: Returns information about operations an interface-type accepts.
   * With two parameters, it returns whether a type responds, either directly or indirectly, via a specific or default handler, to a specific message operation.
   * With one parameter, it returns a list of directly-supported message operations (unless the interface is private, in which case it returns `@u`).
-* `(typeChains type1 type2)`
+* `(typeChains subtype supertype)`
   * Synopsis: Returns information about whether a non-private interface-type chains another interface-type.
-  * With two parameters, it returns whether the second type is ever chained by the first type, either **directly or indirectly** (i.e. if the second type exists in the first interface's flat-chain).
-  * With one parameter, it returns the unexpanded list of types **directly** chained by the first interface-type.
+  * With two parameters, it returns whether the `subtype` chains the `supertype`, either **directly or indirectly** (i.e. if the `supertype` exists in the `subtype` interface's flat-chain).
+  * With only a `subtype` parameter, it returns the unexpanded list of supertypes **directly** chained by `subtype`.
   * Returns `@u` for private interfaces.
 * `(xor value...)`
   * Synopsis: Returns the logical "xor" of a list of zero or more values.
@@ -109,26 +109,34 @@ This interface is always configured as the first external runtime core extension
 
 * Reserved for future use
 
-## `@false` (final, singleton)
+## `@false` (final, singleton `@f`)
 
 * Chains `@boolean`
+* `(eq value)` - Returns `@t` if `value` is equal to `@f`
+* `(ne value)` - Returns `@t` if `value` is not equal to `@f`
 * `(toString)` \- Returns text string '@f'
 * `(valueOf)` \- Returns value `@f`
 
-## `@null` (final, singleton)
+## `@null` (final, singleton `@n`)
 
+* `(eq value)` - Returns `@t` if `value` is equal to `@n`
 * `(has)` \- Returns value `@u`
+* `(ne value)` - Returns `@t` if `value` is not equal to `@n`
 * `(toString)` \- Returns text string '@n'
 * `(valueOf)` \- Returns value `@n`
 
-## `@true` (final, singleton)
+## `@true` (final, singleton `@t`)
 
 * Chains `@boolean`
+* `(eq value)` - Returns `@t` if `value` is equal to `@t`
+* `(ne value)` - Returns `@t` if `value` is not equal to `@t`
 * `(toString)` \- Returns text string '@t'
 * `(valueOf)` \- Returns value `@t`
 
-## `@undefined` (final, singleton)
+## `@undefined` (final, singleton `@u`)
 
+* `(eq value)` - Returns `@t` if `value` is equal to `@u`
 * `(has)` \- Returns value `@u`
+* `(ne value)` - Returns `@t` if `value` is not equal to `@u`
 * `(toString)` \- Returns text string '@u'
 * `(valueOf)` \- Returns value `@u`

@@ -29,7 +29,8 @@ Derived values are normally only recalculated if used in the definitions of othe
 * (rv)  
   * Synopsis: Reads and returns the current value (either static, or calculated from the def(inition)).  
 * (set)  
-  * Synopsis:  
+  * Synopsis: Updates the reactive value's properties.
+  * Parameters can include `def=defBlock`, `eager=bool`, and `v=value` (or a positional value).
 * (untr block)  
   * Synopsis: (run) the block, untracked (without recording reactive dependencies), and return the result.  
   * RIC values: block

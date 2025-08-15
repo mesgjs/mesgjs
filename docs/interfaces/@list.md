@@ -1,6 +1,6 @@
 # Mesgjs `@list` Interface
 
-This is the interface implemented by storage namespaces (`%`, `#`, `!`, `@gss`, `@mps`) and lists.
+This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@gss`, `%/`/`@mps`) and lists.
 
 * `(@init list)`
   * Synopsis: Create a new list, optionally providing the JavaScript `NANOS` object list.  
