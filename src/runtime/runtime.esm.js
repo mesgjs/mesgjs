@@ -292,7 +292,7 @@ export const {
 	try {
 	    if (dbgCfg.dispatch) {
 		const dispOp = (typeof op === 'symbol') ? 'J.Symbol' : op;
-                const lst = loggedType(st);
+		const lst = loggedType(st);
 		console.log(`[Mesgjs dispatch ${thisDisp}] ${lst} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
 	    }
 	    if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
@@ -492,11 +492,11 @@ export const {
     }
 
     // Initialize the runtime environment (e.g. load core, core extensions)
-    function initialize () {
+    function initialize (installer) {
 	if (initPhase === 2) {		// Only initialize once
 	    initPhase = 1;
 	    firstInit.forEach(cb => cb());
-	    globalThis.installMsjsCoreExtensions();
+	    installer();
 	    initPhase = 0;
 	    dacHandMctx.sr = dacHandMctx.rr = gt.$c;
 	}

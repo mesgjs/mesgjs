@@ -6,6 +6,7 @@
 
 import { getInterface, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
 import { isIndex, NANOS } from './vendor.esm.js';
+import { unifiedList } from './unified-list.esm.js';
 
 function common (d, keys) {
     const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
@@ -52,22 +53,23 @@ function common (d, keys) {
 
 // Return a key/value interface for whatever object we were given
 function getKVI (obj) {
-    const ot = typeof obj, st = obj?.msjsType;
+    const ot = typeof obj, mt = obj?.msjsType;
     let keys, get;
     if ((ot !== 'object' && ot !== 'function') || obj === null) obj = [obj];
-    if (st) {
-	if (typeAccepts(st, 'keyIter')) keys = obj('keyIter');
-	else if (typeAccepts(st, 'keys')) keys = obj('keys').values();
-	if (typeAccepts(st, 'at')) get = k => obj('at', [k]);
-	else if (typeAccepts(st, 'get')) get = k => obj('get', [k]);
+    if (mt) {
+	if (typeAccepts(mt, 'keyIter')) keys = obj('keyIter');
+	else if (typeAccepts(mt, 'keys')) keys = obj('keys').values();
+	if (typeAccepts(mt, 'at')) get = k => obj('at', [k]);
+	else if (typeAccepts(mt, 'get')) get = k => obj('get', [k]);
     } else {
+	obj = unifiedList(obj);
 	if (typeof obj?.keys === 'function') {
 	    keys = obj.keys();
 	    if (Array.isArray(keys)) keys = keys.values();
 	} else if (Array.isArray(obj?.keys)) keys = obj.keys.values();
-	if (typeof obj?.at === 'function') get = k => obj.at(k);
-	else if (typeof obj?.get === 'function') get = k => obj.get(k);
-	else get = k => obj[k];
+	if (typeof obj?.at === 'function') get = (key) => obj.at(key);
+	else if (typeof obj?.get === 'function') get = (key) => obj.get(key);
+	else get = (key) => obj[key];
     }
     keys ||= [].values();
     get ||= () => undefined;

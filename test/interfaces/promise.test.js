@@ -13,6 +13,7 @@ import {
 import { listFromPairs as ls } from '../../src/runtime/runtime.esm.js';
 import '../../src/runtime/mesgjs.esm.js';
 import { NANOS } from '../../src/runtime/vendor.esm.js';
+import { unifiedList } from '../../src/runtime/unified-list.esm.js';
 
 const newPromise = (init) => {
     return $c('get', ls([, '@promise', 'init', init]));
@@ -69,8 +70,8 @@ Deno.test('@promise - then/catch/always', async () => {
 
 Deno.test('@promise - .all', async () => {
     const promises = [
-        newPromise(ls(['resolve', 1])),
-        newPromise(ls(['resolve', 2])),
+	newPromise(ls(['resolve', 1])),
+	newPromise(ls(['resolve', 2])),
     ];
     const pAll = $c('get', '@promise');
     pAll('all', new NANOS(promises));
@@ -80,14 +81,14 @@ Deno.test('@promise - .all', async () => {
 
 Deno.test('@promise - .allSettled', async () => {
     const rejected = newPromise(ls(['reject', 'err']));
-    rejected('catch', () => {});
+    await rejected('catch', () => {});
     const promises = [
-        newPromise(ls(['resolve', 1])),
-        rejected,
+	newPromise(ls(['resolve', 1])),
+	rejected,
     ];
     const pAll = $c('get', '@promise');
     pAll('allSettled', new NANOS(promises));
-    const result = await pAll; // Mesgjs mode resolves to a NANOS of enhanced NANOS
+    const result = unifiedList(await pAll);
     assertEquals(result.at([0, 'status']), 'fulfilled');
     assertEquals(result.at([0, 'value']), 1);
     assertEquals(result.at([1, 'status']), 'rejected');
@@ -96,10 +97,10 @@ Deno.test('@promise - .allSettled', async () => {
 
 Deno.test('@promise - .any', async () => {
     const rejected = newPromise(ls(['reject', 'err']));
-    rejected('catch', () => {});
+    await rejected('catch', () => {});
     const promises = [
-        rejected,
-        newPromise(ls(['resolve', 1])),
+	rejected,
+	newPromise(ls(['resolve', 1])),
     ];
     const pAny = $c('get', '@promise');
     pAny('any', new NANOS(promises));
@@ -115,9 +116,11 @@ Deno.test('@promise - .race', async () => {
     setTimeout(() => p2('resolve', 'two'), 10);
 
     const pRace = $c('get', '@promise');
-    pRace('race', ls([p1, p2]));
+    pRace('race', ls([, p1, , p2]));
     const result = await pRace;
     assertEquals(result, 'two');
+    await p1;
+    await p2;
 });
 
 Deno.test('@promise - message property', async () => {

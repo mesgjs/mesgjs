@@ -5,27 +5,33 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-// Post-@core foundation-class installers
-import { install as installBoolean } from './msjs-boolean.esm.js';
+// @core and post-@core foundation-class installers
 import { install as installCore } from './msjs-core.esm.js';
+import { install as installBoolean } from './js-boolean.esm.js';
 import { install as installJSArray } from './js-array.esm.js';
+import { install as installJSObject } from './js-object.esm.js';
 import { install as installList } from './msjs-list.esm.js';
 import { install as installKVIter } from './msjs-kv-iter.esm.js';
 import { install as installLoop } from './msjs-loop.esm.js';
-import { install as installMap } from './msjs-map.esm.js';
-import { install as installNull } from './msjs-null.esm.js';
-import { install as installNumber } from './msjs-number.esm.js';
-import { install as installPromise } from './msjs-promise.esm.js';
+import { install as installMap } from './js-map.esm.js';
+import { install as installNull } from './js-null.esm.js';
+import { install as installNumber } from './js-number.esm.js';
+import { install as installPromise } from './js-promise.esm.js';
 import { install as installReactive } from './msjs-reactive.esm.js';
-import { install as installRegex } from './msjs-regex.esm.js';
-import { install as installSet } from './msjs-set.esm.js';
-import { install as installString } from './msjs-string.esm.js';
+import { install as installRegex } from './js-regex.esm.js';
+import { install as installSet } from './js-set.esm.js';
+import { install as installString } from './js-string.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
-import { install as installUndefined } from './msjs-undefined.esm.js';
+import { install as installUndefined } from './js-undefined.esm.js';
 
 import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
-export { setModMeta };
 import { NANOS } from './vendor.esm.js';
+import { isPlainObject } from './unified-list.esm.js';
+
+// The minimum "main program":
+// import { setModMeta } from '.../mesgjs.esm.js';
+// setModMeta({ config });
+export { setModMeta };
 
 const instanceSym = Symbol.for('msjsInstance');
 const convertSym = Symbol.for('toMsjs');
@@ -53,6 +59,7 @@ function installCoreExtensions () {
 
     installBoolean();
     installJSArray('@jsArray');
+    installJSObject('@jsObject');
     installKVIter('@kvIter');
     installList('@list');
     // Teach toMsjs how to convert NANOS to a Msjs @list
@@ -93,6 +100,7 @@ function toMsjs (jsv) {
 	if (Array.isArray(jsv)) return getInstance('@jsArray', [jsv]);
 	if (jsv instanceof Map) return getInstance('@map', [jsv]);
 	if (jsv instanceof Set) return getInstance('@set', [jsv]);
+	if (isPlainObject(jsv)) return getInstance('@jsObject', [jsv]);
 	return getInstance('@undefined');
     case 'string':
 	return getInstance('@string', [jsv]);
@@ -101,14 +109,7 @@ function toMsjs (jsv) {
     }
 }
 
-/*
- * We have only two "exports". These are shared globally in order to
- * avoid circular import dependencies for lots of modules.
- */
-setRO(globalThis, {
-    installMsjsCoreExtensions: installCoreExtensions, // For the runtime
-    $toMsjs: toMsjs, // For anything that needs to convert JS values to Mesgjs values
-});
-initialize();
+setRO(globalThis, '$toMsjs', toMsjs);
+initialize(installCoreExtensions);
 
 // END

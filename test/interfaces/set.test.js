@@ -31,11 +31,11 @@ Deno.test("@set Interface", async (t) => {
     mSet("add", 2);
     mSet("add", 3);
     const keys = mSet("keys");
-    assertEquals(keys.size, 3);
-    assertEquals(keys.at(0), 1);
+    assertEquals(keys.length, 3);
+    assertEquals(keys[0], 1);
     const values = mSet("values");
-    assertEquals(values.at(2), 3);
+    assertEquals(values[2], 3);
     const entries = mSet("entries");
-    assertEquals(entries.at(0), [1, 1]);
+    assertEquals(entries[0], [1, 1]);
   });
 });

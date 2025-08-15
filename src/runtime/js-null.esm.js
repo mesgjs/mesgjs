@@ -1,31 +1,32 @@
 /*
- * Mesgjs @undefined interface
+ * Mesgjs @null interface - JS null wrapper
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 import { getInterface, setRO } from './runtime.esm.js';
 
+const retNull = () => null;
 const retUndef = () => undefined;
-const isUndef = (d) => {
+const isNull = (d) => {
     const value = d.mp.at(0);
-    return value === undefined || value?.msjsType === '@undefined';
+    return value === null || value?.msjsType === '@null';
 };
 
 export function install () {
-    getInterface('@undefined').set({
+    getInterface('@null').set({
 	final: true, lock: true, pristine: true, singleton: true,
 	handlers: {
 	    '@init': d => {
-		setRO(d.octx, 'js', undefined);
-		setRO(d.rr, { jsv: undefined, valueOf: retUndef });
+		setRO(d.octx, 'js', null);
+		setRO(d.rr, { jsv: null, valueOf: retNull });
 	    },
-	    '@jsv': retUndef,
-            eq: d => d.isUndef(),
+	    '@jsv': retNull,
+	    eq: d => isNull(d),
 	    has: retUndef,
-            ne: d => !d.isUndef(),
-	    toString: () => '@u',
-	    valueOf: retUndef,
+	    ne: d => !isNull(d),
+	    toString: () => '@n',
+	    valueOf: retNull,
 	},
     });
 }

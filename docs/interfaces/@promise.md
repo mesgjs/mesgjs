@@ -24,7 +24,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `(message)`
   * Synopsis: Returns the message part of the error if rejected, or else `@u`.
 * `(race promise...)`
-  * Synopsis: The receiver will resolve or reject based on the first promise to resolve or reject.
+  * Synopsis: The receiver will resolve or reject based on the first promise to resolve or reject. **Important**: *Per the standard*, empty races will hang, unsettled! (A console warning will be generated in this case.)
 * `(reject error)`
   * Synopsis: The receiver will reject with the specified error. Returns `@u` (undefined).
   * Note that this operation is equivalent to JS `Promise.withResolvers().reject()`, *not* `Promise.reject()`. See `(@init)` for more information.

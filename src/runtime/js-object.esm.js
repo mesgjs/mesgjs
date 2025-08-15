@@ -1,5 +1,5 @@
 /*
- * Mesgs @jsArray interface - wrapper for JS arrays
+ * Mesgs @jsObject interface - generic JS objects wrapper
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -8,8 +8,8 @@ import { getInterface, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
 
 function opInit (d) {
-    const { octx, mp } = d, ary = mp.at(0);
-    setRO(octx, 'js', Array.isArray(ary) ? ary : []);
+    const { octx, mp } = d, obj = mp.at(0);
+    setRO(octx, 'js', (typeof obj === 'object' && obj !== null) ? obj : {});
     setRO(d.js, $c.symbols.instance, d.rr, false);
     setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
@@ -22,13 +22,6 @@ function opAt (d) {
     }});
 }
 
-function opSet (d) {
-    // Set value at index only if index is numeric
-    const index = parseInt(d.mp.at(0), 10);
-    if (index === index) d.js[index] = d.mp.at('to', d.mp.at(1));
-    return d.js;
-}
-
 export function install (name) {
     getInterface(name).set({
 	lock: true, pristine: true,
@@ -36,29 +29,15 @@ export function install (name) {
 	    '@init': opInit,
 	    '@jsv': d => d.js,
 	    '@': opAt,
-	    '=': opSet,
+	    '=': d => { d.js[d.mp.at(0)] = d.mp.at('to', d.mp.at(1)); },
 	    at: opAt,
-	    concat: d => d.js.concat(...d.mp.values()),
 	    entries: d => Object.entries(d.js),
-	    flat: d => d.js.flat(d.mp.at(0)),
 	    get: opAt,
 	    keys: d => Object.keys(d.js),
 	    keyIter: d => Object.keys(d.js).values(),
-	    length: d => d.js.length,
-	    pop: d => d.js.pop(),
-	    push: d => d.js.push(...d.mp.values()),
-	    reverse: d => d.js.reverse(),
-	    set: opSet,
-	    setKey: d => (d.js[d.mp.at(0)] = d.mp.at('to', d.mp.at(1)), d.js),
-	    setLength: d => { d.js.length = parseInt(d.mp.at(0), 10); },
-	    shift: d => d.js.shift(),
-	    size: d => d.js.length,
-	    slice: d => d.js.slice(d.mp.at(0), d.mp.at(1)),
-	    sort: d => d.js.sort(d.mp.at(0)),
+	    set: d => { d.js[d.mp.at(0)] = d.mp.at('to', d.mp.at(1)); },
+	    size: d => Object.keys(d.js).length,
 	    toList: d => new NANOS(d.js),
-	    toReversed: d => d.js.toReversed(),
-	    toSorted: d => d.js.toSorted(d.mp.at(0)),
-	    unshift: d => d.js.unshift(...d.mp.values()),
 	    values: d => Object.values(d.js),
 	},
     });

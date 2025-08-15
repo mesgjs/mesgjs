@@ -1,5 +1,5 @@
 /*
- * Mesgjs @string interface
+ * Mesgjs @string interface - JS String wrapper
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */

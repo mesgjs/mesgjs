@@ -5,12 +5,14 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `@gss`, 
 * `(@init list)`
   * Synopsis: Create a new list, optionally providing the JavaScript `NANOS` object list.  
 * `(at key... path=[key...] else=elseBlock)`\
+`(get key... path=[key...] else=elseBlock)`\
 `(@ key... path=[key...] else=elseBlock)`
   * Synopsis: Return the value at the end of the key path (positional or path), if the value is present.  
   * RIC values: elseBlock  
   * The path option, if present, takes precedence over any positional key path.  
   * If there is no value stored at the specified key path and the `else=` parameter is provided, the elseBlock is (run) and its value is returned instead.  
   * If there is no value stored at the specified key path and the `else=` parameter is not provided, a `ReferenceError` is thrown.  
+  * An `(at)` key path will traverse `Array` (`@jsArray`), `Map` (`@map`), `NANOS` (`@list`), plain `Object` (`@jsObject`), and `Set` (`@set`) instances.
 * `(clear)`
   * Synopsis: Clears the list, removing all contents.  
 * `(copy)`
@@ -25,9 +27,6 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `@gss`, 
   * Synopsis: Returns a list of `[ key value ]` lists representing the items in the list.  
   * `[ [ key1 value1 ] [ key2 value2 ] ... [ keyN valueN ] ]`
   * If compact is `@t`, index keys are numeric instead of strings. The default is `@f`.  
-* `(get key... else=elseBlock)`
-  * Synopsis: Synonym for `(at)`.  
-  * RIC values: `elseBlock`  
 * `(getter key else=elseBlock)`
   * Synopsis: Returns a `(run)`\-able "getter" code block for key.  
   * RIC values: `elseBlock`  

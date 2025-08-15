@@ -9,19 +9,19 @@ export async function setupRuntime ({ modules } = {}) {
     const { fwait, getModMeta, setModMeta } = globalThis.$c;
     if (getModMeta()) throw new Error('setupRuntime: The Mesgjs runtime is not reconfigurable');
     const modMeta = {
-        testMode: true,
-        modules
+	testMode: true,
+	modules
     };
     const mesgjsModURLs = {};
 
     for (const [modPath, modInfo] of Object.entries(modules || {})) {
-        const url = modInfo.url;
-        if (url?.endsWith('.msjs')) {
-            // Not JS - the runtime can't load this directly.
-            modInfo.deferLoad = true;
-            modInfo.integrity = 'DISABLED';
-            mesgjsModURLs[modPath] = url;
-        }
+	const url = modInfo.url;
+	if (url?.endsWith('.msjs')) {
+	    // Not JS - the runtime can't load this directly.
+	    modInfo.deferLoad = true;
+	    modInfo.integrity = 'DISABLED';
+	    mesgjsModURLs[modPath] = url;
+	}
     }
 
     setModMeta(modMeta);
@@ -29,7 +29,7 @@ export async function setupRuntime ({ modules } = {}) {
     // Transpile and load any Mesgjs modules we found.
     const loaders = [];
     for (const [modPath, url] of Object.entries(mesgjsModURLs)) {
-        loaders.push(loadMesgjsModulePath(url, modPath));
+	loaders.push(loadMesgjsModulePath(url, modPath));
     }
     if (loaders.length) await Promise.all(loaders);
 
@@ -52,7 +52,7 @@ export function transpileMesgjs (source, module = 'anonymous') {
 export async function loadMesgjsModuleJS (code) {
     const mod = await import(`data:application/javascript;base64,${btoa(code)}`);
     if (typeof mod?.loadMsjs === 'function') {
-        await mod.loadMsjs('test'); // Call the module's loadMsjs function
+	await mod.loadMsjs('test'); // Call the module's loadMsjs function
     }
     return mod;
 }

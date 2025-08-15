@@ -1,5 +1,5 @@
 /*
- * Mesgjs @promise interface
+ * Mesgjs @promise interface - JS Promise wrapper
  * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
  *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
@@ -64,9 +64,8 @@ function callHandlers (list) {
 
 const proto = Object.setPrototypeOf({
     // Resolve all of a set of promises with an array of their results
-    all (promises, toList = false) {
+    all (promises) {
 	if (this[privKey].state !== 'pending') return;
-        this[privKey].toList = toList;
 	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
 	    throw new TypeError('@promise(all) requires an iterable of promises');
@@ -84,9 +83,8 @@ const proto = Object.setPrototypeOf({
 	return this;
     },
 
-    allSettled (promises, toList = false) {
+    allSettled (promises) {
 	if (this[privKey].state !== 'pending') return;
-        this[privKey].toList = toList;
 	promises = arrayFrom(promises);
 	if (!Array.isArray(promises)) {
 	    throw new TypeError('@promise(allSettled) requires an iterable of promises');
@@ -147,6 +145,7 @@ const proto = Object.setPrototypeOf({
 	if (!Array.isArray(promises)) {
 	    throw new TypeError('@promise(race) requires an iterable of promises');
 	}
+	if (!promises.length) console.warn('@promise empty (race) will never settle!');
 	promises.forEach(p => p.then(res => this.resolve(res), err => this.reject(err)));
 	return this;
     },
@@ -171,7 +170,7 @@ const proto = Object.setPrototypeOf({
 	    return;
 	}
 	priv.state = 'fulfilled';
-	priv.result = (priv.toList && Array.isArray(result)) ? new NANOS(result) : result;
+	priv.result = result;
 	queueMicrotask(() => {
 	    callHandlers.call(this, priv.handlers);
 	    priv.handlers = null;
@@ -200,8 +199,8 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
-	    all: d => d.rr.all(d.mp, true), // all - Mesgjs (NANOS) style
-	    allSettled: d => d.rr.allSettled(d.mp, true), // allSettled - Mesgjs (NANOS) style
+	    all: d => d.rr.all(d.mp),
+	    allSettled: d => d.rr.allSettled(d.mp),
 	    always: d => d.rr.always(d.mp.at(0)),
 	    any: d => d.rr.any(d.mp),
 	    catch: d => d.rr.catch(d.mp.at(0)),

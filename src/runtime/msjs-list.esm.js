@@ -5,7 +5,7 @@
  */
 
 import { getInstance, getInterface, runIfCode, setRO } from './runtime.esm.js';
-import { unifiedList } from './unified-list.esm.js';
+import { unifiedList, uniAt } from './unified-list.esm.js';
 
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
@@ -15,13 +15,10 @@ function opInit (d) {
 
 function opAt (d) {
     const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
-    let cur = d.js;
-    for (const k of path) {
-	if (cur.has(k)) cur = unifiedList(cur.at(k));
-	else if (mp.has('else')) return runIfCode(mp.at('else'));
+    return uniAt(d.js, [...path], { wrap: true, defaultFn: () => {
+	if (mp.has('else')) return runIfCode(mp.at('else'));
 	else throw new Error('Key path not found');
-    }
-    return cur;
+    }});
 }
 
 function doGet () {

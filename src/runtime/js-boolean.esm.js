@@ -1,5 +1,5 @@
 /*
- * Mesgjs boolean interface wrapper
+ * Mesgjs boolean interfaces - JS true/false wrapper
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -26,8 +26,8 @@ export function install () {
 		setRO(d.rr, { jsv: false, valueOf: retFalse });
 	    },
 	    '@jsv': retFalse,
-            eq: d => isBool(d, false, '@false'),
-            ne: d => !isBool(d, false, '@false'),
+	    eq: d => isBool(d, false, '@false'),
+	    ne: d => !isBool(d, false, '@false'),
 	    toString: () => '@f',
 	    valueOf: retFalse,
 	},
@@ -41,8 +41,8 @@ export function install () {
 		setRO(d.rr, { jsv: true, valueOf: retTrue });
 	    },
 	    '@jsv': retTrue,
-            eq: d => isBool(d, true, '@true'),
-            ne: d => !isBool(d, true, '@true'),
+	    eq: d => isBool(d, true, '@true'),
+	    ne: d => !isBool(d, true, '@true'),
 	    toString: () => '@t',
 	    valueOf: retTrue,
 	},
