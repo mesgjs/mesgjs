@@ -2,10 +2,17 @@
 # Execute from docs-ai-training
 
 echo Checking...
-find . ! -name '8-*' -name '*.md' -print |
+find . ! -name '0-*' -name '*.md' -print |
 sed -e 's/\.\///' |
 while read file
 do
-    [ "$file" -ot "../docs/$file" ] && echo "Stale: $file"
+    source="../docs/$file"
+    if [ ! -f "$source" ]
+    then
+	echo "Orphan: $file"
+    elif [ "$file" -ot "../docs/$file" ]
+    then
+	echo "Stale: $file"
+    fi
 done
 echo Done
