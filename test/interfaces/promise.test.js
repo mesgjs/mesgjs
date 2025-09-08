@@ -1,11 +1,3 @@
-/*
- * Mesgjs @promise interface tests
- *
- * Copyright 2025 by Kappa Computer Solutions, LLC.
- *
- * KCS will be transitioning to the Mesgjs BSL license; read the file
- * "LICENSE" in the root of this repository for details.
- */
 import {
   assertEquals,
   assertStrictEquals,

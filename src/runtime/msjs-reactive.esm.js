@@ -63,13 +63,37 @@ function opSet (d) {
 function opUntr (d) { return reactive.untracked(() => runIfCode(d.mp.at(0))); }
 
 // Return a reactive-interface object
+const isReactive = (v) => !!reactive.typeOf(v);
+const onSet = (n, k, v) => { // On NANOS set
+    const curVal = n.atRaw(k), curIsR = isReactive(curVal), newIsR = isReactive(v);
+    if (curIsR) {
+	// Current value is reactive.
+	if (newIsR) curVal.def = v; // Tracking-chain of reactive values
+	else curVal.wv = v; // Plain reactive value
+	return curVal; // The reactive itself does not get replaced
+    }
+    if (n.options.autoReactive) {
+	// Automatically make new values reactive based on NANOS option
+	const r = reactive();
+	if (newIsR) r.def = v;
+	else r.wv = v;
+	return r;
+    }
+    // Keep original value
+    return v;
+};
 function rio (r) {
     if (!r) r = reactive();
     return {
+	// Basic (reactive packaging)
 	batch: reactive.batch,
 	changed: () => r.ripple(),
 	create: rio,
 	depend: () => r.rv,
+	// Extended (reactive values)
+	get: (v) => v.rv,
+	isReactive,
+	onSet,
     };
 }
 

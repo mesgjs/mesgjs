@@ -156,12 +156,12 @@ export const {
     }, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
-    const features = new Map();
+    const features = new Map(), allFeatures = new NANOS();
     const modMeta = new NANOS(), modMap = new Map(), modLoaded = new Set();
     const modMidToName = new Map();
 
     // Add features from a string / array / list
-    function addFeatures (featureList) {
+    function addFeatures (featureList, modPath, modInfo) {
 	if (typeof featureList === 'string') {
 	    featureList = featureList.split(/\s+/).filter(Boolean);
 	}
@@ -171,6 +171,8 @@ export const {
 		const prom = getInstance('@promise');
 		prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
 		features.set(feature, prom);
+		allFeatures.push(feature);
+		if (modPath && modInfo) allFeatures.set(feature, new NANOS({ [modInfo.at('deferLoad') ? 'defer' : 'preload']: modPath }));
 	    }
 	}
     }
@@ -632,14 +634,14 @@ export const {
 		base.set(key, new NANOS(value.split(sep).filter(Boolean)));
 	    }
 	};
-	for (const [_modPath, modInfo] of mods?.namedEntries() || []) {
+	for (const [modPath, modInfo] of mods?.namedEntries() || []) {
 	    const integrity = modInfo.at('integrity');
 	    listify(modInfo, 'featpro');
 	    listify(modInfo, 'featreq');
 	    listify(modInfo, 'modcaps');
 	    if (integrity !== 'DISABLED' && !getIntegritySHA512(integrity)) continue;
 	    const features = modInfo?.at('featpro', []);
-	    addFeatures(features);
+	    addFeatures(features, modPath, modInfo);
 	}
     }
 
@@ -864,7 +866,7 @@ export const {
 	    addFeatures(modMeta.at('features', []));
 	}
 
-	modMeta.set('allFeatures', new NANOS(...features.keys()));
+	modMeta.set('allFeatures', allFeatures);
 
 	// No more changes!
 	modMeta.deepFreeze();
@@ -876,7 +878,7 @@ export const {
 	 */
 	const loaded = getInstance('@promise'), loadPros = [];
 	features.set('@loaded', loaded);
-	for (const mod of modMeta.at('modules')?.entries() || []) if (!mod[1].at('deferLoad')) loadPros.push(loadModule(mod[0]));
+	for (const [modPath, modInfo] of modMeta.at('modules')?.entries() || []) if (!modInfo.at('deferLoad')) loadPros.push(loadModule(modPath));
 	loaded.allSettled(loadPros);
     }
 

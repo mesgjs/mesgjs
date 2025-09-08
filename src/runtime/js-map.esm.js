@@ -11,7 +11,6 @@ import { NANOS } from './vendor.esm.js';
 function opInit (d) {
     const { octx, mp } = d, map = mp.at(0);
     setRO(octx, 'js', (map instanceof Map) ? map : new Map());
-    setRO(d.js, $c.symbols.instance, d.rr, false);
     setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 

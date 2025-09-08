@@ -11,11 +11,18 @@ These specific documents:
 - Mesgjs-Text-And-Numbers.md
 - Mesgjs-Module-Configuration.md
 - Static-List-Data-SLID-Format.md
+
+Exclude:
+
 - JavaScript-Interface-Development.md
 
 # Command-Line Utilities (/docs/command-line)
 
-(None needed at this time)
+- editschema.md
+- msjscat.md
+- msjserrmap.md
+- msjsload.md
+- msjstrans.md
 
 # Interface Files (/docs/interfaces)
 

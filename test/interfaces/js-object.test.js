@@ -1,14 +1,21 @@
 import {
-    assertEquals,
     assert,
+    assertEquals,
+    assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
 import { NANOS } from "../../src/runtime/vendor.esm.js";
 
 Deno.test("@jsObject Interface", async (t) => {
     const { $c } = globalThis;
+    const { getInstance } = $c;
 
     const newTestObject = () => ({ a: 1, b: { c: 2 }, d: [3, 4] });
+
+    await t.step("consistent instances", () => {
+	const o = { key: 'value' };
+	assertStrictEquals($toMsjs(o), $toMsjs(o));
+    });
 
     await t.step("(@init) should initialize with a JS object", () => {
 	const testObj = { x: 1 };

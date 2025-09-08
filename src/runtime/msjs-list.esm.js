@@ -10,12 +10,12 @@ import { unifiedList, uniAt } from './unified-list.esm.js';
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
     setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
-    setRO(d.js, $c.symbols.instance, d.rr, false);
 }
 
 function opAt (d) {
     const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
-    return uniAt(d.js, [...path], { wrap: true, defaultFn: () => {
+    return uniAt(d.js, [...path], { wrap: true, raw: mp.at('raw'),
+      defaultFn: () => {
 	if (mp.has('else')) return runIfCode(mp.at('else'));
 	else throw new Error('Key path not found');
     }});
@@ -58,7 +58,7 @@ function opRIO (d) {
 }
 
 function doSet (d) {
-    this.list.set(this.key, d.mp.at(0));
+    this.list.set(this.key, d.mp.at(0), { raw: d.mp.at('raw') });
 }
 
 function opSetter (d) {

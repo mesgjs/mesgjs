@@ -10,7 +10,6 @@ import { unifiedList, uniAt } from './unified-list.esm.js';
 function opInit (d) {
     const { octx, mp } = d, obj = mp.at(0);
     setRO(octx, 'js', (typeof obj === 'object' && obj !== null) ? obj : {});
-    setRO(d.js, $c.symbols.instance, d.rr, false);
     setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 

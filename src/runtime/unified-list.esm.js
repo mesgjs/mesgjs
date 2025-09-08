@@ -30,7 +30,8 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 	if (obj?.msjsType && obj.jsv) obj = obj.jsv;
 	if (opts.wrap) key = wrapKey(obj, key);
 	if (!uniHas(obj, key)) return defFn();
-	if (obj instanceof NANOS || obj instanceof Map) obj = obj.get(key);
+	if (obj instanceof NANOS) obj = obj.at(key, { raw: opts.raw });
+	else if (obj instanceof Map) obj = obj.get(key);
 	else if (isPlainObject(obj) || Array.isArray(obj)) obj = obj[key];
 	else if (obj instanceof Set) obj = true;
 	else return defFn();

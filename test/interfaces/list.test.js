@@ -1,14 +1,20 @@
 import {
-    assertEquals,
     assert,
+    assertEquals,
+    assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
 
 Deno.test("@list Interface", async (t) => {
-    const { $c } = globalThis;
+    const { $c, $toMsjs, NANOS } = globalThis;
 
     const newList = (initParams = ls()) => $c("get", ls([, '@list', "init", ls([, initParams])]));
+
+    await t.step("consistent instances", () => {
+	const n = new NANOS().deepFreeze();
+	assertStrictEquals($toMsjs(n), $toMsjs(n));
+    });
 
     await t.step("should initialize and retrieve values with (at)", () => {
 	const list = newList(ls([,"a",,"b"])); // [0]: "a", [1]: "b"

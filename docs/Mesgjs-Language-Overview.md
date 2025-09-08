@@ -86,14 +86,7 @@ A message chain consists of a base object, followed by one or more messages. The
 
 `base(mesgOp1 mesgParameters…)(mesgOp2 mesgParameters…)`
 
-In place of a (scalar) message operation, you can supply a list. When you do so, it is referred to as a **list-op**. The mandatory operation may be supplied either as the first positional value in the list, or as a parameter named `op`. If you include a parameter named `params`, its value will be supplied as the message parameters instead of the ones in normal position (i.e. the ones following the op value in the message).
-
-Normally, an object must have handlers for each of the types of messages you send it or it will "throw an exception" (error), but there are two exceptions to that:
-
-* First, you can register an `@default` handler for an interface. This handler will be dispatched to handle any message that does not have its own handler. (You can also register an `@defacc` handler to moderate which message operations will be accepted by the `@default` handler. This handler is passed a message operation and handler type and must return `@t` (true) or `@f` (false) depending on whether or not that message operation should be accepted.)
-
-* Second, you can use a list-op and include a parameter named "else". The value of this will be returned as the result of the message in the case that there is no handler (AND no @default handler) eligible to handle the message. If the value is a block, it will be (run) and its return value, if any, will be used as the message's return value instead:  
-  `object([noSuchOp else={ otherObj(otherMessage) !}] message params…)`
+Every action in Mesgjs takes place as the result of sending and handling messages. For more information about this very central aspect of Mesgjs, please see the [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md).
 
 # Variables
 

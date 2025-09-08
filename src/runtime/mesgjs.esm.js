@@ -35,6 +35,7 @@ export { setModMeta };
 
 const instanceSym = Symbol.for('msjsInstance');
 const convertSym = Symbol.for('toMsjs');
+const instances = new WeakMap();
 
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
@@ -82,6 +83,7 @@ function installCoreExtensions () {
 // Promote a JS object to a Msjs object for messaging
 function toMsjs (jsv) {
     if (jsv?.msjsType) return jsv;
+    let instance;
     switch (typeof jsv) {
     case 'boolean':
 	return getInstance(jsv ? '@true' : '@false');
@@ -90,17 +92,17 @@ function toMsjs (jsv) {
 	return getInstance('@number', [jsv]);
     case 'object':
 	if (jsv === null) return getInstance('@null');
-	// Check for an existing Msjs instance
-	if (jsv[instanceSym]) return jsv[instanceSym];
-	// Check for a custom converter
-	if (jsv[convertSym]) return jsv[convertSym]();
-	if (jsv instanceof RegExp) return getInstance('@regex', [jsv]);
-	// Not sure if we'll see many of these "in the wild"
-	// if (jsv?.$reactive) return getInstance('@reactive', jsv);
-	if (Array.isArray(jsv)) return getInstance('@jsArray', [jsv]);
-	if (jsv instanceof Map) return getInstance('@map', [jsv]);
-	if (jsv instanceof Set) return getInstance('@set', [jsv]);
-	if (isPlainObject(jsv)) return getInstance('@jsObject', [jsv]);
+	instance = jsv[instanceSym] || instances.get(jsv);
+	if (!instance) {
+	    if (jsv[convertSym]) instance = jsv[convertSym]();
+	    else if (jsv instanceof RegExp) instance = getInstance('@regex', [jsv]);
+	    else if (Array.isArray(jsv)) instance = getInstance('@jsArray', [jsv]);
+	    else if (jsv instanceof Map) instance = getInstance('@map', [jsv]);
+	    else if (jsv instanceof Set) instance = getInstance('@set', [jsv]);
+	    else if (isPlainObject(jsv)) instance = getInstance('@jsObject', [jsv]);
+	    if (instance) instances.set(jsv, instance);
+	}
+	if (instance) return instance;
 	return getInstance('@undefined');
     case 'string':
 	return getInstance('@string', [jsv]);

@@ -1,6 +1,7 @@
 import {
   assert,
   assertEquals,
+  assertStrictEquals,
   assertNotEquals,
 } from "https://deno.land/std@0.177.0/testing/asserts.ts";
 
@@ -17,6 +18,11 @@ const mockCode = (runLogic) => {
 
 Deno.test("@regex Interface", async (t) => {
     const mString = $toMsjs("hello world");
+
+    await t.step("consistent instances", () => {
+	const re = /hello/;
+	assertStrictEquals($toMsjs(re), $toMsjs(re));
+    });
 
     await t.step("Initialization", () => {
 	const mRegex = mString("re", "g");

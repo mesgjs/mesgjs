@@ -1,12 +1,17 @@
 import {
-    assertEquals,
     assert,
+    assertEquals,
+    assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "../../src/runtime/vendor.esm.js";
 
 Deno.test("@core Interface Logic and Flow Control", async (t) => {
-    const { $c, $t, $f, $n, $u } = globalThis;
+    const { $c, $t, $f, $n, $u, NANOS } = globalThis;
+    const { getInstance } = $c;
+
+    await t.step("consistant instances", () => {
+	assertStrictEquals($c, getInstance('@core'));
+    });
 
     await t.step("(and) should return first falsey or last truthy value", () => {
 	assertEquals($c("and", [$t, $t, "last"]), "last");

@@ -82,7 +82,9 @@ modcaps='optional list of requested module capabilities'
     // A Mesgjs message handler may act based on verified sender object instance (`d.sr`),
     // sender (interface) type (`d.st`), or sending-module identifier (a "modpath", `d.smi`).
     function opRegister (d) {
+	// Works for attributed (not anonymous), inter-Mesgjs-object messages:
         if (d.st !== 'Provider') throw new Error('Only "Provider" instances may register');
+	// Works with module-signed messages:
         if (!d.smi) throw new Error('Registration requests must be sent as module-signed messages');
         if (!modHasCap(d.smi, 'register')) throw new Error(`Sending module "${d.smi}" does not have permission to register`);
         const key = d.mp.at('key'), data = d.mp.at('data'), sender = d.sr;
@@ -138,3 +140,4 @@ where a `verspec` is a simplified semantic-version range-specifier in one of the
 ## Notes
 
 - The JavaScript import map will generally only be sufficient to laod the Mesgjs runtime system. Except for side-loading for testing purposes with `testMode` enabled, all Mesgjs modules must be loaded via the module meta-data configuration (or via the runtime `loadModule` function in the case of modules configured for deferred loading) and using the Mesgjs-native module path resolution system. You should not attempt to use JavaScript static or dynamic imports, as these will almost certainly fail to resolve properly (at least in a production deployment).
+

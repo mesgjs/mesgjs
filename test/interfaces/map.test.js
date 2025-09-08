@@ -1,6 +1,7 @@
 import {
-    assertEquals,
     assert,
+    assertEquals,
+    assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
@@ -12,6 +13,11 @@ Deno.test("@map Interface", async (t) => {
 	const jsMap = new Map(initialEntries);
 	return $c("get", ls([, "@map", 'init', ls([,jsMap])]));
     };
+
+    await t.step("consistent instances", () => {
+	const m = new Map([['from', 'to']]);
+	assertStrictEquals($toMsjs(m), $toMsjs(m));
+    });
 
     await t.step("should get, set, has, and delete entries", () => {
 	const map = newMap([["key1", "value1"]]);

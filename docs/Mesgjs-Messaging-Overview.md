@@ -151,6 +151,31 @@ in the baton matches the responding object, it saves the message and sender
 information from the baton, clears the baton, and processes the securely-passed
 message from the known sender.
 
+## List-Op Messages
+
+In place of a (scalar) message operation, you can supply a list. Messages sent this way are called a "list-op" messages.
+
+The mandatory operation may be supplied either as the first positional value in the list, or as a parameter named `op`. If you include a parameter named `params`, its value will be supplied as the message parameters instead of the ones in normal position (i.e. the ones following the op value in the message).
+
+Normally, an object must have handlers for each of the types of messages you send it or it will "throw an exception" (error), but there are two exceptions to that:
+
+* First, you can register an `@default` handler for an interface. This handler will be dispatched to handle any message that does not have its own handler. (You can also register an `@defacc` handler to moderate which message operations will be accepted by the `@default` handler. This handler is passed a message operation and handler type and must return `@t` (true) or `@f` (false) depending on whether or not that message operation should be accepted.)
+
+* Second, you can send a list-op message and include an `else` parameter. The value of this will be returned as the result of the message in the case that there is no handler (AND no @default handler) eligible to handle the message. If the value is a code block, it will be `(run)` and its return value, if any, will be used as the message's return value instead:  
+  `object([noSuchOp else={ otherObj(otherMessage) !}] message params…)`
+
+### "Data Bus" Message Parameters
+
+A message's parameters are generally passed as a `@list` (JS `NANOS`) instance. In the traditional, non-list-op mode, this list is anonymous and essentially write-only/write-once from the perspective of the sending object. You can use a list literal the same way when using the list-op mode, but you don't have to – you can use a stored list instance instead.
+
+```
+object([op params=[message params]]) // list-op with list-literal message params
+#(nset params=[message params])
+object([op params=#params]) // list-op with named message params
+```
+
+In the second form, the sender is able to both mutate the message parameters after sending the message, and to observe mutations made by the receiving object, allowing for the possibility of a bidirectional "data bus" (or "pipe") between the objects. In conjunction with `@reactive` reactive values, automatic reactive recalculations and side-effects are possible.
+
 ## Module-Signed Messages
 
 If a message is sent using a "list-op"-style message, including a `mid`

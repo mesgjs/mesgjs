@@ -1,13 +1,19 @@
 import {
-    assertEquals,
     assert,
+    assertEquals,
+    assertStrictEquals,
     assertNotStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "../../src/runtime/vendor.esm.js";
 
 Deno.test("@js-array Interface", async (t) => {
-    const { $toMsjs } = globalThis;
+    const { NANOS, $toMsjs } = globalThis;
+    const { getInstance } = globalThis.$c;
+
+    await t.step("consistent instances", () => {
+	const a = [1];
+	assertStrictEquals($toMsjs(a), $toMsjs(a));
+    });
 
     await t.step("(at)/(get)/(@) should retrieve a value by index", () => {
 	const ma = $toMsjs(['a', 'b', 'c']);
