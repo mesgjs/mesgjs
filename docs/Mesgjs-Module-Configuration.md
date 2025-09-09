@@ -31,6 +31,16 @@ This configuration block must appear at the beginning of the file, optionally pr
 @c(log 'Hello, from my-module!')
 ```
 
+### Feature Management (`featpro` and `featreq`)
+
+The `featpro` and `featreq` settings are the foundation of Mesgjs's feature-based dependency management system. They allow modules to declare the features they provide and require, enabling the runtime to manage loading and initialization.
+
+-   **`featpro`**: A module lists the features it provides in this setting. Once the module is loaded and initialized, it should signal to the runtime that its features are ready by using the `@c(fready)` message from Mesgjs, or the `fready()` JavaScript function.
+
+-   **`featreq`**: A module lists the features it requires from other modules in this setting. The runtime ensures that a module's code is not executed until all of its required features are ready. A module can wait for a feature to be ready using the `@c(fwait feature-name)` message from Mesgjs, or the `fwait('feature-name')` function from JavaScript.
+
+This system is what makes deferred loading possible. When `msjsload` determines that a module can be deferred, it is the `fwait` mechanism that triggers its loading at runtime.
+
 ## External `.slid` Configuration
 
 An external configuration file, with a `.slid` extension, can be provided alongside any `.msjs` or `.esm.js` file. This "companion" file is used by the `msjstrans` and `msjsload` tools to define runtime dependencies and other metadata.

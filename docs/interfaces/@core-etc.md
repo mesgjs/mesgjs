@@ -31,14 +31,15 @@
   * stackType enables inclusion of parameter types in stack traces.
   * Returns a list with the current settings.
 * `(fcheck feature)`
-  * Synopsis: Returns `@t` (true) if feature is ready, `@f` (false) if feature is not ready, or `@u` (undefined) if feature is unknown or has been rejected due to an unloadable module.
+  * Synopsis: Returns `@t` (true) if `feature` is ready, `@f` (false) if it is not ready yet, or `@u` (undefined) if the feature is unknown or has been rejected due to a module loading failure.
 * `(fready mid=@mid feature)`
-  * Synopsis: Marks `feature` ready (but only if the module's id, available as Mesgjs value `@mid`, is associated with the feature, i.e. the feature appears in the module's `featpro` list in the module meta-data).
-  * Features depend on the presence of module metadata.
+  * Synopsis: Marks a `feature` as ready. This message can only be sent by the module that is authorized to provide the feature (i.e., the feature appears in the module's `featpro` list in the module metadata). The module's unique ID, `@mid`, must be provided as the `mid` named parameter.
+  * Features are dependent on the presence of module metadata.
 * `(fwait feature...)`
-  * Synopsis: Returns a @promise instance that waits for the specified feature(s) to be ready. The promise will resolve when all the features are ready, or will reject if any of the features are rejected.
-  * See @promise(then) for additional information about running code or function blocks after a feature becomes ready.
-  * Features depend on the presence of module metadata.
+  * Synopsis: Returns a `@promise` instance that waits for the specified feature(s) to become ready. The promise will resolve when all of the features are ready, or will reject if any of them are rejected.
+  * See the `@promise(then)` documentation for more information about running code after a feature becomes ready.
+  * Features are dependent on the presence of module metadata.
+  * The runtime will automatically trigger the loading of any deferred-load modules that are required to provide the requested features. *This is the recommended mechanism for loading deferred modules.*
 * `(get type init=params)`\
 `(+ type init=params)`
   * Synopsis: Returns an object instance of the specified interface type (always returning the same (first) instance for singleton interfaces).

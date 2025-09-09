@@ -94,15 +94,19 @@ Sends an anonymous message to a Mesgjs object. The receiver will be automaticall
 
 ### `fcheck(featureName)`
 
-Checks if a feature is ready without blocking.
+Checks if a feature is ready without blocking. Returns `true` if the feature is ready, `false` if it is not ready yet, and `undefined` if the feature is unknown or has been rejected due to a module loading failure.
 
 ### `fready(moduleId, featureName)`
 
-Signals that a feature provided by a module is ready. The `moduleId` is a unique `Symbol` provided by the runtime to a module's `msjsLoad(mid)` export; this ensures only an authorized module can ready a feature it claims to provide.
+Signals that a feature provided by a module is ready. The `moduleId` is a unique `Symbol` provided by the runtime to a module's `msjsLoad(mid)` export; this ensures that only an authorized module can ready a feature it claims to provide in its `featpro` configuration.
 
 ### `async fwait(featureName, ...)`
 
-Asynchronously waits for one or more features to be ready. Returns a `Promise` that resolves when all specified features have been signaled as ready via `fready`.
+Asynchronously waits for one or more features to become ready. This function returns a `Promise` that resolves when all of the specified features have been signaled as ready via `fready`, and rejects if any of the features are rejected.
+
+Based on the `featpro` entries in the module metadata (and the `featreq` entries that determine dependencies), the runtime will automatically initiate the loading of any deferred modules as they are needed for the requested features.
+
+*The use of `fwait` is the recommended mechanism for loading deferred modules.*
 
 ### `getModMeta()`
 
@@ -122,7 +126,7 @@ Example: `const { d, m, ls, na } = $modScope();`
 
 ### `setModMeta(metadata)`
 
-Sets the module metadata for the runtime, enabling features like verified module loading.
+Sets the module metadata for the runtime, enabling features like verified module loading and the `fcheck`/`fready`/`fwait` feature system.
 
 ## Storage and Data Functions
 

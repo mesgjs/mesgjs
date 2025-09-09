@@ -419,11 +419,45 @@ which can then be used to access the imported module's exports.
 
 ## Mesgjs
 
-At the current time, Mesgjs does not support module loading directly from
-within the language, although this is expected to change in the future.
+Mesgjs manages dependencies between modules through a **feature-based** system, which serves a similar purpose to JavaScript's static and dynamic `import` statements. Instead of directly importing a module, a Mesgjs module declares the features it requires (`featreq`) and the features it provides (`featpro`).
 
-You **can**, however, load a module using the runtime's `loadModule`
-JavaScript function.
+The runtime ensures that all required features are available before executing a module's code. For features that are configured for deferred loading, the Mesgjs runtime provides a mechanism to wait for them to be ready, which is conceptually similar to a dynamic `import()`.
+
+This is accomplished by sending an `(fwait)` message to the `@core` interface object (`@c`), which returns a `@promise`.
+
+`@c(fwait feature-name)(then { code-to-run })`
+
+The `(fwait)` message is the Mesgjs equivalent of a dynamic `import()`, allowing a module to load dependencies on demand. For bilingual JavaScript development, the runtime also exposes an `async` `fwait()` function that returns a standard JavaScript `Promise`.
+
+```javascript
+// In a bilingual module...
+
+// The loadMsjs wrapper function is supplied by msjstrans when embedding
+// JavaScript in a Mesgjs source file using @js{ ... @}.
+export async function loadMsjs (mid) {
+    // Start of JS embed
+    const { fwait } = globalThis.$c; // exposed on @core singleton $c
+    // fwait for a feature to be ready
+    await fwait('some-feature');
+    // ... continue initialization
+    // End of JS embed
+}
+```
+
+When a module has completed its initialization and is ready to provide its features to other modules, it signals this to the runtime by calling the `fready()` JavaScript function.
+
+```javascript
+export async function loadMsjs (mid) {
+    const { fready } = globalThis.$c; // exposed on @core singleton $c
+    // ... initialization code
+    // Signal that 'my-feature' is now ready
+    fready(mid, 'my-feature');
+}
+```
+
+In addition to `fwait`, the runtime also provides `fcheck`, which allows for a non-blocking check to see if a feature is ready.
+
+You **can** also load a module directly using the runtime's `loadModule` JavaScript function, although this is generally discouraged in favor of the feature-based system.
 
 Module loading works in one of two modes:
 

@@ -156,7 +156,7 @@ export const {
     }, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
     const handlerCache = new SieveCache(1024);
     const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
-    const features = new Map(), allFeatures = new NANOS();
+    const featurePromises = new Map(), allFeatures = new NANOS();
     const modMeta = new NANOS(), modMap = new Map(), modLoaded = new Set();
     const modMidToName = new Map();
 
@@ -167,10 +167,10 @@ export const {
 	}
 	if (typeof featureList?.values !== 'function') return;
 	for (const feature of featureList.values()) {
-	    if (!features.has(feature)) {
+	    if (!featurePromises.has(feature)) {
 		const prom = getInstance('@promise');
 		prom.catch(() => console.warn(`loadModule: Feature "${feature}" rejected`));
-		features.set(feature, prom);
+		featurePromises.set(feature, prom);
 		allFeatures.push(feature);
 		if (modPath && modInfo) allFeatures.set(feature, new NANOS({ [modInfo.at('deferLoad') ? 'defer' : 'preload']: modPath }));
 	    }
@@ -370,8 +370,8 @@ export const {
     }
 
     // Non-blocking feature check
-    function fcheck (f) {
-	switch (features.get(f)?.state) {
+    function fcheck (feature) {
+	switch (featurePromises.get(feature)?.state) {
 	case 'pending': return false;	// @f: not ready
 	case 'fulfilled': return true;	// @t: ready
 	}
@@ -379,18 +379,29 @@ export const {
     }
 
     // Wait for a list of features to be ready
+    // (Initiates the loading of deferred modules as needed)
     function fwait (...list) {
-	const prom = getInstance('@promise'), proms = [];
-	prom.catch(() => {});
-	for (const f of list) if (features.has(f)) proms.push(features.get(f));
-	return prom.all(proms);
+	const extended = new Set(list);
+	const requireModule = (module) => {
+	    if (modLoaded.has('mod-' + module)) return;
+	    loadModule(module);
+	    for (const featreq of modMeta.at(['modules', module, 'featreq'], []).values()) extended.add(featreq);
+	};
+	for (const feature of extended) {
+	    const defMod = allFeatures.at([feature, 'defer']);
+	    if (defMod) requireModule(defMod);
+	}
+	const promise = getInstance('@promise'), promises = [];
+	promise.catch(() => {});
+	for (const feature of extended) if (featurePromises.has(feature)) promises.push(featurePromises.get(feature));
+	return promise.all(promises);
     }
 
     // Mark a feature ready (if module is authorized)
     function fready (mid, feature) {
 	const meta = modMap.get(mid);
 	if (meta?.at('featpro')?.includes(feature) || modMeta.at('testMode')) {
-	    features.get(feature)?.resolve();
+	    featurePromises.get(feature)?.resolve();
 	}
     }
 
@@ -509,7 +520,7 @@ export const {
 	if (modLoaded.has('mod-' + module)) return;
 	modLoaded.add('mod-' + module);
 
-	const meta = modMeta.at('modules')?.at(module);
+	const meta = modMeta.at(['modules', module]);
 	const integrity = meta.at('integrity', '');
 	const expect = (integrity === 'DISABLED') ? '' : getIntegritySHA512(integrity);
 	if (expect) {
@@ -545,7 +556,7 @@ export const {
 	    console.error(`loadModule "${module}" failed: ${err.message}`);
 	    // Reject this module's features, if any
 	    for (const feature of meta?.at('featpro')?.values() || []) {
-		features.get(feature)?.reject(code);
+		featurePromises.get(feature)?.reject(code);
 	    }
 	    return err;
 	} finally {
@@ -877,7 +888,7 @@ export const {
 	 * phase (success or failure).
 	 */
 	const loaded = getInstance('@promise'), loadPros = [];
-	features.set('@loaded', loaded);
+	featurePromises.set('@loaded', loaded);
 	for (const [modPath, modInfo] of modMeta.at('modules')?.entries() || []) if (!modInfo.at('deferLoad')) loadPros.push(loadModule(modPath));
 	loaded.allSettled(loadPros);
     }
