@@ -19,6 +19,19 @@ function opAnd (d) {
     return result;
 }
 
+// (await {block!}... collect=@f)
+function opAwait (d) {
+    const { mp } = d, collect = mp.at('collect');
+    let result = collect ? new NANOS() : undefined;
+    const save = v => { if (collect) result.push(v); else result = v; };
+    const runBlocks = async () => {
+	for (const v of mp.values()) save(await runIfCode(v));
+    };
+    const whenDone = getInstance('@promise');
+    runBlocks.then(() => whenDone.resolve(result));
+    return whenDone;
+}
+
 // (case val cmp1 res1 ... cmpN resN else=default)
 function opCase (d) {
     const { mp } = d, val = mp.at(0), type = val?.msjsType, stop = mp.next - 1;
@@ -60,8 +73,7 @@ function opOr (d) {
     return result;
 }
 
-// (run value... collect=@f)
-
+// (run {block!}... repeat=@f collect=@f)
 function opRun (d) {
     const { mp } = d, collect = mp.at('collect');
     let result = collect ? new NANOS() : undefined;
@@ -103,6 +115,7 @@ export function install (name) {
 	    '~': d => !runIfCode(d.mp.at(0)),	// not
 	    '|': opOr,
 	    and: opAnd,
+	    await: opAwait,
 	    case: opCase,
 	    debug: d => debugConfig(d.mp),
 	    fcheck: d => fcheck(d.mp.at(0)),
@@ -110,7 +123,6 @@ export function install (name) {
 	    fready: d => fready(d.mp.at('mid'), d.mp.at(0)),
 	    get: opGet,			// Get instance
 	    if: opIf,
-	    // import: opImport,
 	    interface: d => getInterface(d.mp.at(0)),
 	    log: d => console.log(...d.mp.values()),
 	    logErr: d => console.error(...d.mp.values()),

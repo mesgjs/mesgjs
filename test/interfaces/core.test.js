@@ -3,6 +3,7 @@ import {
     assertEquals,
     assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { codeBlock } from "../harness.esm.js";
 import "../../src/runtime/mesgjs.esm.js";
 
 Deno.test("@core Interface Logic and Flow Control", async (t) => {
@@ -70,5 +71,37 @@ Deno.test("@core Interface Logic and Flow Control", async (t) => {
 	assertEquals($c(":", ["b", "b", 2]), 2);
 	// + -> get
 	assertEquals($c("+", "@string").msjsType, "@string");
+    });
+
+    await t.step("(await) should evaluate blocks in order", async () => {
+	const order = [];
+	const slow = await codeBlock(() => new Promise(resolve => setTimeout(() => {
+	    order.push('slow');
+	    resolve('slow');
+	}, 20)));
+	const fast = await codeBlock(() => new Promise(resolve => setTimeout(() => {
+	    order.push('fast');
+	    resolve('fast');
+	}, 10)));
+
+	const p = $c("await", [slow, fast]);
+
+	assertEquals(p.msjsType, "@promise");
+
+	const result = await p;
+	assertEquals(order, ["slow", "fast"]);
+	assertEquals(result, "fast");
+    });
+
+    await t.step("(await collect=@t) should collect results", async () => {
+	const slow = await codeBlock(() => new Promise(resolve => setTimeout(() => resolve('slow'), 20)));
+	const fast = await codeBlock(() => new Promise(resolve => setTimeout(() => resolve('fast'), 10)));
+
+	const p = $c("await", new NANOS(slow, fast, { collect: true }));
+	const result = await p;
+
+	assertEquals(result.next, 2);
+	assertEquals(result.at(0), 'slow');
+	assertEquals(result.at(1), 'fast');
     });
 });
