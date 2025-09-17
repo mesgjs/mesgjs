@@ -8,12 +8,22 @@ import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
 
 Deno.test("@list Interface", async (t) => {
     const { $c, $toMsjs, NANOS } = globalThis;
+    const { getInstance } = $c;
 
     const newList = (initParams = ls()) => $c("get", ls([, '@list', "init", ls([, initParams])]));
 
     await t.step("consistent instances", () => {
 	const n = new NANOS().deepFreeze();
 	assertStrictEquals($toMsjs(n), $toMsjs(n));
+    });
+
+    await t.step("consistent JS value of @list", () => {
+	// It should also be the one we supply when we supply one
+	const n = new NANOS();
+	const l = getInstance('@list', [n]);
+	assertStrictEquals(n, l('@jsv'), "(@jsv)");
+	assertStrictEquals(n, l.jsv, ".jsv");
+	assertStrictEquals(n, l.valueOf(), ".valueOf()");
     });
 
     await t.step("should initialize and retrieve values with (at)", () => {

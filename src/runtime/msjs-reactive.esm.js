@@ -38,6 +38,7 @@ function opInit (d) {
 	setRO(d.octx, 'js', reactive(mp?.storage || {}));
     }
     setRO(d.js, $c.symbols.instance, d.rr, false);
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 function opBatch (d) { return reactive.batch(() => runIfCode(d.mp.at(0))); }

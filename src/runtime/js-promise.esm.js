@@ -129,6 +129,8 @@ const proto = Object.setPrototypeOf({
 
     catch (onReject) { return this.then(null, onReject); },
 
+    get jsv () { return this; },
+
     then (onResolve, onReject) {
 	const priv = this[privKey];
 	if (!callable(onResolve)) onResolve = identity;
@@ -181,11 +183,14 @@ const proto = Object.setPrototypeOf({
 
     get state () { return this[privKey].state; },
 
+    valueOf () { return this; },
+
 }, Object.getPrototypeOf(Function));
 proto.finally = proto.always;
 
 function opInit (d) {
     // Initialize, and make this object JS/Mesgjs "bilingual"
+    // (Note the alternate d.rr (vs d.js) architecture here)
     Object.setPrototypeOf(d.rr, proto);
     setRO(d.rr, privKey, {
 	state: 'pending', result: undefined, handlers: [],
@@ -199,6 +204,7 @@ export function install (name) {
 	lock: true, pristine: true,
 	handlers: {
 	    '@init': opInit,
+	    '@jsv': d => d.rr,
 	    all: d => d.rr.all(d.mp),
 	    allSettled: d => d.rr.allSettled(d.mp),
 	    always: d => d.rr.always(d.mp.at(0)),

@@ -69,3 +69,13 @@ export async function loadMesgjsModulePath (path, module = path) {
     const source = await Deno.readTextFile(path);
     return loadMesgjsModuleSource(source, module);
 }
+
+let module;
+
+export async function codeBlock (code) {
+    if (!module) {
+	await import('./runtime-loader.esm.js');
+	module = $modScope();
+    }
+    return module.d.b({ cd: code });
+}

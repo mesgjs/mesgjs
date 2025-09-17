@@ -10,6 +10,7 @@ import { unifiedList, uniAt } from './unified-list.esm.js';
 function opInit (d) {
     const { octx, mp } = d, list = mp.at(0);
     setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
+    setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 function opAt (d) {

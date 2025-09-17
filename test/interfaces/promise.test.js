@@ -29,6 +29,14 @@ Deno.test('@promise - initialization', async () => {
   assertEquals(p3('message'), 'fail');
 });
 
+Deno.test('@promise - JS value', async () => {
+    const { $c } = globalThis, { getInstance } = $c;
+    const p1 = getInstance('@promise');
+    assertStrictEquals(p1('@jsv'), p1, "(@jsv)");
+    assertStrictEquals(p1.jsv, p1, ".jsv");
+    assertStrictEquals(p1.valueOf(), p1, ".valueOf()");
+});
+
 Deno.test('@promise - resolve/reject methods', async () => {
     const p = $c('get', '@promise');
     p('resolve', 'resolved');
