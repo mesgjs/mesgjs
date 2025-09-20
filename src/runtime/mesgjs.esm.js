@@ -39,76 +39,76 @@ const instances = new WeakMap();
 
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
-    /*
-     * This JavaScript class is foundational to the language.
-     * Help lots of modules (especially JavaScript-based loadable
-     * interface modules) avoid dealing with import-vendoring it.
-     */
-    globalThis.NANOS = NANOS;
+	/*
+	 * This JavaScript class is foundational to the language.
+	 * Help lots of modules (especially JavaScript-based loadable
+	 * interface modules) avoid dealing with import-vendoring it.
+	 */
+	globalThis.NANOS = NANOS;
 
-    // @core should always be installed first
-    installCore('@core');
-    if (!globalThis.$c) throw new Error('@core installation incomplete');
+	// @core should always be installed first
+	installCore('@core');
+	if (!globalThis.$c) throw new Error('@core installation incomplete');
 
-    // Attach some additional runtime-related properties, then lock it
-    setRO($c, 'symbols', {
-	convert: convertSym,
-	instance: instanceSym,
-    });
-    Object.freeze($c.symbols);
-    Object.freeze($c);
+	// Attach some additional runtime-related properties, then lock it
+	setRO($c, 'symbols', {
+		convert: convertSym,
+		instance: instanceSym,
+	});
+	Object.freeze($c.symbols);
+	Object.freeze($c);
 
-    installBoolean();
-    installJSArray('@jsArray');
-    installJSObject('@jsObject');
-    installKVIter('@kvIter');
-    installList('@list');
-    // Teach toMsjs how to convert NANOS to a Msjs @list
-    NANOS.prototype[convertSym] = function () {
-	return getInstance('@list', [this]);
-    }
-    installLoop('@loop');
-    installMap('@map');
-    installNull();
-    installNumber();
-    installPromise('@promise');
-    installReactive('@reactive');
-    installRegex();
-    installSet('@set');
-    installString();
-    installTry('@try');
-    installUndefined();
+	installBoolean();
+	installJSArray('@jsArray');
+	installJSObject('@jsObject');
+	installKVIter('@kvIter');
+	installList('@list');
+	// Teach toMsjs how to convert NANOS to a Msjs @list
+	NANOS.prototype[convertSym] = function () {
+		return getInstance('@list', [this]);
+	}
+	installLoop('@loop');
+	installMap('@map');
+	installNull();
+	installNumber();
+	installPromise('@promise');
+	installReactive('@reactive');
+	installRegex();
+	installSet('@set');
+	installString();
+	installTry('@try');
+	installUndefined();
 }
 
 // Promote a JS object to a Msjs object for messaging
 function toMsjs (jsv) {
-    if (jsv?.msjsType) return jsv;
-    let instance;
-    switch (typeof jsv) {
-    case 'boolean':
-	return getInstance(jsv ? '@true' : '@false');
-    case 'bigint':
-    case 'number':
-	return getInstance('@number', [jsv]);
-    case 'object':
-	if (jsv === null) return getInstance('@null');
-	instance = jsv[instanceSym] || instances.get(jsv);
-	if (!instance) {
-	    if (jsv[convertSym]) instance = jsv[convertSym]();
-	    else if (jsv instanceof RegExp) instance = getInstance('@regex', [jsv]);
-	    else if (Array.isArray(jsv)) instance = getInstance('@jsArray', [jsv]);
-	    else if (jsv instanceof Map) instance = getInstance('@map', [jsv]);
-	    else if (jsv instanceof Set) instance = getInstance('@set', [jsv]);
-	    else if (isPlainObject(jsv)) instance = getInstance('@jsObject', [jsv]);
-	    if (instance) instances.set(jsv, instance);
+	if (jsv?.msjsType) return jsv;
+	let instance;
+	switch (typeof jsv) {
+	case 'boolean':
+		return getInstance(jsv ? '@true' : '@false');
+	case 'bigint':
+	case 'number':
+		return getInstance('@number', [jsv]);
+	case 'object':
+		if (jsv === null) return getInstance('@null');
+		instance = jsv[instanceSym] || instances.get(jsv);
+		if (!instance) {
+			if (jsv[convertSym]) instance = jsv[convertSym]();
+			else if (jsv instanceof RegExp) instance = getInstance('@regex', [jsv]);
+			else if (Array.isArray(jsv)) instance = getInstance('@jsArray', [jsv]);
+			else if (jsv instanceof Map) instance = getInstance('@map', [jsv]);
+			else if (jsv instanceof Set) instance = getInstance('@set', [jsv]);
+			else if (isPlainObject(jsv)) instance = getInstance('@jsObject', [jsv]);
+			if (instance) instances.set(jsv, instance);
+		}
+		if (instance) return instance;
+		return getInstance('@undefined');
+	case 'string':
+		return getInstance('@string', [jsv]);
+	default:
+		return getInstance('@undefined');
 	}
-	if (instance) return instance;
-	return getInstance('@undefined');
-    case 'string':
-	return getInstance('@string', [jsv]);
-    default:
-	return getInstance('@undefined');
-    }
 }
 
 setRO(globalThis, '$toMsjs', toMsjs);

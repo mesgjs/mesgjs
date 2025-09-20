@@ -9,20 +9,20 @@
 import { getInterface, jsToMsjs, NANOS, runIfCode, setRO } from 'mesgjs/runtime.esm.js';
 
 function opF (d) {
-    const { mp } = d;
+	const { mp } = d;
 }
 
 const opAF = d => { };
 
 export function installIF () {
-    const ix = getInterface('@template');
-    ix.set({
-	final: true, lock: true, pristine: true, // singleton: true,
-	handlers: {
-	    f: opF,
-	    af: opAF,
-	},
-    });
+	const ix = getInterface('@template');
+	ix.set({
+		final: true, lock: true, pristine: true, // singleton: true,
+		handlers: {
+			f: opF,
+			af: opAF,
+		},
+	});
 }
 
 // END

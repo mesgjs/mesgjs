@@ -7,28 +7,28 @@
 import { isIndex, NANOS } from 'nanos/nanos.esm.js';
 
 export class LRUCache extends NANOS {
-    #limit;
+	#limit;
 
-    constructor (limit) {
-	super();
-	this.#limit = limit;
-    }
+	constructor (limit) {
+		super();
+		this.#limit = limit;
+	}
 
-    at (key, defVal) {
-	if (!this.has(key)) return defVal;
-	const val = this.delete(key);
-	if (isIndex(key)) this.push([val]);
-	else this.set(key, val);
-	return val;
-    }
+	at (key, defVal) {
+		if (!this.has(key)) return defVal;
+		const val = this.delete(key);
+		if (isIndex(key)) this.push([val]);
+		else this.set(key, val);
+		return val;
+	}
 
-    get limit () { return this.#limit; }
-    set limit (v) { this.#limit = v; }
+	get limit () { return this.#limit; }
+	set limit (v) { this.#limit = v; }
 
-    set (key, value, insert) {
-	super.set(key, value, insert);
-	while (this.size > this.#limit) this.delete(this.keys().next().value);
-    }
+	set (key, value, insert) {
+		super.set(key, value, insert);
+		while (this.size > this.#limit) this.delete(this.keys().next().value);
+	}
 }
 
 // END

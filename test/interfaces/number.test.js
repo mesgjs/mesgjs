@@ -98,10 +98,10 @@ Deno.test('@number - Math functions', () => {
 });
 
 Deno.test('@number - Logarithmic functions', () => {
-    assertEquals($n(100)('log'), 2);
-    assertEquals($n(100)('log', 10), 2);
-    assertEquals($n(8)('log', 2), 3);
-    assertEquals($n(Math.E)('ln'), 1);
+	assertEquals($n(100)('log'), 2);
+	assertEquals($n(100)('log', 10), 2);
+	assertEquals($n(8)('log', 2), 3);
+	assertEquals($n(Math.E)('ln'), 1);
 });
 
 Deno.test('@number - is... functions', () => {
@@ -114,22 +114,22 @@ Deno.test('@number - is... functions', () => {
 });
 
 Deno.test('@number - hypot', () => {
-    assertEquals($n(3)('hypot', 4), 5);
-    assertEquals($n(0)('hypot', ls(['of', ls([, 3, , 4, , 5])])), Math.hypot(3,4,5));
+	assertEquals($n(3)('hypot', 4), 5);
+	assertEquals($n(0)('hypot', ls(['of', ls([, 3, , 4, , 5])])), Math.hypot(3,4,5));
 });
 
 Deno.test('@number - ival', () => {
-    assertStrictEquals($n(5)('ival', ls(['ge', 5, 'lt', 10])), true, '[5,10)');
-    assertStrictEquals($n(10)('ival', ls(['ge', 5, 'lt', 10])), false, '[5,10)');
-    assertStrictEquals($n(4)('ival', ls(['ge', 5, 'lt', 10])), false, '[5,10)');
-    assertStrictEquals($n(5)('ival', ls(['gt', 5, 'le', 10])), false, '(5,10]');
+	assertStrictEquals($n(5)('ival', ls(['ge', 5, 'lt', 10])), true, '[5,10)');
+	assertStrictEquals($n(10)('ival', ls(['ge', 5, 'lt', 10])), false, '[5,10)');
+	assertStrictEquals($n(4)('ival', ls(['ge', 5, 'lt', 10])), false, '[5,10)');
+	assertStrictEquals($n(5)('ival', ls(['gt', 5, 'le', 10])), false, '(5,10]');
 });
 
 Deno.test('@number - min/max', () => {
-    assertEquals($n(5)('max', ls([, 1, , 10])), 10);
-    assertEquals($n(5)('min', ls([, 1, , 10])), 1);
-    assertEquals($n(0)('max', ls(['of', ls([, 1, , 5, , 2])])), 5);
-    assertEquals($n(0)('min', ls(['of', ls([, 1, , 5, , 2])])), 1);
+	assertEquals($n(5)('max', ls([, 1, , 10])), 10);
+	assertEquals($n(5)('min', ls([, 1, , 10])), 1);
+	assertEquals($n(0)('max', ls(['of', ls([, 1, , 5, , 2])])), 5);
+	assertEquals($n(0)('min', ls(['of', ls([, 1, , 5, , 2])])), 1);
 });
 
 Deno.test('@number - toString/valueOf/toNumber', () => {
