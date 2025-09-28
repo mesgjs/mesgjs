@@ -4,24 +4,24 @@
 
 - Mesgjs is officially pronounced like "messages" (but "message J S" works too).
 - Everything is an object. Objects are collections of data, with an associated, immutable type, and behaviors (message handlers) separately/externally defined by one or more interfaces.
-- Everything happens by sending a message to an object. Objects may accept, reject, or route messages based on logic / sender / sender type.
+- Everything happens by sending a message to an object. Objects may accept, reject, or route messages based on logic / sender / sender type / sender module.
 - While blocks can contain statements in the sense of executional units and the language recognizes certain "operator-like" sequences for variable access, there are no statements in the sense of declarations or flow control, and no infix-style computational operators; those functions are performed using messages to objects.
 - Many language- and runtime-supplied assets have names or values beginning with `@` to distinguish them from user-supplied assets. The `@` is part of the name or value, *not part of the syntax*. For protection against future extensions, users are strongly encouraged to respect this convention and not use `@` as the first character, even under circumstances in which it is not enforced.
 - Namespaces are live, storage objects for variables. They help avoid naming conflicts, and eliminate the need for pre-declarations. There are namespaces for each of the following scopes/contexts:
-  - `%` => object persistent properties
-  - `#` => scratch (local/temporary) variables
-  - `!` => message parameters
-  - `%/` or `@mps` => module private/persistent storage
-  - `%*` or `@gss` => global shared storage
+  - `%` ⇒ object persistent properties
+  - `#` ⇒ scratch (local/temporary) variables
+  - `!` ⇒ message parameters
+  - `%/` or `@mps` ⇒ module private/persistent storage
+  - `%*` or `@gss` ⇒ global shared storage
 
 ## Basic Syntax
 
-| Element           | Example                                                   | Meaning                                                                                                                                   |
-|-------------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| Element | Example | Meaning |
+|---|---|---|
 | Word literal      | `hello`<br>`?` `!=` `<<`                                  | Basic text, no quotes needed.<br>Symbolic "operators" are a type of word literal.                                                         |
 | Quoted "strings"  | `'hello, world'`<br>`"hello, world"`                      | Text within matching plain single or double quotes.                                                                                       |
 | List literal      | `[x y z key=value]`                                       | List of positional (aka indexed) + named values.                                                                                          |
-| Message           | `object(message parameters...)`                             | Send message to object with parameters.                                                                                                   |
+| Message           | `object(message parameters...)`                           | Send message to object with parameters.                                                                                                   |
 | Message chain     | `object(message1)(message2)`                              | Send messages to successive results (i.e., send `message2` to the result returned by sending `message1` to `object`).                     |
 | Namespace-at      | `%x #x !x // error if not set`<br>`%?x #?x !?x // @u if not set` | `%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
 | Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | When `(run)`, evaluates the block.<br>"Non-returning" blocks (`}`) return `@u` (undefined).<br>"Returning" blocks (`!}`) return the last value. |

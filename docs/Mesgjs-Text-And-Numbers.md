@@ -169,12 +169,13 @@ number)
   number, and without white space to disambiguate, the `-` sign goes with
   the number.
   * `-1` is a numeric literal (number).
-* `#x(!=y else=@u)` means `# x ( != x else = @u )`
+* `#x(!=y else=@u)` means `# x ( != y else = @u )`
   * The message delimiters `(` and `)` terminate regular words `x` and `@u`.
   * `#` is a storage op-word (which, being followed by a value, will be used
   to reference scratch (transient) storage).
   * `x` is a regular word.
   * `!=` is an op-word (the operation for the message).
+  * `y` is a regular word.
   * `else` is a regular word.
   * `=` is an op-word (which, appearing between two values in a
   (message parameter) list, will create a key-value association between
@@ -189,4 +190,4 @@ number)
   * The `2` is also not part of a key/value pair, so it is the second
   position parameter (key `1`).
   * For those familiar with JavaScript, this would be roughly equivalent to:\
-  ` { x: y, 0: '=', 1: 2 }`
+  `{ x: y, 0: '=', 1: 2 }`

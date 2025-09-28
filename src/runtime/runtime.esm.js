@@ -451,17 +451,26 @@ export const {
 	 * Return a new object instance of the specified type.
 	 * The JS initializer is called if one is configured in the interface.
 	 */
-	function getInstance (type, mp) {
+	function getInstance (type, mp, { sr, st } = {}) {
 		const ix = interfaces[type];
 		if (!ix) throw new TypeError(`Cannot get instance for unknown Mesgjs interface "${type}"`);
 		if (ix.instance) return ix.instance;
-		const octx = Object.create(null), pi = function msjsR$Object (op, mp) { return dispatchMessage({ rr: pi, rt: type, op, mp }, { octx }); };
-		setRO(pi, 'msjsType', type);
-		if (ix.singleton) ix.instance = pi;
-		ix.refd = true;
+		if (ix.abstract) throw new TypeError(`Cannot get instance for abstract Mesgjs interface "${type}"`);
+		const octx = Object.create(null), rr = function msjsR$Object (op, mp) { return dispatchMessage({ rr, rt: type, op, mp }, { octx }); };
+		setRO(rr, 'msjsType', type);
+		if (ix.singleton) ix.instance = rr;
+		// Don't allow behavior or interface properties to change once an instance exists
+		ix.locked = true;
 		if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
-		pi(initSym, mp);
-		return pi;
+		if (typeof sr === 'function' && typeof st === 'string') {
+			try {
+				mesgBaton = { sr, st, rr, op: initSym, mp };
+				rr();
+			} finally {
+				mesgBaton = undefined;
+			}
+		} else rr(initSym, mp);
+		return rr;
 	}
 
 	/*
@@ -471,7 +480,9 @@ export const {
 	 */
 	function getInterface (name) {
 		if (name === ':?') name = ':?' + nextAnon++;
-		else if (typeof name !== 'string' || !name || (name.startsWith(':?') && !interfaces[name]) || (name[0] === '@' && initPhase !== 1)) return;
+		else if (typeof name !== 'string' || !name || (name.startsWith(':?') && !interfaces[name])) return;
+		// No new `@` interfaces after init phase 1
+		if (name[0] === '@' && initPhase !== 1 && !interfaces[name]) return;
 		const ix = interfaces[name], isFirst = !ix;
 		if (isFirst) interfaces[name] = {
 			handlers: Object.create(null), chain: new Set([]), refd: false,
@@ -763,9 +774,9 @@ export const {
 
 	// Prototype @interface receiver
 	function msjsR$Interface (op0, mp0) {
-		const name = this.name, { op, mp, hasElse, elseExpr } = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
+		const name = this.name, { op, mp, sr, st, hasElse, elseExpr } = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
 		switch (op) {
-		case 'instance': return getInstance(name, mp);
+		case 'instance': return getInstance(name, mp, { sr, st });
 		case 'name': return name;
 		case 'set': return setInterface(name, mp, this.isFirst);
 		}
@@ -854,6 +865,7 @@ export const {
 		if (mp.final) ix.final = true;
 		if (mp.lock) ix.locked = true;
 		if (mp.once) ix.once = true;
+		if (mp.private) ix.private = true;
 		if (mp.singleton) ix.singleton = true;
 	}
 

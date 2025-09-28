@@ -8,7 +8,6 @@ In addition to providing your own interface name, you can create *anonymous* int
 
 * `(instance params=[])`
   * Synopsis: Creates and returns a new instance of the interface.
-  * RIC values: none
   * The params list is passed to the instance's @init handler if present.
   * Throws TypeError if the interface is abstract.
   * For singleton interfaces, always returns the same instance.
@@ -16,11 +15,9 @@ In addition to providing your own interface name, you can create *anonymous* int
 
 * `(name)`
   * Synopsis: Returns the name of the interface (useful for anonymous interfaces).
-  * RIC values: none
 
 * `(set options)`
   * Synopsis: Configures the interface with the specified options.
-  * RIC values: none
   * Options:
     * `abstract`: Boolean. If true, marks the interface as incomplete and unable to be instantiated.
     * `chain`: List. Sets an ordered chain of super-class interfaces. Must be set before the interface is used.
@@ -29,12 +26,12 @@ In addition to providing your own interface name, you can create *anonymous* int
     * `lock`: Boolean. If true, prevents future setInterface calls.
     * `once`: Boolean. If true, prevents returning the interface again and throws an error if returned before.
     * `pristine`: Boolean. If true, throws an error if not the first configuration.
-    * `private`: Boolean. If true, instances can only be generated via the interface object (via the `(instance)` message), not through `@c(get)`.
+    * `private`: Boolean. If true, instances can only be generated via the interface object (via the `(instance)` message), not through `@c(get)`, and no additional interface objects for this interface will be available.
     * `singleton`: Boolean. If true, only one instance of the interface can exist.
-    * `cacheHints`: Object/List. Hints for caching handler lookups. Values can be:
+    * `cacheHints`: Object/list of hints for caching handler lookups. Keys are message names. Values can be:
       * `true`: Cache the handler lookup
       * `false`: Don't cache the handler lookup
-      * `'pin'`: Cache and pin the handler lookup (won't be evicted)
+      * `'pin'`: Cache and pin the handler lookup (the entry will never be evicted)
   * Throws `TypeError` if:
     * Configuring a @-prefixed interface after runtime initialization
     * The interface is not pristine and pristine=true was specified
