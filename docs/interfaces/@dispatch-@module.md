@@ -11,7 +11,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `(js)` \- returns the JS-level state object, if set \[not sure if this is useful in Mesgjs\]  
 * `(log)` \- logs the dispatch object to the JS console  
 * `(mop)` \- returns the original message's requested operation   
-* `(redis type=superType op=op params=mesgParams else=default)` \- redispatch to another handler, optionally specifying a "super-type", new message operation, or new message parameters. The optional `else` (RIC) value is returned instead of `@u` (undefined) if there are no other handlers to dispatch.  
+* `(redis type=superType? op=op? params=mesgParams? else=default?)` \- redispatch to another handler, optionally specifying a "super-type", new message operation, or new message parameters. The optional `else` (RIC) value is returned instead of `@u` (undefined) if there are no other handlers to dispatch.  
   * If the requested operation is (either implicitly or explicitly) the same as the current operation, the redispatch will automatically happen from the current type's next "super-type" in the interface chain.
   * If you want to use the next "super-type" for a different operation (without naming a specific `type` from the chain), use `type=@next`.
 * `(return value?)` \- returns from the current dispatch (either to the parent dispatch or the message sender), optionally including a value to return in instead of `@u` (undefined).  

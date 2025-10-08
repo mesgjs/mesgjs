@@ -34,6 +34,7 @@ The following rules should be applied when transforming a source document into i
 - **Preserve Essential Metadata:** Do not omit critical metadata, even if it seems verbose. For example, the `(RIC: ...)` annotations for message parameters are architecturally significant and must be preserved.
 - **Be Concise:** Use clear, unambiguous language. Compactness is a priority, but not at the expense of technical accuracy.
   - Example: Use `- ` for lists and indent with two spaces.
+  - Information density should be a consideration when choosing an appropriate structure (e.g. sometimes a table can convey the same details more compactly than a list)
 - **Preserve Code Examples:** Retain essential code snippets that demonstrate core functionality.
 - **Context Block:** Each chapter must include a standard context header:
 ```
@@ -42,6 +43,7 @@ Source: <the original doc/ path (plain, not a link)>
 Condensed: <YYYY-MM-DD condensed-chapter latest-generation-date>
 ```
 - **"Clean" Endings:** Ensure every chapter file is self-contained and does not leave any unterminated state (like code fences).
+- **Informed Updates:** Unless otherwise instructed, examine any existing version of a chapter for context before updating/replacing it.
 
 ## 5. Task Execution Details
 
