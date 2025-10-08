@@ -41,6 +41,7 @@ export function transpileTree (tree, opts = {}) {
 			if (fatal) throw new Error(message);
 			errors.push(message);
 		},
+		emptyStm = (node) => node.node.type === 'wrd' && node.node.text === '@e',
 		output = (...c) => outBuf.push(...c),
 		outseg = (gen, src, pdg) => output(segment(gen, src, pdg)),
 		pushOut = () => outStack.push(outBuf.length),
@@ -86,8 +87,10 @@ export function transpileTree (tree, opts = {}) {
 			generateNumber(node);
 			break;
 		case 'stm':		// Statement
-			generate(node.node);
-			if (node.node.type !== 'dbg') output(aws ? ';\n' : ';');
+			if (!emptyStm(node)) {
+				generate(node.node);
+				if (node.node.type !== 'dbg') output(aws ? ';\n' : ';');
+			} else if (!outBuf.length) output('');
 			break;
 		case 'txt':		// Text literal
 			generateText(node);
@@ -132,8 +135,9 @@ export function transpileTree (tree, opts = {}) {
 
 		const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
 		for (let i = 0; i < count; ++i) {
-			if (i === rtn) output('return ');
-			generate(node.statements[i]);
+			const stm = node.statements[i];
+			if (i === rtn && !emptyStm(stm)) output('return ');
+			generate(stm);
 		}
 
 		if (node.type !== 'dbg') {
@@ -152,7 +156,7 @@ export function transpileTree (tree, opts = {}) {
 			else outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
 			blocks.length = 0;
 		}
-		if (!repl) outBuf.unshift(segment(`export async function loadMsjs(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;\n`));
+		if (!repl) outBuf.unshift(segment(`export async function loadMsjs(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;await null;\n`));
 		if (jsFirst) outBuf.unshift(initialJS);
 		if (!repl) outBuf.push(segment(`}if(!globalThis.msjsNoSelfLoad)loadMsjs();\n`));
 	}

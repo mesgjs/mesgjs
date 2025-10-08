@@ -33,7 +33,7 @@ export async function fetchModule (src, { decode, integrity } = {}) {
 		data = await Deno.readFile(src);
 		if (!data) throw new Error(`fetchModule: File "${src}" not found`);
 	} else {
-		data = await fetch(src).then(r => {
+		data = await fetch(src).then((r) => {
 			if (r.ok) {
 				return r.arrayBuffer();
 			}
@@ -45,7 +45,7 @@ export async function fetchModule (src, { decode, integrity } = {}) {
 }
 
 // listFromPairs is the runtime shortcut ls([]) (NANOS generator)
-export const listFromPairs = pa => new NANOS().fromPairs(pa);
+export const listFromPairs = (pa) => new NANOS().fromPairs(pa);
 
 // Types to show in place of values during dispatch/stack traces
 export function loggedType (v) {
@@ -68,7 +68,7 @@ export function namespaceAt	 (namespace, key, opt) {
 }
 
 // Get the return value if @code, or the raw value otherwise
-export const runIfCode = v => v?.msjsType === '@code' ? v('run') : v;
+export const runIfCode = (v) => v?.msjsType === '@code' ? v('run') : v;
 // Run @code chains until reaching a non-@code value
 export function runWhileCode (v) {
 	while (v?.msjsType === '@code') v = v('run');
@@ -210,11 +210,11 @@ export const {
 		if (checkBaton) {
 			const mb = mesgBaton;
 			mesgBaton = undefined;
-			if (op === undefined && mb?.rr === rr) ({ sr, st, op, mp } = mb);
+			if (op === undefined && mb?.rr === rr) ({ sr, st, smi, op, mp } = mb);
 		}
 		if (op instanceof NANOS) op = op.storage;
 		if (typeof op === 'object') {	// List-op message
-			const hp = prop => hasOwn(op, prop);
+			const hp = (prop) => hasOwn(op, prop);
 			if (hp('else')) [hasElse, elseExpr] = [true, op.else];
 			if (hp('mid')) {
 				const moduleName = modMidToName.get(op.mid);
@@ -321,8 +321,11 @@ export const {
 	// Handle an incoming message's first dispatch
 	function dispatchMessage (mctx, dctx) {
 		const cmp = canMesgProps(mctx);
-		const { st, rr, rt, op, mp, hasElse, elseExpr } = cmp;
-		const { octx, handler = getHandler(rt, op) } = dctx;
+		const { st, rr, rt, mp, hasElse, elseExpr } = cmp;
+		let op = cmp.op;
+		const isInit = op === initSym || dctx.isInit;
+		if (isInit && op === initSym) cmp.op = op = '@init';
+		const { octx, handler = getHandler(rt, op, { isInit }) } = dctx;
 
 		if (!handler) {
 			if (dbgCfg.dispatch) console.log(`[Mesgjs dispatch] ${st} => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(dbgCfg.dispatchSource)}`);
@@ -334,7 +337,7 @@ export const {
 		const sm = msjsS$SendMessage.bind({ sr: rr, st: rt });
 
 		// Dispatch the initial handler and return its result
-		return dispatchHandler(cmp, { octx, op, handler, sm }, mp);
+		return dispatchHandler(cmp, { octx, op, handler, sm, isInit }, mp);
 	}
 	firstInit.push(() => {
 		getInterface('@dispatch').set({ pristine: true, private: true, lock: true });
@@ -357,7 +360,7 @@ export const {
 	// Format dispatch message parameter types
 	function fmtDispParams (inc, list) {
 		if (!inc) return '';
-		return [...unifiedList(list).entries()].map(en => (isIndex(en[0]) ? ` ${loggedType(en[1])}` : ` ${en[0]}=${loggedType(en[1])}`)).join('');
+		return [...unifiedList(list).entries()].map((en) => (isIndex(en[0]) ? ` ${loggedType(en[1])}` : ` ${en[0]}=${loggedType(en[1])}`)).join('');
 	}
 
 	// Format a dispatched message source file / line / column
@@ -409,15 +412,35 @@ export const {
 	 * Try to locate a specific or default handler for a type and operation.
 	 * Returns {code, type, op}.
 	 */
-	function getHandler (type0, op, next = false) {
+	function getHandler (type0, op, { isInit, next } = {}) {
 		const noopHandler = { code: () => {}, type: type0, op };
 		// Ignore (no-op) @init outside of getInstance
-		if (op === '@init') return noopHandler;
-		if (op === initSym) op = '@init';
+		if (!isInit && op === '@init') return noopHandler;
 		const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})`, hit = cacheKey && handlerCache.get(cacheKey);
 		if (hit) return hit;
 
-		const handler = getHandler2(type0, op, next, noopHandler);
+		const searchChain = () => {
+			let dacHand, defHand;
+			for (const type of flatChain(type0)) {
+				if (next && type === type0) continue;
+				const ix = interfaces[type], code = ix?.handlers[op];
+				if (code) return { code, type, op };
+				if (ix && !defHand) {
+					if (!dacHand) {
+						const op = '@defacc', code = ix.handlers[op];
+						if (code) dacHand = { code, type, op };
+					}
+					const op = '@default', code = ix.handlers[op];
+					if (code) defHand = { code, type, op };
+				}
+			}
+			// Use no-op as the special default for @init
+			if (op === '@init') return noopHandler;
+			// @defacc can moderate what @default accepts
+			if (defHand && dacHand && !dispatchHandler(dacHandMctx, { op: '@defacc', octx: {}, handler: dacHand }, { op, type: defHand.type })) return;
+			return defHand;
+		};
+		const handler = searchChain();
 		const cacheable =
 			((!cacheKey || !handler || !interfaces[handler.type].locked) ? false :
 			((handler.code.cache !== undefined) ? handler.code.cache :
@@ -425,33 +448,12 @@ export const {
 		if (cacheable) handlerCache.set(cacheKey, handler, handler.code.cache === 'pin' && handler.type === type0);
 		return handler;
 	}
-	function getHandler2 (type0, op, next, noopHandler) {
-		let dacHand, defHand;
-		for (const type of flatChain(type0)) {
-			if (next && type === type0) continue;
-			const ix = interfaces[type], code = ix?.handlers[op];
-			if (code) return { code, type, op };
-			if (ix && !defHand) {
-				if (!dacHand) {
-					const op = '@defacc', code = ix.handlers[op];
-					if (code) dacHand = { code, type, op };
-				}
-				const op = '@default', code = ix.handlers[op];
-				if (code) defHand = { code, type, op };
-			}
-		}
-		// Use no-op as the special default for @init
-		if (op === '@init') return noopHandler;
-		// @defacc can moderate what @default accepts
-		if (defHand && dacHand && !dispatchHandler(dacHandMctx, { op: '@defacc', octx: {}, handler: dacHand }, { op, type: defHand.type })) return;
-		return defHand;
-	}
 
 	/*
 	 * Return a new object instance of the specified type.
 	 * The JS initializer is called if one is configured in the interface.
 	 */
-	function getInstance (type, mp, { sr, st } = {}) {
+	function getInstance (type, mp, { sr, st, smi } = {}) {
 		const ix = interfaces[type];
 		if (!ix) throw new TypeError(`Cannot get instance for unknown Mesgjs interface "${type}"`);
 		if (ix.instance) return ix.instance;
@@ -462,14 +464,12 @@ export const {
 		// Don't allow behavior or interface properties to change once an instance exists
 		ix.locked = true;
 		if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
-		if (typeof sr === 'function' && typeof st === 'string') {
-			try {
-				mesgBaton = { sr, st, rr, op: initSym, mp };
-				rr();
-			} finally {
-				mesgBaton = undefined;
-			}
-		} else rr(initSym, mp);
+		try {
+			mesgBaton = { sr, st, smi, rr, op: initSym, mp };
+			rr();
+		} finally {
+			mesgBaton = undefined;
+		}
 		return rr;
 	}
 
@@ -493,8 +493,8 @@ export const {
 		const bfnThis = { name, isFirst }, bfn = bfnThis.bfn = msjsR$Interface.bind(bfnThis);
 		return setRO(bfn, {
 			ifName: name,
-			set: mp => setInterface(name, mp, isFirst),
-			instance: mp => getInstance(name, mp),
+			set: (mp) => setInterface(name, mp, isFirst),
+			instance: (mp) => getInstance(name, mp),
 			msjsType: '@interface',
 		});
 	}
@@ -519,7 +519,7 @@ export const {
 	function initialize (installer) {
 		if (initPhase === 2) {			// Only initialize once
 			initPhase = 1;
-			firstInit.forEach(cb => cb());
+			firstInit.forEach((cb) => cb());
 			installer();
 			initPhase = 0;
 			dacHandMctx.sr = dacHandMctx.rr = gt.$c;
@@ -595,7 +595,7 @@ export const {
 			}
 		};
 		let per, tra;	// JIT persistent, transient storage
-		const b = tpl => bindCode(tpl, d), sm = msjsS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
+		const b = (tpl) => bindCode(tpl, d), sm = msjsS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
 		setRO(m, 'msjsType', '@module');
 		Object.defineProperties(m, {
 			p: { get: getPer, enumerable: true },
@@ -699,7 +699,7 @@ export const {
 		// Fast-track (run) message
 		if (op === 'run') return this.cd(this.od);
 		switch (op) {	// Standard-mode ops
-		case initSym: return;
+		case initSym: case '@init': return;
 		case getCode:
 			codeBaton = { code: this.cd }; // JS function for interface
 			return;
@@ -718,7 +718,7 @@ export const {
 	function msjsR$Dispatch (mctx, dhctx, _dmp) {
 		// Note: op/mp here is for the d(message), not the original (mctx)
 		const { op, mp, elseExpr } = canMesgProps({ rr: this.bfn });
-		const { octx, handler, sm } = dhctx;
+		const { octx, handler, isInit, sm } = dhctx;
 		switch (op) {
 		case 'dop': return dhctx.op;	// Current dispatch REQUESTED op
 		case 'ht': return handler.type;
@@ -732,15 +732,18 @@ export const {
 			// Accept either list-op or mp else parameter
 			const dispElse = mp.has('else') ? mp.at('else') : elseExpr;
 			// Optionally choose a specific type from the chain
-			const type = mp.at('type') || handler.type;
+			const rdType = mp.at('type');
+			const type = (rdType && rdType !== '@next') ? rdType : handler.type;
 			// The type must be in *current* handler's chain
 			if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
 			// Optionally change op and/or mp
-			const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = getRDMP(mp), redis = getHandler(type, rdop, type === handler.type && rdop === handler.op);
+			const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = getRDMP(mp);
+			const next = (type === handler.type && rdop === handler.op) || (rdType === '@next');
+			const redis = getHandler(type, rdop, { isInit, next });
 			// Don't allow switch to default if not changing op
 			if (!redis || (!mp.has('op') && redis.op !== rdop)) return runIfCode(dispElse);
 			// Looks good; fire the redispatch
-			return dispatchHandler(mctx, { octx, op: rdop, handler: redis, sm }, rdmp);
+			return dispatchHandler(mctx, { octx, op: rdop, isInit, handler: redis, sm }, rdmp);
 		}
 		case 'return':
 			this.bfn._capture = true;
@@ -751,6 +754,8 @@ export const {
 		case 'sr': return mctx.sr;		// Sender
 		case 'st': return mctx.st;		// Sender type
 		case 'smi': return mctx.smi;	// Sending-module identifier
+		case undefined:
+			throw new TypeError(`"${handler.type}(${dhctx.op})": @dispatch messages must be attributed`);
 		}
 		return runIfCode(elseExpr);
 	}
@@ -774,9 +779,9 @@ export const {
 
 	// Prototype @interface receiver
 	function msjsR$Interface (op0, mp0) {
-		const name = this.name, { op, mp, sr, st, hasElse, elseExpr } = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
+		const name = this.name, { op, mp, sr, st, smi, hasElse, elseExpr } = canMesgProps({ rr: this.bfn, op: op0, mp: mp0 });
 		switch (op) {
-		case 'instance': return getInstance(name, mp, { sr, st });
+		case 'instance': return getInstance(name, mp, { sr, st, smi });
 		case 'name': return name;
 		case 'set': return setInterface(name, mp, this.isFirst);
 		}
@@ -907,7 +912,7 @@ export const {
 
 	function stub (type, ...names) {
 		const h = interfaces[type]?.handlers;
-		if (h) names.forEach(name => h[name] = false);
+		if (h) names.forEach((name) => h[name] = false);
 	}
 
 	/*

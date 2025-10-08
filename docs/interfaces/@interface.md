@@ -9,9 +9,11 @@ In addition to providing your own interface name, you can create *anonymous* int
 * `(instance params=[])`
   * Synopsis: Creates and returns a new instance of the interface.
   * The params list is passed to the instance's @init handler if present.
-  * Throws TypeError if the interface is abstract.
+  * Throws `TypeError` if the interface is abstract.
   * For singleton interfaces, always returns the same instance.
-  * Unlike `@c(get interface)`, this works even for private interfaces (see below).
+  * Unlike `@c(get interface)`:
+    * This works even for private interfaces (see below).
+    * `(instance)` message attribution (`sr`, `st`, and/or `smi`, as available) is forwarded to the instance's `(init)` message.
 
 * `(name)`
   * Synopsis: Returns the name of the interface (useful for anonymous interfaces).
@@ -52,7 +54,7 @@ Equivalent to the `(name)` message in Mesgjs. Returns the name of the interface 
 * `interface.set(options)`\
 Configures the interface like the `(set)` message in Mesgjs. `options` may be a plain JavaScript object or a `NANOS` instance.
 * `interface.instance(optInitParams)`\
-Returns an instance (or *the* instance, for singletons) of the interface. Unlike `@c(get interface)`, this works even for private interfaces. If `optInitParams` is supplied, it is passed as the message parameters for the `@init` constructor message handler of the interface.
+Returns an instance (or *the* instance, for singletons) of the interface. Unlike `@c(get interface)`, this works even for private interfaces. If `optInitParams` is supplied, it is passed as the message parameters for the `@init` constructor message handler of the interface. Message attribution is not available from JavaScript.
 
 ## Examples
 

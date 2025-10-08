@@ -28,7 +28,7 @@ function opAwait (d) {
 		for (const v of mp.values()) save(await runIfCode(v));
 	};
 	const whenDone = getInstance('@promise');
-	runBlocks.then(() => whenDone.resolve(result));
+	runBlocks().then(() => whenDone.resolve(result));
 	return whenDone;
 }
 

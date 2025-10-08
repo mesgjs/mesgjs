@@ -11,6 +11,10 @@
   * RIC values: all
   * Returns the first false value if any are JS-false.
   * Returns the last true value of all are JS-true (default: `@t`).
+* `(await value... collect=@f)`
+  * Synopsis: Sequentially executes asynchronous code blocks.
+  * RIC values: all
+  * `collect`: If true, returns an `@promise` that resolves to a list of all return values. Otherwise, returns an `@promise` that resolves to the last value (default `@u`).
 * `(case value cmp1 res1 cmp2 res2 ... else=value)`\
 `(: value cmp1 res1 cmp2 res2 ... else=value)`
   * Synopsis: Returns a result value based on a reference value matching one of several comparison values.
