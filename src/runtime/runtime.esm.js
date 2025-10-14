@@ -266,7 +266,7 @@ export const {
 		get msjsType () { return '@dispatch'; },
 		// JIT transient (scratch) storage NANOS
 		get t () { return this._ts ??= new NANOS(); },
-	}, Object.getPrototypeOf(Function));
+	}, Function.prototype);
 
 	// Dispatch a handler, passing it a fresh @dispatch object
 	function dispatchHandler (mctx, dhctx, mp) {
@@ -493,7 +493,10 @@ export const {
 		const bfnThis = { name, isFirst }, bfn = bfnThis.bfn = msjsR$Interface.bind(bfnThis);
 		return setRO(bfn, {
 			ifName: name,
-			set: (mp) => setInterface(name, mp, isFirst),
+			set: (mp) => {
+				setInterface(name, mp, isFirst);
+				return bfn;
+			},
 			instance: (mp) => getInstance(name, mp),
 			msjsType: '@interface',
 		});
@@ -532,6 +535,7 @@ export const {
 		modLoaded.add('mod-' + module);
 
 		const meta = modMeta.at(['modules', module]);
+		if (meta.at('url', '').endsWith('.msjs')) return;
 		const integrity = meta.at('integrity', '');
 		const expect = (integrity === 'DISABLED') ? '' : getIntegritySHA512(integrity);
 		if (expect) {
@@ -562,7 +566,7 @@ export const {
 				URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
 				`data:application/javascript;base64,${btoa(code)}`;
 			const mod = await import(importURL);
-			if (globalThis.msjsHasModMeta && mod.loadMsjs) mod.loadMsjs(mid);
+			if (globalThis.msjsHasModMeta && typeof mod.loadMsjs === 'function') mod.loadMsjs(mid);
 		} catch (err) {
 			console.error(`loadModule "${module}" failed: ${err.message}`);
 			// Reject this module's features, if any
@@ -783,7 +787,9 @@ export const {
 		switch (op) {
 		case 'instance': return getInstance(name, mp, { sr, st, smi });
 		case 'name': return name;
-		case 'set': return setInterface(name, mp, this.isFirst);
+		case 'set':
+			setInterface(name, mp, this.isFirst);
+			return this.bfn;
 		}
 		if (hasElse) return runIfCode(elseExpr);
 		throw new TypeError(`No Mesgjs handler found for "@interface(${op})"`);

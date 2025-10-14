@@ -185,7 +185,7 @@ const proto = Object.setPrototypeOf({
 
 	valueOf () { return this; },
 
-}, Object.getPrototypeOf(Function));
+}, Function.prototype);
 proto.finally = proto.always;
 
 function opInit (d) {
