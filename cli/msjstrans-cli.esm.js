@@ -3,10 +3,10 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  *
- * --add-white-space - Add extra white space to the output for development/debugging
+ * --add-space - Add extra white space to the output for development/debugging
  * --cat - The module catalog database
- * --enable-debug-blocks - Enable @debug{...} debuggin blocks
- * --enable-js-embeds - Enable @js{...@} JavaScript embeds
+ * --enable-debug - Enable @debug{...} debuggin blocks
+ * --enable-js - Enable @js{...@} JavaScript embeds
  * --mod - Use configSLID module path
  * --no-js - Do not generate JavaScript or source map
  * --root - The output root directory
@@ -28,7 +28,7 @@ import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
 import { parseSLID } from 'nanos/src/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
-	boolean: [ 'add-white-space', 'enable-debug-blocks', 'enable-js-embeds', 'mod', 'no-js', 'tokens', 'tree', 'upcat', 'ver' ],
+	boolean: [ 'add-space', 'enable-debug', 'enable-js', 'mod', 'no-js', 'tokens', 'tree', 'upcat', 'ver' ],
 	string: [ 'cat', 'root' ],
 });
 const upcat = flags.upcat;
@@ -118,9 +118,9 @@ async function process (srcPath) {
 	}
 
 	const txpOpts = {
-		addWhiteSpace: flags['add-white-space'],
-		debugBlocks: flags['enable-debug-blocks'],
-		enableJS: flags['enable-js-embeds']
+		addWhiteSpace: flags['add-space'],
+		debugBlocks: flags['enable-debug'],
+		enableJS: flags['enable-js']
 	};
 	const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
 	if (txpErrors?.length) console.log(txpErrors.join('\n'));

@@ -30,13 +30,13 @@ Deno.test("Feature System (@core Interface)", async (t) => {
 
 		// Feature is not ready yet
 		assertEquals(waited, false);
-		
+
 		$c('fready', "feat2");
 
 		await waitPromise;
 		assertEquals(waited, true);
 	});
-	
+
 	await t.step("fcheck should return undefined for an unknown feature", () => {
 		assertEquals($c('fcheck', "unheard-of-feature"), undefined);
 	});

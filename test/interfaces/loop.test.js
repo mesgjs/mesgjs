@@ -14,7 +14,7 @@ const mockCode = (runLogic) => {
 
 Deno.test("@loop Interface", async (t) => {
 	const { $c } = globalThis;
-	
+
 	await t.step("(run) should execute a block a fixed number of times", () => {
 		const loop = $c("get", "@loop");
 		let executionCount = 0;
@@ -64,7 +64,7 @@ Deno.test("@loop Interface", async (t) => {
 			i++;
 			if (i === 2) loop("stop");
 		});
-		
+
 		loop("run", ls([,block, "times", 5]));
 		assertEquals(i, 2);
 	});
@@ -75,21 +75,21 @@ Deno.test("@loop Interface", async (t) => {
 			if (loop("num") === 1) loop("next", ls(["result", "changed"]));
 			return loop("num");
 		});
-		
+
 		const collected = loop("run", ls([,block, "times", 3, "collect", true]));
 		assertEquals(collected.size, 3);
 		assertEquals(collected.at(0), 0);
 		assertEquals(collected.at(1), "changed");
 		assertEquals(collected.at(2), 2);
 	});
-	
+
 	await t.step("(stop result) should set the final (run) return value", () => {
 		const loop = $c("get", "@loop");
 		const block = mockCode(() => {
 			if (loop("num") === 1) loop("stop", ls(["result", "stopped here"]));
 			return loop("num");
 		});
-		
+
 		const result = loop("run", ls([,block, "times", 3]));
 		assertEquals(result, "stopped here");
 	});
@@ -100,7 +100,7 @@ Deno.test("@loop Interface", async (t) => {
 			if (loop("num") === 1) loop("stop", ls(["result", "stopped here"]));
 			return loop("num");
 		});
-		
+
 		const collected = loop("run", ls([,block, "times", 3, "collect", true]));
 		assertEquals(collected.size, 2);
 		assertEquals(collected.at(0), 0);
@@ -122,7 +122,7 @@ Deno.test("@loop Interface", async (t) => {
 		let i = 0;
 		const mainBlock = mockCode(() => i++);
 		const preTest = mockCode(() => i < 2);
-		
+
 		loop("while", ls([, mainBlock, "pre", preTest]));
 		assertEquals(i, 2);
 	});
@@ -148,7 +148,7 @@ Deno.test("@loop Interface", async (t) => {
 			if (i === 3) loop("stop");
 		});
 		const postTest = mockCode(() => i < 10);
-		
+
 		loop("while", ls([, mainBlock, "post", postTest]));
 		assertEquals(i, 3);
 	});
@@ -162,7 +162,7 @@ Deno.test("@loop Interface", async (t) => {
 			return i;
 		});
 		const postTest = mockCode(() => i < 5);
-		
+
 		const result = loop("while", ls([, mainBlock, "post", postTest]));
 		assertEquals(result, "stopped in main");
 	});

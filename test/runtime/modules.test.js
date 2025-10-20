@@ -33,7 +33,7 @@ Deno.test("Module System", async (t) => {
 		assert(meta, "getModMeta should return metadata");
 		assertEquals(meta.at(['modules', 'test-mod', 'version']), "1.0.0");
 	});
-	
+
 	await t.step("modHasCap should correctly check module capabilities", () => {
 		assertEquals(runtime.modHasCap("test-mod", "cap1"), true);
 		assertEquals(runtime.modHasCap("test-mod", "cap3"), false);

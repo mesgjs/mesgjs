@@ -105,6 +105,62 @@ Deno.test("Interface instance attribution", async (t) => {
 		assertEquals(sr, senderInstance, "Sender reference (sr) should be the sender instance");
 		assertEquals(st, "sender", "Sender type (st) should be 'sender'");
 	});
+
+	await t.step("should pass sender context through redispatch to sub-interface @init", () => {
+		$gss.clear(); // Ensure clean storage
+
+		// Create a super-interface with @init handler
+		const superInspectorInterface = getInterface("superInspector");
+		superInspectorInterface.set({
+			handlers: {
+				"@init": (d) => {
+					$gss.set("superSr", d.sr);
+					$gss.set("superSt", d.st);
+				},
+			},
+		});
+
+		// Create a sub-interface that redispatches to super-interface @init
+		const subInspectorInterface = getInterface("subInspector");
+		subInspectorInterface.set({
+			chain: ["superInspector"],
+			handlers: {
+				"@init": (d) => {
+					$gss.set("subSr", d.sr);
+					$gss.set("subSt", d.st);
+					// Redispatch to super-interface @init
+					d.sm(d, "redis");
+				},
+			},
+		});
+
+		// Create a sender that creates a sub-inspector instance
+		const senderInterface2 = getInterface("sender2");
+		senderInterface2.set({
+			handlers: {
+				"createSubInspector": (d) => {
+					const subInspectorIface = getInterface("subInspector");
+					// Attributed send of (instance) to the interface object
+					return d.sm(subInspectorIface, "instance");
+				},
+			},
+		});
+
+		const senderInstance2 = getInstance("sender2");
+		senderInstance2("createSubInspector");
+
+		// Verify sender context was passed to sub-interface @init
+		const subSr = $gss.at("subSr");
+		const subSt = $gss.at("subSt");
+		assertEquals(subSr, senderInstance2, "Sender reference (subSr) should be the sender instance in sub-interface @init");
+		assertEquals(subSt, "sender2", "Sender type (subSt) should be 'sender2' in sub-interface @init");
+
+		// Verify sender context was preserved through redispatch to super-interface @init
+		const superSr = $gss.at("superSr");
+		const superSt = $gss.at("superSt");
+		assertEquals(superSr, senderInstance2, "Sender reference (superSr) should be the sender instance in super-interface @init");
+		assertEquals(superSt, "sender2", "Sender type (superSt) should be 'sender2' in super-interface @init");
+	});
 });
 
 Deno.test("Interface Attributes", async (t) => {

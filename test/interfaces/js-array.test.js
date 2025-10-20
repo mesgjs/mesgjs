@@ -49,11 +49,11 @@ Deno.test("@js-array Interface", async (t) => {
 		ma("unshift", [0, 1]);
 		assertEquals(testArray, [0, 1, 2, 3, 4]);
 	});
-	
+
 	await t.step("should create new arrays for concat, flat, slice, etc.", () => {
 		const testArray = [1, [2, 3]];
 		const ma = $toMsjs(testArray);
-		
+
 		const concatenated = ma("concat", [[4, 5]]);
 		assertNotStrictEquals(concatenated, testArray);
 		assertEquals(concatenated, [1, [2, 3], 4, 5]);

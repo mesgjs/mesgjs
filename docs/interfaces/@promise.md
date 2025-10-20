@@ -1,6 +1,8 @@
 # Mesgjs `@promise` Interface
 
-This interface is "bilingual", supporting both JavaScript object properties and Mesgjs messages.
+A "promise" in JavaScript (`@promise` instance in Mesgjs) is a placeholder for a future result. It allows you to specify (right now) what should happen when (sometime in the future) a result becomes available or an error occurs.
+
+The interface is "bilingual", supporting both JavaScript object properties and Mesgjs messages.
 
 ## Mesgjs Message Operations
 
@@ -14,12 +16,14 @@ This interface is "bilingual", supporting both JavaScript object properties and 
   * Synopsis: Resolves to a `@jsArray` of bilingual settlement results for each of the promises. Resolves to an empty `@jsArray` if there are no promises.
   * See below for the format of settlement results.
 * `(always onSettled)`
-  * Synopsis: Registers a single `(run)`\-able code block, `(call)`\-able function block, or plain JavaScript function, `onSettled`, as both an `onResolved` and an `onRejected` handler for the receiver.
+  * Synopsis: Registers a single `(run)`\-able `@code` block, `(call)`\-able `@function` block, or plain JavaScript function, `onSettled`, as both an `onResolved` and an `onRejected` handler for the receiver.
   * Returns a new `@promise` for chaining.
 * `(any promise...)`
   * Synopsis: The receiver will resolve to the value of the first promise that resolves, or reject if all promises reject. Rejects if there are no promises.
+* `(cancel)`
+  * Synopsis: Cancels any pending timed resolution (see `(wait)`).
 * `(catch onRejected)`
-  * Synopsis: Registers a `(run)`\-able code block, `(call)`\-able function block, or plain JavaScript function as an `onRejected` handler for the receiver.
+  * Synopsis: Registers a `(run)`\-able `@code` block, `(call)`\-able `@function` block, or plain JavaScript function as an `onRejected` handler for the receiver.
   * Returns a new `@promise` for chaining.
 * `(message)`
   * Synopsis: Returns the message part of the error if rejected, or else `@u`.
@@ -36,8 +40,12 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 * `(state)`
   * Synopsis: Returns the current promise state (`pending`, `fulfilled`, or `rejected`) of the receiver.
 * `(then onResolved onRejected?)`
-  * Synopsis: Registers one or two `(run)`\-able code blocks, `(call)`\-able function blocks, or plain JavaScript functions as the `onResolved` handler and optional `onRejected` handlers, respectively, for the receiver.
+  * Synopsis: Registers one or two `(run)`\-able `@code` blocks, `(call)`\-able `@function` blocks, or plain JavaScript functions as the `onResolved` handler and optional `onRejected` handlers, respectively, for the receiver.
   * Returns a new `@promise` for chaining.
+* `(wait msec result?)`
+  * Synopsis: Cancels any pending timed resolution, and then schedules resolution to `result` in (at least) `msec` milliseconds.
+  * If `result` is a Mesgjs `@code` block, it will be `(run)`. If `result` is a JavaScript function, it will be called with no parameters. Otherwise, the value (default `@u`/`undefined`) is passed directly to `(resolve)`.
+  * JavaScript's `setTimeout`/`clearTimeout` mechanism is used internally.
 
 Event handlers may be Mesgjs `@code` blocks, `@function` blocks, or plain JavaScript functions.
 
@@ -54,7 +62,8 @@ JavaScript handlers are just passed the resolution result or rejection reason.
 A `@promise` instance may generated in one of the following ways:
 
 ```
-import { getInstance } from './runtime.esm.js';
+import { getInstance } from './runtime.esm.js'; // In foundational interfaces
+const { getInstance } = globalThis.$c;          // Everywhere else
 const p1 = getInstance('@promise');                       // Like JS Promise.withResolvers()
 const resp = getInstance('@promise', { resolve: value }); // Like JS Promise.resolve(value)
 const rejp = getInstance('@promise', { reject: reason }); // Like JS Promise.reject(reason)
@@ -66,6 +75,7 @@ Methods and properties correspond to Mesgjs messages as described above.
 * `.allSettled([promises])`
 * `.always(onSettled)`
 * `.any([promises])`
+* `.cancel()`
 * `.catch(onRejected)`
 * `.then(onResolved, onRejected = undefined)`
 * `.race([promises])`
@@ -73,3 +83,4 @@ Methods and properties correspond to Mesgjs messages as described above.
 * `.resolve(result) // Promise.withResolvers().resolve(), not Promise.resolve()!`
 * `.result`
 * `.state`
+* `.wait(msec, result) // similar to setTimeout(() => resolve(result), msec)`

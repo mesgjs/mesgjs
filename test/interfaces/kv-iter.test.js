@@ -14,7 +14,7 @@ const mockCode = (runLogic) => {
 
 Deno.test("@kvIter Interface", async (t) => {
 	const { $c } = globalThis;
-	
+
 	const source = ls([, 'a', , 'b', 'name', 'value']);
 	const iter = $c("get", "@kvIter");
 
@@ -37,10 +37,10 @@ Deno.test("@kvIter Interface", async (t) => {
 		const bothBlock = mockCode(() => results.push(iter("key")));
 
 		iter('rev', ls([, source, , bothBlock]));
-		
+
 		assertEquals(results, ["name", "1", "0"]);
 	});
-	
+
 	await t.step("should handle collection of results", () => {
 		const indexBlock = mockCode(() => iter("value"));
 		const namedBlock = mockCode(() => iter("key"));

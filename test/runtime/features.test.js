@@ -31,13 +31,13 @@ Deno.test("Feature System (Test Mode)", async (t) => {
 
 		// Feature is not ready yet
 		assertEquals(waited, false);
-		
+
 		fready(null, "feat2");
 
 		await waitPromise;
 		assertEquals(waited, true);
 	});
-	
+
 	await t.step("fcheck should return undefined for an unknown feature", () => {
 		assertEquals(fcheck("unheard-of-feature"), undefined);
 	});

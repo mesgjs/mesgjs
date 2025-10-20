@@ -46,7 +46,7 @@ Deno.test("@core Interface Logic and Flow Control", async (t) => {
 		assertEquals($c("if", params), "C");
 		assertEquals($c("if", [0, "A", 1, "B"]), "B");
 	});
-	
+
 	await t.step("(case) should find and return the correct result", () => {
 		assertEquals($c("case", ["b", "a", 1, "b", 2, "c", 3]), 2);
 		const params = new NANOS("a", 1, "b", 2, { else: 99 });

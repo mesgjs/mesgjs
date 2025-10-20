@@ -5,7 +5,7 @@ import {
 import '../../src/runtime/mesgjs.esm.js';
 
 Deno.test("Core Initialization JavaScript Contract", async (t) => {
-	
+
 	// This test verifies the JAVASCRIPT RUNTIME EXPECTATION that loading 
 	// mesgjs.esm.js has the side-effect of creating a global $c object.
 	// This $c object serves as the primary JS interface to the Mesgjs 
@@ -20,7 +20,7 @@ Deno.test("Core Initialization JavaScript Contract", async (t) => {
 		assert(globalThis.$c, "Core interface ($c) should be installed on globalThis");
 		assertEquals(globalThis.$c.msjsType, "@core");
 	});
-	
+
 	await t.step("should expose the standard JS interface functions on $c", () => {
 		const expectedFunctions = [
 			'fcheck',
@@ -48,5 +48,5 @@ Deno.test("Core Initialization JavaScript Contract", async (t) => {
 		assertEquals(typeof globalThis.$c.symbols.convert, "symbol", "$c.symbols.convert should be a symbol");
 		assertEquals(typeof globalThis.$c.symbols.instance, "symbol", "$c.symbols.instance should be a symbol");
 	});
-	
+
 });

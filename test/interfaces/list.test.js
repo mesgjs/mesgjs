@@ -31,7 +31,7 @@ Deno.test("@list Interface", async (t) => {
 		assertEquals(list("at", ls([,0])), "a");
 		assertEquals(list("at", ls([,1])), "b");
 	});
-	
+
 	await t.step("should set values with (set)", () => {
 		const list = newList(ls([,"a",,"b"]));
 		list("set", ls([,1, "to", "B"]));
@@ -53,7 +53,7 @@ Deno.test("@list Interface", async (t) => {
 		assertEquals(nested.at(0), 'z');
 		assertEquals(nested.at(1), 'a');
 	});
-	
+
 	await t.step("(set) with 'next' should push into a nested list", () => {
 		const list = newList(ls(["key1", ls([,"a"])]));
 		list("set", ls([,"key1", "next", "z"]));

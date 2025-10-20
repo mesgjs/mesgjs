@@ -127,7 +127,16 @@ const proto = Object.setPrototypeOf({
 		return this;
 	},
 
-	catch (onReject) { return this.then(null, onReject); },
+	// Cancel any pending timed-resolution event
+	cancel () {
+		const priv = this[privKey];
+		if (priv.timerId) {
+			clearTimeout(priv.timerId);
+			priv.timerId = undefined;
+		}
+	},
+
+	'catch' (onReject) { return this.then(null, onReject); },
 
 	get jsv () { return this; },
 
@@ -185,6 +194,20 @@ const proto = Object.setPrototypeOf({
 
 	valueOf () { return this; },
 
+	// Schedule a timed-resolution event
+	wait (time, result) {
+		const priv = this[privKey];
+		if (priv.state !== 'pending') return;
+		const action = () => {
+			if (result?.msjsType === '@code') this.resolve(result('run'));
+			else if (typeof result === 'function') this.resolve(result());
+			else this.resolve(result);
+		};
+		this.cancel();
+		priv.timerId = setTimeout(action, time);
+		return this;
+	},
+
 }, Function.prototype);
 proto.finally = proto.always;
 
@@ -194,6 +217,7 @@ function opInit (d) {
 	Object.setPrototypeOf(d.rr, proto);
 	setRO(d.rr, privKey, {
 		state: 'pending', result: undefined, handlers: [],
+		timerId: undefined,
 	});
 	if (d.mp.has('resolve')) d.rr.resolve(d.mp.at('resolve'));
 	if (d.mp.has('reject')) d.rr.reject(d.mp.at('reject'));
@@ -204,19 +228,21 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
-			'@jsv': d => d.rr,
-			all: d => d.rr.all(d.mp),
-			allSettled: d => d.rr.allSettled(d.mp),
-			always: d => d.rr.always(d.mp.at(0)),
-			any: d => d.rr.any(d.mp),
-			catch: d => d.rr.catch(d.mp.at(0)),
-			message: d => d.rr.result?.message,
-			race: d => d.rr.race(d.mp),
-			reject: d => d.rr.reject(d.mp.at(0)),
-			resolve: d => d.rr.resolve(d.mp.at(0)),
-			result: d => d.rr.result,
-			state: d => d.rr.state,
-			then: d => d.rr.then(d.mp.at(0), d.mp.at(1)),
+			'@jsv': (d) => d.rr,
+			all: (d) => d.rr.all(d.mp),
+			allSettled: (d) => d.rr.allSettled(d.mp),
+			always: (d) => d.rr.always(d.mp.at(0)),
+			any: (d) => d.rr.any(d.mp),
+			cancel: (d) => d.rr.cancel(),
+			catch: (d) => d.rr.catch(d.mp.at(0)),
+			message: (d) => d.rr.result?.message,
+			race: (d) => d.rr.race(d.mp),
+			reject: (d) => d.rr.reject(d.mp.at(0)),
+			resolve: (d) => d.rr.resolve(d.mp.at(0)),
+			result: (d) => d.rr.result,
+			state: (d) => d.rr.state,
+			then: (d) => d.rr.then(d.mp.at(0), d.mp.at(1)),
+			wait: (d) => d.rr.wait(d.mp.at(0), d.mp.at(1)),
 		},
 	});
 }

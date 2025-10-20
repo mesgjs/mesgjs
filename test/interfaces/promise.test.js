@@ -61,7 +61,7 @@ Deno.test('@promise - then/catch/always', async () => {
 	const p2 = newPromise(ls(['reject', 'p2']));
 	await p2('catch', (r) => { err = r.message; });
 	assertEquals(err, 'p2');
-	
+
 	let settled = false;
 	const p3 = newPromise(ls(['resolve', 'p3']));
 	await p3('always', () => { settled = true; });
@@ -111,7 +111,7 @@ Deno.test('@promise - .any', async () => {
 Deno.test('@promise - .race', async () => {
 	const p1 = $c('get', '@promise');
 	const p2 = $c('get', '@promise');
-	
+
 	setTimeout(() => p1('resolve', 'one'), 20);
 	setTimeout(() => p2('resolve', 'two'), 10);
 
@@ -127,4 +127,36 @@ Deno.test('@promise - message property', async () => {
 	const p = newPromise(ls(['reject', new Error('test error')]));
 	await p('catch', () => {});
 	assertEquals(p('message'), 'test error');
+});
+
+Deno.test('@promise - .wait/.cancel', async () => {
+	// Mesgjs interface
+	const p1 = $c('get', '@promise');
+	p1('wait', ls([, 20, , 'waited']));
+	await delay(5);
+	assertEquals(p1('state'), 'pending');
+	const result = await p1;
+	assertEquals(result, 'waited');
+	assertEquals(p1('state'), 'fulfilled');
+
+	const p2 = $c('get', '@promise');
+	p2('wait', ls([, 20, , 'never']));
+	p2('cancel');
+	await delay(30);
+	assertEquals(p2('state'), 'pending');
+
+	// JS interface
+	const p3 = $c('get', '@promise');
+	p3.wait(20, 'waited');
+	await delay(5);
+	assertEquals(p3.state, 'pending');
+	const result3 = await p3;
+	assertEquals(result3, 'waited');
+	assertEquals(p3.state, 'fulfilled');
+
+	const p4 = $c('get', '@promise');
+	p4.wait(20, 'never');
+	p4.cancel();
+	await delay(30);
+	assertEquals(p4.state, 'pending');
 });
