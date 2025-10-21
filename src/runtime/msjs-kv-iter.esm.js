@@ -11,8 +11,8 @@ import { unifiedList } from './unified-list.esm.js';
 function common (d, keys) {
 	const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
 	let result = collect ? new NANOS() : undefined, count = 0;
-	const save = r => { if (collect) result.push(r); else result = r; };
-	const react = e => {
+	const save = (r) => { if (collect) result.push(r); else result = r; };
+	const react = (e) => {
 		if (!js.capture) throw e;
 		if (js.hasFlowRes) {
 			save(js.flowRes);
@@ -24,6 +24,30 @@ function common (d, keys) {
 	const onIndex = mp.at('index'), onNamed = mp.at('named'), split = onIndex || onNamed, onBoth = mp.at(1);
 	js.active = true;
 	try {
+		if (d.dop === 'afor' || d.dop === 'arev') return (async () => {
+			for (const k of keys) {
+				js.capture = false;
+				++count;
+				[js.key, js.value] = [k, get(k)];
+				if (split) {
+					if (isIndex(k)) {
+						js.isIndex = true;
+						try { if (onIndex) save(await runIfCode(onIndex)); }
+						catch (e) { react(e); }
+					} else {
+						js.isIndex = false;
+						try { if (onNamed) save(await runIfCode(onNamed)); }
+						catch (e) { react(e); }
+					}
+				}
+				try { if (onBoth) save(await runIfCode(onBoth)); } catch (e) { react(e); }
+			}
+			if (!count) {
+				const ls = d.mp.at('else');
+				if (ls) return await runIfCode(ls);
+			}
+			return result;
+		})();
 		for (const k of keys) {
 			js.capture = false;
 			++count;
@@ -41,14 +65,13 @@ function common (d, keys) {
 			}
 			try { if (onBoth) save(runIfCode(onBoth)); } catch (e) { react(e); }
 		}
-		js.active = false;
+		if (!count) {
+			const ls = d.mp.at('else');
+			if (ls) return runIfCode(ls);
+		}
+		return result;
 	} catch (e) { if (!js.capture) throw e; }
 	finally { js.active = false; }
-	if (!count) {
-		const ls = d.mp.at('else');
-		if (ls) return runIfCode(ls);
-	}
-	return result;
 }
 
 // Return a key/value interface for whatever object we were given
@@ -77,12 +100,16 @@ function getKVI (obj) {
 }
 
 // (for src bothCode index=indexCode named=namedCode collect=bool else=value)
+// (afor ...)
+// Async version - returns a (JS) promise
 function opFor (d) {
 	const src = d.js.src = getKVI(d.mp.at(0));
 	return common(d, src.keys);
 }
 
 // (rev src bothCode index=indexCode named=namedCode)
+// (arev ...)
+// Async version - returns a (JS) promise
 function opRev (d) {
 	const src = d.js.src = getKVI(d.mp.at(0));
 	return common(d, [...src.keys].reverse());
@@ -94,6 +121,8 @@ export function install (name) {
 		handlers: {
 			'@init': d => setRO(d.octx, 'js', {}),
 			active: d => !!d.js.active,
+			afor: opFor,
+			arev: opRev,
 			for: opFor,
 			isIndex: d => d.js.isIndex,
 			key: d => d.js.key,

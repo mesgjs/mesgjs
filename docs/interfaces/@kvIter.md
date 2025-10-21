@@ -28,6 +28,15 @@
 * `(value)`  
   * Synopsis: Returns the current value.
 
+## Asynchronous Interface
+
+These messages return a (JavaScript) promise that resolves to the synchronous-mode result.
+
+Loop iterations will execute sequentially, waiting for asynchronous execution to complete before starting the next.
+
+* `(afor ...)` and `(arev ...)`
+  * Asynchronous versions of `(for)` and `(rev)`. Any of `indexBlock`, `namedBlock`, `bothBlock`, and `elseBlock` may be asynchronous.
+
 # Examples
 
 ```mesgjs

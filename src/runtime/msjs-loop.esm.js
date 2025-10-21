@@ -10,28 +10,42 @@ import { NANOS } from './vendor.esm.js';
 /*
  * @codeIter(run code times=n collect=boolean)
  * Returns the collected code values or the value from the last iteration.
+ * @codeIter(arun code times=n collect=boolean)
+ * Async version - works the same way but returns a (JS) promise.
  */
 function opRun (d) {
 	const { mp, js } = d;
 	const raw = parseInt(mp.at('times', 1), 10), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
 	let result = collect ? new NANOS() : undefined;
-	const save = res => { if (collect) result.push(res); else result = res; };
+	const save = (res) => { if (collect) result.push(res); else result = res; };
+	const onCatch = (e) => {
+		if (!js.capture) throw e;
+		if (js.hasFlowRes) {
+			save(js.flowRes);
+			js.hasFlowRes = js.flowRes = false;
+		}
+		return e.message === 'stop';
+	};
 	js.times = times;
 	js.active = true;
-	try { for (let i = 0; i < times; ++i) {
-		js.capture = false;
-		js.iteration = i;
-		try { save(runIfCode(mp.at(0))); }
-		catch (e) {
-			if (!js.capture) throw e;
-			if (js.hasFlowRes) {
-				save(js.flowRes);
-				js.hasFlowRes = js.flowRes = false;
+	try {
+		if (d.dop === 'arun') return (async () => {
+			for (let i = 0; i < times; ++i) {
+				js.capture = false;
+				js.iteration = i;
+				try { save(await runIfCode(mp.at(0))); }
+				catch (e) { if (onCatch(e)) break; }
 			}
-			if (e.message === 'stop') break;
+			return result;
+		})();
+		for (let i = 0; i < times; ++i) {
+			js.capture = false;
+			js.iteration = i;
+			try { save(runIfCode(mp.at(0))); }
+			catch (e) { if (onCatch(e)) break; }
 		}
-	} } finally { js.active = false; }
-	return result;
+		return result;
+	} finally { js.active = false; }
 }
 
 /*
@@ -39,6 +53,8 @@ function opRun (d) {
  * @codeIter(while pre=code main mid=code extraCode post=code
  *	 collect=boolean)
  * Returns the collected main values or the one from the last iteration.
+ * @codeIter(awhile ...)
+ * Async version - works the same way, but returns a (JS) promise.
  */
 function opWhile (d) {
 	const { mp, js } = d, ifc = v => (v?.msjsType === '@code') ? v : undefined;
@@ -48,8 +64,8 @@ function opWhile (d) {
 	if (!pre && !mid && !post) throw new SyntaxError('(while) test {block!} required');;
 	const collect = mp.at('collect');
 	let result = collect ? new NANOS() : undefined;
-	const save = res => { if (collect) result.push(res); else result = res; };
-	const react = e => {
+	const save = (res) => { if (collect) result.push(res); else result = res; };
+	const react = (e) => {
 		if (!js.capture) throw e;
 		if (js.hasFlowRes) {
 			save(js.flowRes);
@@ -58,27 +74,47 @@ function opWhile (d) {
 		if (e.message === 'stop') throw e;
 		js.capture = false;
 	};
+	const onCatch = (e) => {
+		js.active = false;
+		if (!js.capture) throw e;
+		if (e.message === 'stop') return true;
+		js.active = true;
+		return false;
+	};
 	js.times = undefined;
 	js.active = true;
-	try { for (let i = 0; ; ++i) {
-		js.capture = false;
-		js.iteration = i;
-		try {
-			try { if (pre && !pre('run')) break; } catch (e) { react(e); }
-			try { save(runIfCode(main)); } catch (e) { react(e); }
-			if (xtra) {
-				try { if (mid && !mid('run')) break; } catch (e) { react(e); }
-				try { xtra('run'); } catch (e) { react(e); }
+	try {
+		if (d.dop === 'awhile') return (async () => {
+			for (let i = 0; ; ++i) {
+				js.capture = false;
+				js.iteration = i;
+				try {
+					try { if (pre && !await pre('run')) break; } catch (e) { react(e); }
+					try { save(await runIfCode(main)); } catch (e) { react(e); }
+					if (xtra) {
+						try { if (mid && !await mid('run')) break; } catch (e) { react(e); }
+						try { await xtra('run'); } catch (e) { react(e); }
+					}
+					try { if (post && !awaitpost('run')) break; } catch (e) { react(e); }
+				} catch (e) { if (onCatch(e)) break; }
 			}
-			try { if (post && !post('run')) break; } catch (e) { react(e); }
-		} catch (e) {
-			js.active = false;
-			if (!js.capture) throw e;
-			if (e.message === 'stop') break;
-			js.active = true;
+			return result;
+		})();
+		for (let i = 0; ; ++i) {
+			js.capture = false;
+			js.iteration = i;
+			try {
+				try { if (pre && !pre('run')) break; } catch (e) { react(e); }
+				try { save(runIfCode(main)); } catch (e) { react(e); }
+				if (xtra) {
+					try { if (mid && !mid('run')) break; } catch (e) { react(e); }
+					try { xtra('run'); } catch (e) { react(e); }
+				}
+				try { if (post && !post('run')) break; } catch (e) { react(e); }
+			} catch (e) { if (onCatch(e)) break; }
 		}
-	} } finally { js.active = false; }
-	return result;
+		return result;
+	} finally { js.active = false; }
 }
 
 /*
@@ -96,6 +132,8 @@ export function install (name) {
 		handlers: {
 			'@init': d => setRO(d.octx, 'js', {}),
 			active: d => !!d.js.active,
+			arun: opRun,
+			awhile: opWhile,
 			num: d => d.js.iteration,
 			num1: d => d.js.iteration + 1,
 			next: d => throwFlow(d, 'next', name),

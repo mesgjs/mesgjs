@@ -37,6 +37,14 @@
     *   `catch`: A default block to handle exceptions not handled by `catchers`. Unhandled exceptions are re-thrown.
     *   `always`: A block that is always run, whether an exception occurred or not.
 
+## Asynchronous Interface
+
+These messages return a (JavaScript) promise that resolves to the synchronous-mode result.
+
+* `(atry mainBlock… catchers=[type=block…] catch=block always=block)`
+  * Asynchronous version of `(try)`. Any `mainBlock` may be asynchronous.
+  * Similar to `@c(await block...)`, if there are multiple `mainBlock` values, they will be executed sequentially (i.e. execution of a subsequent block will not be initiated until execution of the previous block has completed).
+
 # Examples
 
 ```

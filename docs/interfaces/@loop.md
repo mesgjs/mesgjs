@@ -39,6 +39,17 @@
     *   `post`: Evaluated at the end of the iteration to determine if looping continues.
     *   If `collect` is JS-true, all `mainBlock` results are returned as a list.
 
+## Asynchronous Interface
+
+These messages return a (JavaScript) promise that resolves to the synchronous-mode result.
+
+Loop iterations will execute sequentially, waiting for asynchronous execution to complete before starting the next.
+
+* `(arun block times=n collect=@f)`
+  * Asynchronous version of `(run)`. `block` may be asynchronous.
+* `(awhile pre=test mainBlock mid=test extraBlock post=test collect=@f)`
+  * Asynchronous version of `(while)`. Any of `pre`, `mainBlock`, `mid`, `extraBlock`, and `post` may be asynchronous.
+
 # Examples
 
 ```
