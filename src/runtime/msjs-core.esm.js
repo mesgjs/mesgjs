@@ -153,6 +153,7 @@ export function install (name) {
 		setRO(globalThis, '$c', getInstance('@core'));
 		// "Re-export" common runtime functions on $c to reduce imports
 		Object.assign($c, {
+			debugConfig,
 			fcheck,
 			fready,
 			fwait,

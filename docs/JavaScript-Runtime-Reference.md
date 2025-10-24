@@ -54,7 +54,32 @@ Throws an `MsjsFlow` exception.
 
 ### `debugConfig(settings)`
 
-Configures and returns the current debugging settings for the runtime.
+Configures and returns the current debugging settings for the runtime. When called with a settings object (plain object, `NANOS`, or other list-like structure), it updates the configuration. It always returns the current configuration as a `NANOS` instance.
+
+#### Available Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `dispatch` | boolean | `false` | Logs each message dispatch with sender type, receiver type, and operation |
+| `dispatchSource` | boolean | `false` | Includes source file, line, and column information in dispatch logs |
+| `dispatchTypes` | boolean | `false` | Includes parameter type information in dispatch logs |
+| `stack` | number | `0` | Number of stack frames to include in error stack traces (0 = disabled) |
+| `stackSource` | boolean | `false` | Includes source file, line, and column information in stack traces |
+| `stackTypes` | boolean | `false` | Includes parameter type information in stack traces |
+| `handlerCache` | boolean | `false` | Logs handler-cache updates |
+
+#### Examples
+
+```javascript
+// Enable dispatch logging with source information
+debugConfig({ dispatch: true, dispatchSource: true });
+
+// Enable stack traces with 10 frames
+debugConfig({ stack: 10, stackTypes: true });
+
+// Get current configuration
+const currentConfig = debugConfig();
+```
 
 ### `loggedType(value)`
 
@@ -136,7 +161,20 @@ Creates a Mesgjs list (a `NANOS` instance) from a *flat* array of key-value pair
 
 Empty keys are assigned the next available integer index.
 
-Example: `ls(['key1', 'value1', , 'indexedValue'])` results in a list where `'value1'` is at key `'key1'` and `'indexedValue'` is at key `0`.
+Examples:
+
+- `ls(['key1', 'value1', , 'indexedValue'])` results in a list where `'value1'` is at key `'key1'` and `'indexedValue'` is at key `0`.
+- `ls([, value1, , value2])` results in a list with two positional values, `value1` and `value2`. Auto-indexing fills the omitted (sparse) key positions with `0` and `1`, respectively.
+
+### `NANOS.parseSLID(string)`
+
+While Mesgjs does not automatically create a shortcut for this operation, it is often helpful to have one for testing (e.g. included as part of a standard setup process in a shared test harness) when (potentially complex structures of) static list data are required.
+
+```javascript
+const ps = (str) => NANOS.parseSLID(str);
+// ...
+takesAStaticListStructure(ps('[(value1 keyA=valueA value2 keyB=[value3 keyC=valueC] value4)]'));
+```
 
 ### `namespaceAt(namespace, key, optional)`
 

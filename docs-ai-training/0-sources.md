@@ -10,7 +10,6 @@ These specific documents:
 - Mesgjs-Syntax.md
 - Mesgjs-Text-And-Numbers.md
 - Mesgjs-Module-Configuration.md
-- Static-List-Data-SLID-Format.md
 
 Exclude:
 

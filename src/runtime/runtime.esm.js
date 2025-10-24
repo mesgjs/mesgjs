@@ -153,6 +153,7 @@ export const {
 	const dbgCfg = Object.setPrototypeOf({
 		dispatch: false, dispatchSource: false, dispatchTypes: false,
 		stack: 0, stackSource: false, stackTypes: false,
+		handlerCache: false,
 	}, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
 	const handlerCache = new SieveCache(1024);
 	const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
@@ -294,8 +295,8 @@ export const {
 		try {
 			if (dbgCfg.dispatch) {
 				const dispOp = (typeof op === 'symbol') ? 'J.Symbol' : op;
-				const lst = loggedType(st);
-				console.log(`[Mesgjs dispatch ${thisDisp}] ${lst} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
+				const dispSt = st || '@u';
+				console.log(`[Mesgjs dispatch ${thisDisp}] ${dispSt} => ${rt}${handler.type === rt ? '' : ('/' + handler.type)}(${dispOp}${fmtDispParams(dbgCfg.dispatchTypes, disp.mp)})${fmtDispSrc(dbgCfg.dispatchSource)}`);
 			}
 			if (trace) stack.push({ disp, ...(dbgCfg.stackSource && senderFLC() || {}) });
 			const result = handler.code(disp);
@@ -416,7 +417,7 @@ export const {
 		const noopHandler = { code: () => {}, type: type0, op };
 		// Ignore (no-op) @init outside of getInstance
 		if (!isInit && op === '@init') return noopHandler;
-		const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})`, hit = cacheKey && handlerCache.get(cacheKey);
+		const cacheKey = typeof type0 === 'string' && typeof op === 'string' && `${type0}(${op})${next ? '+' : ''}`, hit = cacheKey && handlerCache.get(cacheKey);
 		if (hit) return hit;
 
 		const searchChain = () => {
@@ -445,7 +446,10 @@ export const {
 			((!cacheKey || !handler || !interfaces[handler.type].locked) ? false :
 			((handler.code.cache !== undefined) ? handler.code.cache :
 			(handler.op !== op || handler.type !== type0)));
-		if (cacheable) handlerCache.set(cacheKey, handler, handler.code.cache === 'pin' && handler.type === type0);
+		if (cacheable) {
+			if (dbgCfg.handlerCache) console.log(`[Mesgjs handler cache] ${cacheKey} => ${handler.type}(${handler.op})`);
+			handlerCache.set(cacheKey, handler, handler.code.cache === 'pin' && handler.type === type0);
+		}
 		return handler;
 	}
 
@@ -485,7 +489,7 @@ export const {
 		if (name[0] === '@' && initPhase !== 1 && !interfaces[name]) return;
 		const ix = interfaces[name], isFirst = !ix;
 		if (isFirst) interfaces[name] = {
-			handlers: Object.create(null), chain: new Set([]), refd: false,
+			handlers: Object.create(null), chain: new Set([]),
 			abstract: false, final: false, locked: false,
 			once: false, pristine: true, singleton: false
 		};
@@ -832,15 +836,14 @@ export const {
 		ix.pristine = false;
 		if (ix.locked) throw new TypeError(`Cannot change locked Mesgjs interface "${name}"`);
 
-		// Set the interface chain. Refd guarantees an acyclic graph.
+		// Set the interface chain. Locking guarantees an acyclic graph.
 		if (mp.chain) {
 			if (ix.chain.size) throw new TypeError(`Cannot change chain for Mesgjs interface "${name}"`);
-			if (ix.refd) throw new TypeError(`Cannot set chain for active Mesgjs interface "${name}"`);
 			const chain = new Set(Object.values(mp.chain.storage || mp.chain || []));
 			for (const item of chain) {
 				if (!interfaces[item]) throw new ReferenceError(`Mesgjs interface "${name}" references unknown interface "${item}"`);
 				if (interfaces[item].final) throw new TypeError(`Mesgjs interface "${name}" tries to extend final interface "${item}"`);
-				interfaces[item].refd = true;
+				interfaces[item].locked = true;
 			}
 			ix.chain = chain;
 		}
