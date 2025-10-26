@@ -15,6 +15,7 @@ function jsdef (def) {
 	case '@code':		return () => def('run');
 	case '@function':	return def('jsfn');
 	case instType:		return def('@jsv').getter;
+	default:			return def;
 	}
 }
 
@@ -58,7 +59,7 @@ function opSet (d) {
 			break;
 		}
 	}
-	return js;
+	return d.rr; // Return instance for chaining
 }
 
 function opUntr (d) { return reactive.untracked(() => runIfCode(d.mp.at(0))); }
@@ -104,16 +105,18 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
-			'@jsv': d => d.js,
+			'@jsv': (d) => d.js,
 			batch: opBatch,
-			def: d => d.js.def,
-			eager: d => d.js.eager,
-			error: d => d.js.error,
-			fv: d => reactive.fv(d.js),
-			rio: d => rio(d.js),
-			rv: d => d.js.rv,
+			def: (d) => d.js.def,
+			eager: (d) => d.js.eager,
+			error: (d) => d.js.error,
+			fv: (d) => reactive.fv(d.js),
+			rio: (d) => rio(d.js),
+			rv: (d) => d.js.rv,
 			set: opSet,
+			unready: (d) => d.js.unready(),
 			untr: opUntr,
+			wait: (d) => reactive.wait(),
 		},
 	});
 }
