@@ -47,27 +47,35 @@ to figuring out what message to send to which object.
   literals. It is **not** an assignment operator. Assignment is only performed
   by the execution of messages like `(nset)` or `(set)`.
 - Global shared storage - this storage object is accessible everywhere as
-  special object `%*` or `@gss`.\
-  `%*(nset x=5) // Sets x to 5 in global shared storage`\
-  `%*x // 5; shortcut for %*(at x)`
+  special object `%*` or `@gss`.
+  ```
+  %*(nset x=5) // Sets x to 5 in global shared storage
+  %*x // 5; shortcut for %*(at x)
+  ```
 - Module private/protected storage - each module has its own storage, accessible
-  anywhere within the module as special object `%/` or `@mps`.\
-  `%/(nset x=5) // Sets x to 5 in module-private storage`\
-  `%/x // shortcut for %/(at x)`
+  anywhere within the module as special object `%/` or `@mps`.
+  ```
+  %/(nset x=5) // Sets x to 5 in module-private storage
+  %/x // shortcut for %/(at x)
+  ```
 - Object persistent properties are accessible via a storage object called "`%`".
   It's similar to JavaScript's "`this`", except it doesn't store any message
-  handlers (Mesgjs' closest equivalent to JavaScript methods).\
-  `%(nset x=5) %(at x) // 5`\
-  `%x // shortcut for %(at x); also 5`
+  handlers (Mesgjs' closest equivalent to JavaScript methods).
+  ```
+  %(nset x=5) %(at x) // 5
+  %x // shortcut for %(at x); also 5
+  ```
 - The storage object called "`#`" is for temporary "scratch" values that don't
   need to persist between messages. Each message dispatch (or redispatch) gets
   its own `#`. This storage is similar to local, block-scoped variables in a
   JavaScript function's top-level block.
 - Mesgjs has neither function declarations nor function call-parameter
   declarations. When a message is dispatched, the message parameters are
-  accessible to the responding handler via the storage object called "`!`".\
-  `!0 /* first positional message parameter */`\
-  `!x /* message parameter named "x" */`
+  accessible to the responding handler via the storage object called "`!`".
+  ```
+  !0 /* first positional message parameter */
+  !x /* message parameter named "x" */
+  ```
 
 # Blocks, Functions, Methods, And Calls
 
@@ -91,9 +99,11 @@ to figuring out what message to send to which object.
   `object.methodName(parameters)`
 - Methods are stored as object properties, and are located by following object
   prototype chains.
-- Function and method calls may be _chained_:\
-  `(returns function)(chained function params)`\
-  `(returns object).method(params)`
+- Function and method calls may be _chained_:
+  ```
+  (returns function)(chained function params)
+  (returns object).method(params)
+  ```
 - Unlike code blocks, functions may be stored, retrieved, passed, etc.
 - Functions defined within other functions have access to all the (non-eclipsed)
   variables in their enclosing scope.
@@ -124,8 +134,7 @@ to figuring out what message to send to which object.
   the message base, or, when chaining, to the result of the previous message).
   Chained messages in Mesgjs are completely analogous to chained function or
   method calls in JavaScript.\
-  `base(op1 params...)(op2 params...) // similar to
-  base.method1(params).method2(params)`
+  `base(op1 params...)(op2 params...) // similar to base.method1(params).method2(params)`
 - Message handlers are stored in interfaces, and are located by following
   interface chains (starting with the interface associated with an object's
   type). The process is somewhat similar to how JavaScript resolves methods
@@ -214,26 +223,28 @@ to figuring out what message to send to which object.
   function object doesn't automatically inherit anything from the generating
   scope. Anything the function will need must be passed as a parameter in the
   `(fn)` message. You can pass entire storage objects, or accessors (getters
-  and/or setters) for specific keys.\
-  `#(nset l=[ value x=3 y=4 ] z=17)`\
-  `#(nset fn={...!}(fn #l getZ=#(getter z) setZ=#(setter z)))`\
-  `// Inside the function #fn:`\
-  `// %0 is the same as the original #l`\
-  `// %getZ(run) returns the current #z value`\
-  `// %setZ(call value) sets a new #z value`
+  and/or setters) for specific keys.
+  ```
+  #(nset l=[ value x=3 y=4 ] z=17)
+  #(nset fn={...!}(fn #l getZ=#(getter z) setZ=#(setter z)))
+  // Inside the function #fn:
+  // %0 is the same as the original #l
+  // %getZ(run) returns the current #z value
+  // %setZ(call value) sets a new #z value
+  ```
 - Any returning block (`{ !}`) can be used to provide custom "getter" behavior.
 - You can "curry" functions in either of two ways:
   - You can pass initial parameters as part of the `(fn)` message (but the initial
     parameters will be accessed via `%` storage instead of `!` storage, and the
     code block used to generate the function must arrange access accordingly):\
-    `{ ... %curry ... !call ... !}(fn curry-parameters... ) /* later... */ (call
-    call-parameters...)`
+    `{ ... %curry ... !call ... !}(fn curry-parameters... ) /* later... */ (call call-parameters...)`
   - You can write a "more traditional" wrapper function that calls the function
     to be curried:\
-    `#(nset inner={...!}(fn))`\
-    `#(nset outer={ %inner(call %curry !call) !}(fn inner=#inner curry
-    parameters))`\
-    `#outer(call call parameters)`
+    ```
+    #(nset inner={...!}(fn))
+    #(nset outer={ %inner(call %curry !call) !}(fn inner=#inner curry parameters))
+    #outer(call call parameters)
+    ```
 
 # Arrays And Objects
 
@@ -244,18 +255,20 @@ to figuring out what message to send to which object.
   numbers. The array prototype includes methods such as `push`, `pop`, `shift`,
   `unshift`, `slice`, etc. The numeric nature of array keys avoids conflict with
   array instance methods.
-- Array literals are bracketed by `[` and `]`:\
-  `const a = [5, 10, 'hello']; // a[1] (or, equivalently, a['1']) contains
-  10`\
-  `Object.keys(a); // ["0", "1", "2"]`
+- Array literals are bracketed by `[` and `]`:
+  ```
+  const a = [5, 10, 'hello']; // a[1] (or, equivalently, a['1']) contains 10
+  Object.keys(a); // ["0", "1", "2"]
+  ```
 - JavaScript has plain objects and plain object literals. Object properties are
   typically given string-like names. As these can conflict with prototyped
   instance methods, most object methods are presented as static class methods of
   Object instead.
-- Object literals are bracketed by `{` and `}`:\
-  `const o = { greeting: 'Hello' }; // o.greeting (or o['greeting']) contains
-  Hello`\
-  `Object.keys(o); // ["greeting"]`
+- Object literals are bracketed by `{` and `}`:
+  ```
+  const o = { greeting: 'Hello' }; // o.greeting (or o['greeting']) contains Hello
+  Object.keys(o); // ["greeting"]
+  ```
 - JavaScript also has maps (Map class) and sets (Set class).
 
 ## Mesgjs
@@ -266,8 +279,7 @@ to figuring out what message to send to which object.
   list values, separated by "`=`". Values without keys are assigned the next
   sequential numeric-as-string (index) keys, just like JavaScript arrays.
 - List literals are bracketed by `[` and `]`, like JavaScript arrays:\
-  `#(nset l=[5 10 greeting=Hello]) // #l(at 1) is 10; #l(at greeting) is
-  Hello`
+  `#(nset l=[5 10 greeting=Hello]) // #l(at 1) is 10; #l(at greeting) is Hello`
 - Mesgjs lists support array-like messages, such as `(push)`, `(pop)`, `(shift)`,
   `(unshift)`, etc. These operate only on the index-keyed values.
 - Mesgjs' message handlers live in interface definitions, not in the objects
@@ -279,14 +291,18 @@ to figuring out what message to send to which object.
 
 ## JavaScript
 
-- `if (condition1) { action1 }`\
-  `else if (condition2) { action2 }`\
-  `else { defaultAction }`
-- `switch (reference) {`\
-  `case value1: action1; break;`\
-  `case value2: action2; break;`\
-  `default: action; break;`\
-  `}`
+- ```
+  if (condition1) { action1 }
+  else if (condition2) { action2 }
+  else { defaultAction }
+  ```
+- ```
+  switch (reference) {
+  case value1: action1; break;
+  case value2: action2; break;
+  default: action; break;
+  }
+  ```
 
 ## Mesgjs
 

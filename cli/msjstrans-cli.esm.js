@@ -9,6 +9,7 @@
  * --enable-js - Enable @js{...@} JavaScript embeds
  * --mod - Use configSLID module path
  * --no-js - Do not generate JavaScript or source map
+ * --no-strip-jsec - Do not strip comments from JavaScript embeds
  * --root - The output root directory
  * --tokens - Display lexical tokens
  * --tree - Display parse tree
@@ -28,7 +29,7 @@ import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
 import { parseSLID } from 'nanos/src/nanos.esm.js';
 
 const flags = parseArgs(Deno.args, {
-	boolean: [ 'add-space', 'enable-debug', 'enable-js', 'mod', 'no-js', 'tokens', 'tree', 'upcat', 'ver' ],
+	boolean: [ 'add-space', 'enable-debug', 'enable-js', 'mod', 'no-js', 'no-strip-jsec', 'tokens', 'tree', 'upcat', 'ver' ],
 	string: [ 'cat', 'root' ],
 });
 const upcat = flags.upcat;
@@ -120,7 +121,8 @@ async function process (srcPath) {
 	const txpOpts = {
 		addWhiteSpace: flags['add-space'],
 		debugBlocks: flags['enable-debug'],
-		enableJS: flags['enable-js']
+		enableJS: flags['enable-js'],
+		stripJSEC: !flags['no-strip-jsec']
 	};
 	const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
 	if (txpErrors?.length) console.log(txpErrors.join('\n'));

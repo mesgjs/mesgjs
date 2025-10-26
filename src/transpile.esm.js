@@ -5,6 +5,7 @@
  */
 
 import { lex, parse, tokenLocStr } from './lexparse.esm.js';
+import { stripJSComments } from './strip-js-comments.esm.js';
 import { encode as vlenc } from './vendor/vlq.esm.js';
 import { escapeJSString } from './vendor.esm.js';
 
@@ -164,7 +165,17 @@ export function transpileTree (tree, opts = {}) {
 	function generateJS (node) {
 		if (opts.enableJS) {
 			if (!outBuf.length) jsFirst = true;
-			outseg(node.text, node, true);
+			let jsCode = node.text;
+			// Strip JS embed comments unless explicitly disabled
+			if (opts.stripJSEC !== false) {
+				try {
+					jsCode = stripJSComments(jsCode);
+				} catch (err) {
+					error(`Error: ${err.message} at ${tls(node)}`);
+					return;
+				}
+			}
+			outseg(jsCode, node, true);
 		}
 		else error(`Error: JavaScript is not enabled at ${tls(node)}`);
 	}

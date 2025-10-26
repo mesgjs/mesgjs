@@ -7,7 +7,7 @@
 ## SYNOPSIS
 
 ```
-msjstrans [--add-space] [--cat <catalog>] [--enable-debug] [--enable-js] [--mod] [--no-js] [--root <dir>] [--tokens] [--tree] [--upcat] [--ver] *.msjs
+msjstrans [--add-space] [--cat <catalog>] [--enable-debug] [--enable-js] [--mod] [--no-js] [--no-strip-jsec] [--root <dir>] [--tokens] [--tree] [--upcat] [--ver] *.msjs
 ```
 
 ## DESCRIPTION
@@ -34,7 +34,10 @@ The `msjstrans` tool transpiles Mesgjs source files (`.msjs`) to JavaScript, gen
 - `--no-js`
   Do not generate JavaScript or a source map.
 
-- `--root <dir>`  
+- `--no-strip-jsec`
+  Retain comments in JavaScript embeds. By default, comments are removed from `@js{...@}` blocks, primarily to reduce output size.
+
+- `--root <dir>`
   Set the output root directory. In conjunction with `--mod` and `--ver`, transpiled output
   will be written to `${root}/${module}/${major}/${module}@${version}.esm.js`.
 
