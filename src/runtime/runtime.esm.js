@@ -517,8 +517,8 @@ export const {
 	}
 
    // Determine next-level message params for redispatch
-	function getRDMP (mp) {
-		const raw = mp.at('params', mp);
+	function getRDMP (mp, mctx) {
+		const raw = mp.at('params', mctx.mp);
 		return ((raw instanceof NANOS) ? raw : new NANOS(raw ?? []));
 	}
 
@@ -745,7 +745,7 @@ export const {
 			// The type must be in *current* handler's chain
 			if (!flatChain(handler.type).has(type)) return runIfCode(dispElse);
 			// Optionally change op and/or mp
-			const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = getRDMP(mp);
+			const rdop = mp.has('op') ? mp.at('op') : handler.op, rdmp = getRDMP(mp, mctx);
 			const next = (type === handler.type && rdop === handler.op) || (rdType === '@next');
 			const redis = getHandler(type, rdop, { isInit, next });
 			// Don't allow switch to default if not changing op

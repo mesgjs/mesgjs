@@ -9,6 +9,7 @@ import { getInstance, getInterface, typeAccepts } from "../../src/runtime/runtim
 
 Deno.test("Message Dispatching", async (t) => {
 	const msgd = (d, op, mp) => d.sm(d, op, mp);
+	const envRpt = (d) => new NANOS({ dop: d.dop, mop: d.mop, mp: d.mp });
 
 	await t.step("should create and configure two anonymous interfaces", () => {
 		const aif1 = getInterface(":?");
@@ -51,21 +52,107 @@ Deno.test("Message Dispatching", async (t) => {
 		assertEquals(msgd(d[0], "mop"), "getD");
 	});
 
-	await t.step("should handle redispatching", () => {
+	await t.step("should handle redispatch (no super)", () => {
 		const aif1 = getInterface(":?");
 		aif1.set({
 			handlers: {
-				getD: (d) => [d, "getD"],
-				redis: (d) => d.sm(d, { op: "redis", params: d.mp }),
-				"@default": (d) => [d, "default"],
+				mesg: (d) => d.sm(d, 'redis'),
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		assertEquals(inst1("redis", {}), undefined);
-		const d = inst1("redis", { op: "getD" });
-		assertEquals(d[1], "getD");
-		assertEquals(d[0].dop, "getD");
-		assertEquals(d[0].mop, "redis");
+		const r = inst1('mesg');
+		assertEquals(r, undefined, "redis without super returns undefined");
+	})
+
+	await t.step("should handle redispatch (original op, original params)", () => {
+		const superIf = getInterface(":?").set({
+			handlers: {
+				mesg: (d) => envRpt(d),
+			},
+		});
+		const subIf = getInterface(":?").set({
+			chain: [ superIf.ifName ],
+			handlers: {
+				mesg: (d) => d.sm(d, 'redis'),
+				subOnly: (d) => d.sm(d, 'redis'),
+			},
+		});
+
+		const inst = getInstance(subIf.ifName);
+		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
+		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
+		assertEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
+
+		const r2 = inst('subOnly');
+		assertEquals(r2, undefined, "redis with sub-only message returns undefined");
+	});
+
+	await t.step("should handle redispatch (original op, new params)", () => {
+		const superIf = getInterface(":?").set({
+			handlers: {
+				mesg: (d) => envRpt(d),
+			},
+		});
+		const subIf = getInterface(":?").set({
+			chain: [ superIf.ifName ],
+			handlers: {
+				mesg: (d) => d.sm(d, 'redis', { params: new NANOS('pos2', { key2: 'val2' })}),
+			},
+		});
+		const inst = getInstance(subIf.ifName);
+		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
+		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
+		assertEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
+		assertEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
+		assertEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
+	});
+
+	await t.step("should handle redispatch (new op, original params)", () => {
+		const superIf = getInterface(":?").set({
+			handlers: {
+				mesg: (d) => envRpt(d),
+				mesg2: (d) => envRpt(d),
+			},
+		});
+		const subIf = getInterface(":?").set({
+			chain: [ superIf.ifName ],
+			handlers: {
+				mesg: (d) => d.sm(d, 'redis', { op: 'mesg2' }),
+			},
+		});
+		const inst = getInstance(subIf.ifName);
+		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
+		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
+		assertEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
+	});
+
+	await t.step("should handle redispatch (new op, new params)", () => {
+		const superIf = getInterface(":?").set({
+			handlers: {
+				mesg: (d) => envRpt(d),
+				mesg2: (d) => envRpt(d),
+			},
+		});
+		const subIf = getInterface(":?").set({
+			chain: [ superIf.ifName ],
+			handlers: {
+				mesg: (d) => d.sm(d, 'redis', { op: 'mesg2', params: new NANOS('pos2', { key2: 'val2' }) }),
+			},
+		});
+		const inst = getInstance(subIf.ifName);
+		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
+		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
+		assertEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
+		assertEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
+		assertEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
 	});
 
 	await t.step("should fall back to the default handler", () => {

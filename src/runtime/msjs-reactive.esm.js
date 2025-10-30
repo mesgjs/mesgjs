@@ -8,6 +8,8 @@
 import { getInterface, runIfCode, setRO } from './runtime.esm.js';
 import { reactive } from './vendor.esm.js';
 
+setRO(globalThis, 'reactive', reactive);
+
 let instType;
 
 function jsdef (def) {
