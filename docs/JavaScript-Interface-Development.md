@@ -102,8 +102,8 @@ Message handlers are JavaScript functions that receive a single argument: the **
     *   `d.octx`: The **o**bject **c**on**t**e**x**t created at instantiation. This plain JavaScript object is the ideal place to hold references to other complex JavaScript objects or resources that the Mesgjs object needs to work with.
     *   `d.js`: A convenient alias for `d.octx.js`. This is a common pattern for attaching a dedicated JavaScript class instance to a Mesgjs object to manage its logic.
     *   `d.p`: The **p**ersistent, private storage for the object instance. In contrast to `d.octx` (and `d.js`), this is the only private state accessible to native Mesgjs handlers (either your own, or potentially handlers in chained interfaces if your interfaces isn't *final*).
-*   `d.mp`: The **m**essage **p**arameters. This is a `NANOS` list containing all parameters passed in the message.
-*   `d.sm`: The attributed **s**end-**m**essage function. Use this to send messages to other objects: `sm(recipient, op, params)`.
+*   `d.mp`: The **m**essage **p**arameters. This is a `NANOS` list containing all parameters passed in the message. See [Message Parameter Normalization](Message-Parameter-Normalization.md) for details on how JavaScript values are converted to NANOS.
+*   `d.sm`: The attributed **s**end-**m**essage function. Use this to send messages to other objects: `sm(recipient, op, params)`. The `params` argument will be automatically normalized to NANOS.
 
 Here is an example handler:
 
@@ -158,3 +158,10 @@ This is achieved in its `@init` handler, which attaches a JavaScript `proto` obj
 ## Conclusion
 
 By following this workflow, you can create powerful, reusable, and secure interfaces that extend the capabilities of Mesgjs while providing a familiar API for other JavaScript developers. For more examples, explore the foundational interface implementations in the [`src/runtime/`](src/runtime/:1) directory.
+
+## See Also
+
+- [Message Parameter Normalization](Message-Parameter-Normalization.md) - How JavaScript values are converted to message parameters
+- [JavaScript Runtime Reference](JavaScript-Runtime-Reference.md) - Complete runtime API reference
+- [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md) - Understanding the message passing system
+- [Unified List Utilities](runtime/Unified-List-Utilities.md) - Internal utilities for runtime developers

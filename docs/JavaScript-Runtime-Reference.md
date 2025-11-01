@@ -20,7 +20,7 @@ Gets or creates an interface definition object. This is the entry point for defi
 
 ### `getInstance(type, params)`
 
-Creates a new instance of a Mesgjs object. This is the factory function for all Mesgjs objects and replaces the `new` keyword. The optional `params` argument is passed to the object's `@init` handler. It can be any JavaScript value; Arrays, Sets, Maps, and plain Objects are assimilated, while other types are added opaquely.
+Creates a new instance of a Mesgjs object. This is the factory function for all Mesgjs objects and replaces the `new` keyword. The optional `params` argument is passed to the object's `@init` handler. It can be any JavaScript value; Arrays, Sets, Maps, and plain Objects are assimilated into NANOS, while other types are added opaquely. See [Message Parameter Normalization](Message-Parameter-Normalization.md) for details.
 
 ### `initialize()`
 
@@ -113,7 +113,7 @@ If the provided `value` is a Mesgjs `@code` object, it will be executed and its 
 
 ### `sendAnonMessage(receiver, operation, parameters)`
 
-Sends an anonymous message to a Mesgjs object. The receiver will be automatically promoted to a Mesgjs object if it is a native JavaScript value.
+Sends an anonymous message to a Mesgjs object. The receiver will be automatically promoted to a Mesgjs object if it is a native JavaScript value. The `parameters` argument is automatically normalized to a NANOS instance. See [Message Parameter Normalization](Message-Parameter-Normalization.md) for details.
 
 ## Module and Feature Management
 
@@ -183,3 +183,10 @@ Retrieves a value from a namespace (typically a `NANOS` instance). If the key is
 ### `setRO(object, key, value, enumerable = true)` or `setRO(object, { key: value, ... }, enumerable = true)`
 
 A utility to create read-only properties on JavaScript objects.
+
+## See Also
+
+- [Message Parameter Normalization](Message-Parameter-Normalization.md) - How JavaScript values are converted to message parameters
+- [JavaScript Interface Development](JavaScript-Interface-Development.md) - Guide for creating interfaces
+- [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md) - Understanding the message passing system
+- [Unified List Utilities](runtime/Unified-List-Utilities.md) - Internal utilities for runtime developers

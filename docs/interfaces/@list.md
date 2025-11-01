@@ -106,6 +106,12 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * The RIO provides an implementation-agnostic way to support reactive lists. See below.  
   * If object is `@t` (true), a default RIO is assigned using @c(get @reactive)(rio).  
   * If object is `@u` (undefined), `@n` (null), or `@f` (false), any existing RIO is removed.  
+* `(rxt)`
+  * Synopsis: "Reactive transform" - makes the list fully reactive, recursively.  
+  * Automatically assigns a default RIO if one is not already configured (equivalent to `(rio @t)`).  
+  * Enables `autoReactive` mode, which automatically wraps stored values in reactive proxies.  
+  * Recursively applies the reactive transform to all nested `@list` instances.  
+  * This is a convenience method for making an entire list structure (including existing values) reactive in one operation.  
 * `(self)`
   * Synopsis: Returns the underlying JS `NANOS` object.  
   * To prevent accidental data leaks, namespace (storage object) references
@@ -166,15 +172,25 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
 
 RIOs allow `@list` instances to implement reactive "bundling" (aggregation of reactive values) in an implementation-independent manner.
 
-A RIO consists of a plain JavaScript object with four properties:
+A RIO consists of a plain JavaScript object with seven properties:
+
+**Basic (reactive packaging):**
 
 * `batch(callback)` \- A function that calls the callback function in a reactive batch (avoiding as many recalculations as possible until the end of the batch operation) and returns the result.
 
-* `changed()` \- A function to be called when not-directly-reactive state has changed (e g., when a list key has been added or removed), thus turning non-reactive events into reactive events. The function triggers a change-ripple in the dependency graph.
+* `changed()` \- A function to be called when not-directly-reactive state has changed (e.g., when a list key has been added or removed), thus turning non-reactive events into reactive events. The function triggers a change-ripple in the dependency graph.
 
 * `create()` \- A function to create a new reactive and return a new RIO for it (the JS equivalent of Mesgjs `@c(get @reactive)(rio);` used to propagate reactivity to auto-generated nested lists, for example).
 
 * `depend()` \- A function to generate dependency by accessing the RIO's reactive (essentially, a reactive proxy for non-reactive values).
+
+**Extended (reactive values):**
+
+* `get(v)` \- A function that returns the reactive value of `v` (equivalent to `v.rv`).
+
+* `isReactive(v)` \- A function that checks whether `v` is a reactive value.
+
+* `onSet(nanos, key, value)` \- A hook function called when setting values on a NANOS instance. It handles reactive wrapping and chaining based on the `autoReactive` option and whether current/new values are reactive.
 
 `@c(get @reactive)(rio)` will generate a suitable RIO for lists to use `@reactive`\-interface-based reactivity:
 

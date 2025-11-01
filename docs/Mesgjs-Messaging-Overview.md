@@ -62,7 +62,8 @@ function-call parameter is a message parameter object:
 The message parameter object is typically a Mesgjs list (`NANOS` ("named and
 numbered ordered storage") JS class instance). Alternatively, the message
 parameters value can also be a JS `Array` or plain `Object`, or even just a scalar
-value, when called from JS.
+value, when called from JS. These are automatically normalized to NANOS instances
+by the runtime. See [Message Parameter Normalization](Message-Parameter-Normalization.md) for details.
 
 Typically these functions invoke a generic message-processing function which is
 responsible for the remainder of the messaging pipeline.
@@ -202,3 +203,10 @@ For non-module-signed messages, the `smi` value is `@u`/`undefined`.
 Module-signing of messages works for both anonymous messages (e.g. from
 JavaScript) and attributed messages (between two runtime-created Mesgjs
 objects).
+
+## See Also
+
+- [Message Parameter Normalization](Message-Parameter-Normalization.md) - How JavaScript values are converted to message parameters
+- [JavaScript Interface Development](JavaScript-Interface-Development.md) - Creating message handlers
+- [JavaScript Runtime Reference](JavaScript-Runtime-Reference.md) - Runtime API reference
+- [`@list` Interface](interfaces/@list.md) - The NANOS/list interface documentation

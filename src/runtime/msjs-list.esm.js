@@ -66,6 +66,22 @@ function opRIO (d) {
 	return !!js.rio;
 }
 
+// "Reactive transform" - make fully reactive, recursively
+function opRxt (d) {
+	const { js } = d;
+	if (!js.rio) js.rio = getInstance('@reactive')('rio');
+	const rio = js.rio;
+	js.setOpts({ autoReactive: true });
+	for (const key of js.keys()) {
+		const value = js.at(key, { raw: true });
+		const isR = rio.isReactive(value), nrv = isR ? value.rv : value;
+		// Convert non-reactive values to reactive ones
+		if (!isR) js.set(key, value);
+		// Recursively apply reactive transform to nested NANOS
+		if (nrv instanceof NANOS) $toMsjs(nrv)('rxt');
+	}
+}
+
 // @function implementation for (setter)
 function doSet (d) {
 	const mp = d.mp, insert = mp.at('insert'), raw = mp.at('raw');
@@ -160,6 +176,7 @@ export function install (name) {
 			redact: (d) => d.js.redact(...d.mp.indexValues()),
 			reverse: (d) => d.js.reverse(),
 			rio: opRIO,
+			rxt: opRxt,
 			self: (d) => d.js,
 			set: opSet,
 			setOpts: opSetOpts,

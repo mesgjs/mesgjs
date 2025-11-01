@@ -44,7 +44,13 @@ function opInit (d) {
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
-function opBatch (d) { return reactive.batch(() => runIfCode(d.mp.at(0))); }
+// Perform a reactive batch operation using a @code block or plain JS function
+function opBatch (d) {
+	const task = d.mp.at(0);
+	if (typeof task !== 'function') return;
+	if (task.msjsType) return reactive.batch(() => runIfCode(task));
+	return reactive.batch(task);
+}
 
 function opSet (d) {
 	const { js, mp } = d;
