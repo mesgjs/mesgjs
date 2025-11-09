@@ -13,6 +13,12 @@ let pathMapLoaded = false;
 export const catalogExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
 export const escapeLike = s => s.replace(/[%_\\]/g, '\\$1');
 
+// Return trimmed string with normalized spacing
+function normalSpace (str) {
+	str = (str || '').replace(/\s\s+/g, ' ');
+	return str.trim();
+}
+
 // Verify path_map and modules tables are present in the database
 export function checkTables (db, file) {
 	const maps = db.query("select name from sqlite_master where type='table' and name='path_map'");
@@ -22,19 +28,24 @@ export function checkTables (db, file) {
 
 // Add a module to the catalog
 export function addModule (db, mod, { integrity, featpro, featreq, modreq, moddefer, modcaps }) {
-	const { path, major, minor, patch, extver } = parseModVer(mod);
+	const { module: path, major, minor, patch, extver } = parseModVer(mod);
+	featpro = normalSpace(featpro);
+	featreq = normalSpace(featreq);
+	modreq = normalSpace(modreq);
+	moddefer = normalSpace(moddefer);
+	modcaps = normalSpace(modcaps);
 	db.query('insert or replace into modules (path, major, minor, patch, extver, integrity, featpro, featreq, modreq, moddefer, modcaps) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [ path, major, minor, patch, extver ?? '', integrity, featpro, featreq, modreq, moddefer, modcaps ]);
 }
 
 // Return module record (modreq-only or detailed)
 export function getModule (db, mod, detail = false) {
 	const cached = _modCache[mod];
-	if (cached && (cached.integ || !detail)) return cached;
+	if (cached && (cached.integrity || !detail)) return cached;
 
-	const { path, major, minor, patch, extver } = parseModVer(mod);
+	const { module: path, major, minor, patch, extver } = parseModVer(mod);
 	if (major === undefined) return;
 
-	const [ row ] = db.query('select ' + (detail ? 'modreq, integ, featpro, featreq, moddefer, modcaps' : 'modreq') + ' from modules where path = ? and major = ? and minor = ? and patch = ? and extver = ?', [ path, major, minor, patch, extver ?? '' ]);
+	const [ row ] = db.query('select ' + (detail ? 'modreq, integrity, featpro, featreq, moddefer, modcaps' : 'modreq') + ' from modules where path = ? and major = ? and minor = ? and patch = ? and extver = ?', [ path, major, minor, patch, extver ?? '' ]);
 	if (row) {
  const [ modreq, integrity, featpro, featreq, moddefer, modcaps ] = row;
  return (_modCache[mod] = { path, major, minor, patch, extver, integrity, modreq, featpro, featreq, moddefer, modcaps });
@@ -67,7 +78,7 @@ major INT NOT NULL,
 minor INT NOT NULL,
 patch INT NOT NULL,
 extver TEXT NOT NULL,
-integ TEXT NOT NULL,
+integrity TEXT NOT NULL,
 featpro TEXT NOT NULL DEFAULT "",
 featreq TEXT NOT NULL DEFAULT "",
 modreq TEXT NOT NULL DEFAULT "",

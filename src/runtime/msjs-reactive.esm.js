@@ -70,7 +70,19 @@ function opSet (d) {
 	return d.rr; // Return instance for chaining
 }
 
-function opUntr (d) { return reactive.untracked(() => runIfCode(d.mp.at(0))); }
+function opUnbatch (d) {
+	const task = d.mp.at(0);
+	if (typeof task !== 'function') return;
+	if (task.msjsType) return reactive.unbatch(() => runIfCode(d.mp.at(0)));
+	return reactive.unbatch(task);
+}
+
+function opUntr (d) {
+	const task = d.mp.at(0);
+	if (typeof task !== 'function') return;
+	if (task.msjsType) return reactive.untracked(() => runIfCode(d.mp.at(0)));
+	return reactive.untracked(task);
+}
 
 // Return a reactive-interface object
 const isReactive = (v) => !!reactive.typeOf(v);
@@ -122,6 +134,7 @@ export function install (name) {
 			rio: (d) => rio(d.js),
 			rv: (d) => d.js.rv,
 			set: opSet,
+			unbatch: opUnbatch,
 			unready: (d) => d.js.unready(),
 			untr: opUntr,
 			wait: (d) => reactive.wait(),

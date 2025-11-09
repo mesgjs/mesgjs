@@ -174,7 +174,7 @@ async function process (srcPath) {
 			db.query(`update modules set modreq = ?, moddefer = ? where path = ? and major = ? and minor = ? and patch = ? and extver = ?`, [ modreq, moddefer, modPath, major, minor, patch, extver ?? '' ]);
 		} else {
 			const featpro = config.at('featpro', ''), featreq = config.at('featreq', ''), modcaps = config.at('modcaps', '');
-			console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver}...`);
+			console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver ?? ''}...`);
 			addModule(db, `${modPath}@${version}`, { integrity: sha512, featpro, featreq, modreq, moddefer, modcaps });
 		}
 	}
