@@ -76,14 +76,15 @@ The `msjscat` tool provides utilities for managing and querying the Mesgjs modul
   msjscat --lsmod
   ```
 
-- Add a new path mapping:
+- Add new path mappings:
   ```
-  msjscat --mapin ./src --mapout ./dist
+  msjscat --mapin mesgjs/runtime/ --mapout https://cdn.jsdelivr.net/gh/mesgjs/mesgjs@0.2.11/dist/runtime-min/
+  msjscat --mapin mwi/ --mapout https://cdn.jsdelivr.net/gh/mesgjs/mesgjs-web@0.5.9/dist/msjs/mwi/
   ```
 
 - Remove a path mapping:
   ```
-  msjscat --mapin ./src --rmmap
+  msjscat --mapin mesgjs/runtime/ --rmmap
   ```
 
 - List all path mappings:

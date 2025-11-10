@@ -46,7 +46,7 @@ class Resolver {
 				const { major, minor, patch } = pmv(v);
 				return [ major, minor, patch ];
 			}).sort((a, b) => compareModVer(b, a)).
-				ma((va, i) => [ mid + '@' + va.join('.'), i ])) {
+				map((va, i) => [ mid + '@' + va.join('.'), i ])) {
 				this.weights[en[0]] = en[1];
 			}
 		}
@@ -162,8 +162,8 @@ function getJSImportMap () {
 // Return Mesgjs module metadata
 function getModMeta (finalMods, spec) {
 	const prefixMap = { '': '' }, modules = {}, eager = {};
-	const entryPointDefers = (spec instanceof NANOS && new Set(getModSpec(spec.at('deferLoad', []), 'deferLoad'))) || new Set();
-	const entryPointReqs = new Set(getModSpec(spec).map(req => pmv(req).module));
+	const entryPointDefers = (spec instanceof NANOS && new Set(getModSpec(spec, 'deferLoad'))) || new Set();
+	const entryPointReqs = new Set(getModSpec(spec).map(req => req.match(/^\S+/)[0]));
 
 	for (const mod of finalMods) {
 		const { module: modPath, version } = pmv(mod);
@@ -187,7 +187,9 @@ function getModMeta (finalMods, spec) {
 			if (!deferSet.has(reqPath)) eager[reqPath] = true;
 		}
 
-		// Check deferrals from entry point for top-level dependencies
+		// Check deferrals from entry point for top-level dependencies.
+		// Entry points from strings will always be eager.
+		// Entry points from .slid may vote to be deferred.
 		if (entryPointReqs.has(modPath) && !entryPointDefers.has(modPath)) {
 			eager[modPath] = true;
 		}
@@ -203,16 +205,23 @@ function getModMeta (finalMods, spec) {
 	return { prefixMap, modules };
 }
 
-// Return (;-separated, if string) list of module requirements (or defers)
+// Return a list of module requirements (or defers).
+// The spec may be a modreq string or a parsed .slid file.
 function getModSpec (spec, group = 'modreq') {
 	if (spec instanceof NANOS) {
+		// spec is from a .slid; extract the requested group
 		spec = spec.at(group);
+		// Convert a list-form (non-string) group-value to an array
 		if (spec instanceof NANOS) spec = [...spec.values()];
-	} else if (group !== 'modreq') return;
+	}
+	// Can't get anything but modreq from a string spec
+	else if (group !== 'modreq') return;
 	if (typeof spec === 'string') {
+		// Convert string-form group-value to array and return
 		const sep = (group === 'modreq') ? /\s*;\s*/ : /[,;\s]+/;
 		return spec.split(sep).filter(Boolean);
 	}
+	return spec; // Return array-form group-value from above
 }
 
 // Return map of forced modules
@@ -228,6 +237,8 @@ function getModForceSpec (spec) {
 }
 
 // Link the main entry point
+// mainSpec - main modpath + version spec or SLID-based spec
+// clientSpec - client modpath + version spec or SLID-based spec
 function link (mainSpec, clientSpec, mainJsIn) {
 	// Main entry point resolution
 	const mainResolver = new Resolver(db);
@@ -281,6 +292,7 @@ function mergeSpecs (base, overlay) {
 	return merged;
 }
 
+// Warn if resolved modules might not be compatible with forced modules
 function checkCompat (finalMods, forced) {
 	if (!forced.size) return;
 
@@ -320,7 +332,7 @@ function checkFeatures (finalMods) {
 	}
 }
 
-function parseEntryPoint(path) {
+function parseEntryPoint (path) {
 	if (path.endsWith('.slid')) {
 		return parseSLID(Deno.readTextFileSync(path));
 	}
@@ -333,14 +345,14 @@ try {
 
 	const main = flags._[0];
 	if (!main) throw new Error('Entry point module or .esm.js/.msjs/.slid file required');
-	
+
 	let mainSpec, clientSpec, mainJsIn;
 
 	if (flags._[1]) {
 		// Dual entry-point mode (server+client)
 		const clientEntryPoint = flags._[1];
 		if (clientEntryPoint.endsWith('.msjs') || clientEntryPoint.endsWith('.esm.js')) {
-	 throw new Error('The client entry point must be a .slid file or module path.');
+			throw new Error('The client entry point must be a .slid file or module path.');
 		}
 
 		mainSpec = parseEntryPoint(main);
@@ -361,14 +373,14 @@ try {
 			mainSpec = nanosSpec;
 		}
 	} else if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
- const jsFile = main.replace(/\.msjs$/, '.esm.js');
- const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
- mainSpec = parseSLID(Deno.readTextFileSync(slidFile));
- mainJsIn = Deno.readTextFileSync(jsFile).trim();
+		const jsFile = main.replace(/\.msjs$/, '.esm.js');
+		const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
+		mainSpec = parseSLID(Deno.readTextFileSync(slidFile));
+		mainJsIn = Deno.readTextFileSync(jsFile).trim();
 	} else {
- mainSpec = main;
+		mainSpec = main;
 	}
-	
+
 	link(mainSpec, clientSpec, mainJsIn);
 
 } catch (err) {

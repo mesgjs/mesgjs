@@ -1,1 +1,2 @@
-import{isIndex as r,isNegIndex as n,NANOS as t,parseQJSON as i,parseSLID as d}from"https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.1.0/src/nanos.esm.js";import{reactive as p}from"https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.5/src/reactive.esm.js";export{t as NANOS,r as isIndex,n as isNegIndex,i as parseQJSON,d as parseSLID,p as reactive};
+export { isIndex, isNegIndex, NANOS, parseQJSON, parseSLID } from 'https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.1.0/dist/nanos.min.esm.js';
+export { reactive } from 'https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/dist/reactive.min.esm.js';

@@ -32,10 +32,10 @@ The runtime will signal when all non-deferred modules have completed loading by 
 ## ARGUMENTS
 
 - `<entry>`
-  The primary entry point. This can be a `.msjs`, `.esm.js`, or `.slid` file, or a module name.
+  The primary entry point. This can be a `.msjs`, `.esm.js`, or `.slid` file, or a module path and version spec.
 
 - `<entry-client>` (Optional)
-  The client entry point. If two entry points are provided, the first (primary) entry point is used for server-side resolution, and this second entry point is used for client-side resolution. This must be a `.slid` file or a module path.
+  The client entry point. If two entry points are provided, the first (primary) entry point is used for server-side resolution, and this second entry point is used for client-side resolution. This must be a `.slid` file or a module path and version spec.
 
 ### Single Entry Point Behavior
 
