@@ -5,7 +5,7 @@
  */
 
 import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, modHasCap, runIfCode, runWhileCode, setModMeta, setRO, typeAccepts, typeChains } from './runtime.esm.js';
-import { NANOS, parseQJSON, parseSLID } from './vendor.esm.js';
+import { NANOS, parseQJSON, parseSLID } from '@nanos';
 
 // (and value...)
 // And: false result if any not true, else last true result (default true)

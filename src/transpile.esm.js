@@ -7,7 +7,7 @@
 import { lex, parse, tokenLocStr } from './lexparse.esm.js';
 import { stripJSComments } from './strip-js-comments.esm.js';
 import { encode as vlenc } from './vendor/vlq.esm.js';
-import { escapeJSString } from './vendor.esm.js';
+import { escapeJSString } from '@escape-js';
 
 class Segment {
 	constructor (gen, src, pending) {
@@ -220,8 +220,10 @@ export function transpileTree (tree, opts = {}) {
 		switch (node.space) {
 		// Message parameters
 		case '!': case '!?': space = 'mp'; break;
-		// Object persistent properties
+		// Object persistent properties (shared/"protected")
 		case '%': case '%?': space = 'd.p'; break;
+		// Object exclusive ("private" persistent) properties
+		case '%%': case '%%?': space = 'd.x'; break;
 		// Scratch (transient) storage
 		case '#': case '#?': space = 'd.t'; break;
 		// Global shared storage

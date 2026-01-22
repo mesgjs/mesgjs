@@ -5,7 +5,7 @@
  */
 
 import { getInterface, runIfCode, setRO, throwFlow } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 
 /*
  * @codeIter(run code times=n collect=boolean)

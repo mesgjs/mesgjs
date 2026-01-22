@@ -6,7 +6,7 @@
  */
 
 import { getInterface, runIfCode, setRO } from './runtime.esm.js';
-import { reactive } from './vendor.esm.js';
+import { reactive } from '@reactive';
 
 setRO(globalThis, 'reactive', reactive);
 

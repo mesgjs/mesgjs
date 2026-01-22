@@ -129,7 +129,8 @@ The following are interpreted and implemented directly as part of the
 language (i.e. not through interface handlers).
 
 * `=` - key/value association (**NOT** assignment!)
-* `%` and `%?` - object persistent property storage
+* `%` and `%?` - object persistent property storage (protected/shared across interface chain)
+* `%%` and `%%?` - object exclusive property storage (private/per-interface)
 * `#` and `#?` - transient/scratch storage, per dispatch
 * `!` and `!?` - message parameters
 * `%*` and `%*?` - global shared storage
@@ -145,6 +146,8 @@ Otherwise, it has no special meaning.
 for a message. Otherwise they have no special meaning.
 * The storage op-words with the trailing `?` just indicate that `@u`
 (undefined) should be returned for unset values instead of throwing an error.
+* `%` (protected) storage is shared across all interfaces in an object's chain,
+while `%%` (exclusive) storage is private to each interface type.
 
 # More Examples
 

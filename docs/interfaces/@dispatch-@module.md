@@ -25,22 +25,23 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 
 ## JavaScript Object Properties
 
-* `.b` \- code-template binding function (returns a `(run)`-able code-block bound to the current dispatch)  
-* `.dop` \- current dispatch's requested operation  
-* `.ht` \- the currently-dispatched handler's interface type  
-* `.js` \- mirrors `octx.js` (JS-level state), if present  
-* `.mop` \- the original message's requested operation  
-* `.mp` \- the `NANOS` message parameters list  
-* `.octx` \- object context container (from object instantiation)  
-* `d.p` \- JIT persistent-storage `NANOS` getter  
-* `.rr` \- the object receiving the message ("self" or "this")  
-* `.rt` \- the receiver type  
-* `.msjsType` \- the type of the *dispatch* object ("@dispatch")  
-* `.sm` \- the receiver's private send-message function (sm(recipient, mesgOp, mesgParams))  
-* `.smi` \- the sending-module identifer ("modpath"), for module-signed messages  
-* `.sr` \- the sending object's public interface/receiver function (for attributed messages, otherwise undefined)  
-* `.st` \- the sender's type (for attributed messages, otherwise undefined)  
+* `.b` \- code-template binding function (returns a `(run)`-able code-block bound to the current dispatch)
+* `.dop` \- current dispatch's requested operation
+* `.ht` \- the currently-dispatched handler's interface type
+* `.js` \- mirrors `octx.js` (JS-level state), if present
+* `.mop` \- the original message's requested operation
+* `.mp` \- the `NANOS` message parameters list
+* `.octx` \- object context container (from object instantiation)
+* `d.p` \- JIT persistent-storage (protected/shared) `NANOS` getter
 * `d.t` \- JIT transient-storage (scratch) `NANOS` getter
+* `d.x` \- JIT exclusive-storage (private/per-interface) `NANOS` getter
+* `.rr` \- the object receiving the message ("self" or "this")
+* `.rt` \- the receiver type
+* `.msjsType` \- the type of the *dispatch* object ("@dispatch")
+* `.sm` \- the receiver's private send-message function (sm(recipient, mesgOp, mesgParams))
+* `.smi` \- the sending-module identifer ("modpath"), for module-signed messages
+* `.sr` \- the sending object's public interface/receiver function (for attributed messages, otherwise undefined)
+* `.st` \- the sender's type (for attributed messages, otherwise undefined)
 
 # Module Scope And Mesgjs `@module` Interface
 

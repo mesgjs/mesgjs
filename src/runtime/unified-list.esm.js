@@ -9,7 +9,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { NANOS, isIndex, isNegIndex } from './vendor.esm.js';
+import { NANOS, isIndex, isNegIndex } from '@nanos';
 
 export const isPlainObject = (obj) => {
 	const type = typeof obj, consName = obj?.constructor?.name;

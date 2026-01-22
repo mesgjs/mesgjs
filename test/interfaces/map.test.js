@@ -21,13 +21,13 @@ Deno.test("@map Interface", async (t) => {
 
 	await t.step("should get, set, has, and delete entries", () => {
 		const map = newMap([["key1", "value1"]]);
-		
+
 		assertEquals(map("has", ls([,"key1"])), true);
 		assertEquals(map("get", ls([,"key1"])), "value1");
-		
+
 		map("set", ls([,"key2", ,"value2"]));
 		assertEquals(map("get", ls([,"key2"])), "value2");
-		
+
 		assertEquals(map("delete", ls([,"key1"])), true);
 		assertEquals(map("has", ls([,"key1"])), false);
 	});
@@ -45,7 +45,7 @@ Deno.test("@map Interface", async (t) => {
 
 	await t.step("entries, keys, and values should return correct lists", () => {
 		const map = newMap([["a", 1], ["b", 2]]);
-		
+
 		const entries = map("entries");
 		assertEquals(entries.at(0), ['a', 1]);
 		assertEquals(entries.at(1), ['b', 2]);
@@ -53,7 +53,7 @@ Deno.test("@map Interface", async (t) => {
 		const keys = map("keys");
 		assertEquals(keys.at(0), "a");
 		assertEquals(keys.at(1), "b");
-		
+
 		const values = map("values");
 		assertEquals(values.at(0), 1);
 		assertEquals(values.at(1), 2);

@@ -12,8 +12,8 @@ import { parseArgs } from 'jsr:@std/cli/parse-args';
 import { DB } from 'https://deno.land/x/sqlite/mod.ts';
 import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/src/module-catalog-lite.esm.js';
 import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/src/semver.esm.js';
-import { escapeJSString as escJSStr } from 'escape-js/src/escape.esm.js';
-import { NANOS, parseSLID } from 'nanos/src/nanos.esm.js';
+import { escapeJSString as escJSStr } from '@escape-js';
+import { NANOS, parseSLID } from '@nanos';
 import Logic from 'npm:logic-solver';
 
 const flags = parseArgs(Deno.args, {
@@ -74,7 +74,7 @@ class Resolver {
 		}
 		return (all.length ? Logic.and(...all) : Logic.TRUE);
 	}
-		
+
 	// Map module id to module (passing optional version)
 	midToMod (mid) {
 		const { module, atVersion } = pmv(mid);
@@ -136,7 +136,7 @@ class Resolver {
 
 		// Optimize using newest module versions
 		this.computeWeights();
-			
+
 		const solvedMods = [];
 		if (trial) {
 			const final = this.solver.minimizeWeightedSum(trial, Object.keys(this.weights), Object.values(this.weights));
@@ -259,14 +259,14 @@ function link (mainSpec, clientSpec, mainJsIn) {
 	}
 
 	// JS import map
-	const jsImportMap = getJSImportMap();
+	// const jsImportMap = getJSImportMap();
 
 	const outbuf = [], output = (...c) => outbuf.push(...c);
 
-	output(`${flags.html ? '' : '// '}<script type='importmap'>${jsImportMap}</script>\n`);
+	// output(`${flags.html ? '' : '// '}<script type='importmap'>${jsImportMap}</script>\n`);
 	if (flags.html) output("<script type='module'>\n");
 	output(`import { setModMeta } from '${escJSStr(mapPath(db, 'mesgjs/runtime/mesgjs.esm.js'), { dq: false })}';\n`);
-	output(`setModMeta(${JSON.stringify(modMeta, null, 2)}));\n`);
+	output(`setModMeta(${JSON.stringify(modMeta /*, null, 2*/)});\n`);
 
 	if (mainJsIn) {
 		output('$c.fwait("@loaded").then(() => {\n', mainJsIn, '\n});\n');

@@ -5,7 +5,7 @@ import {
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
-import { reactive } from "../../src/runtime/vendor.esm.js";
+import { reactive } from "@reactive";
 import { codeBlock } from "../harness.esm.js";
 
 Deno.test("@reactive Interface", async (t) => {

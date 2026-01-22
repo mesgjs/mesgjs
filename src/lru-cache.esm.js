@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { isIndex, NANOS } from 'nanos/nanos.esm.js';
+import { isIndex, NANOS } from '@nanos';
 
 export class LRUCache extends NANOS {
 	#limit;

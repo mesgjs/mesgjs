@@ -5,7 +5,7 @@
  */
 
 import { getInterface, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
-import { isIndex, NANOS } from './vendor.esm.js';
+import { isIndex, NANOS } from '@nanos';
 import { unifiedList } from './unified-list.esm.js';
 
 function common (d, keys) {

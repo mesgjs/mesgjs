@@ -18,7 +18,7 @@ mind, source syntax begins with symbol `<SOURCE>`.
 <literal>    = number | <qtext> | <word> | <list> | <block>
 <message>    = '(' <value> <listItem>* ')'
 <name>       = <chain> | <qtext> | <word> | number
-<namespace>  = '!' | '!?' | '#' | '#?' | '%' | '%?' | '%*' | '%*?' | '%/' | '%/?" // Storage-related opWords
+<namespace>  = '!' | '!?' | '#' | '#?' | '%' | '%?' | '%%' | '%%?' | '%*' | '%*?' | '%/' | '%/?' // Storage-related opWords
 <namedValue> = <name> '=' <value>
 <shebang>    = '#!' singleLine // For *NIX executable scripts
 <statement>  = <jsEmbed> | <value> | <debug>

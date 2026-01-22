@@ -100,7 +100,19 @@ It should also be noted that "`=`" does not represent direct assignment in Mesgj
 
 A list is allocated to store an object's persistent properties the first time a persistent property is accessed. This is the Mesgjs equivalent of object properties in JavaScript, except that properties have their own "namespace" (they are not shared with handlers), and properties are always only visible to an object's dispatched message handlers unless shared by them in a message.
 
+### Protected (Shared) Properties
+
 Properties can be set or retrieved by sending `@list`\-interface messages to the "`%`" list object. The `%key` or `%?key` syntax may be used as shortcuts to retrieve required or optional values instead of `%(at key)` or `%(at key else=@u)`, respectively. Attempting to access a non-existent property results in a runtime error unless an `else=` value has been supplied.
+
+These properties are "protected" in the object-oriented sense: they are shared across all interfaces in an object's interface chain. When a handler from a chained interface accesses `%`, it sees the same storage as handlers from other interfaces in the chain.
+
+### Exclusive (Private) Properties
+
+Exclusive properties can be set or retrieved by sending `@list`\-interface messages to the "`%%`" list object. The `%%key` or `%%?key` syntax may be used as shortcuts to retrieve required or optional values instead of `%%(at key)` or `%%(at key else=@u)`, respectively.
+
+These properties are "private" in the object-oriented sense: they are exclusive to each interface type. When a handler from one interface accesses `%%`, it sees different storage than handlers from other interfaces in the chain, even for the same object instance. This allows each interface to maintain its own private state without interference from chained interfaces.
+
+**Mnemonic:** There's one `%` per object, but there can be more than one `%%` per object (one for each interface in the chain).
 
 ## Transient/Dispatch (Scratch) Storage
 

@@ -6,7 +6,7 @@
 
 import { getInterface, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 
 function opInit (d) {
 	const { octx, mp } = d, map = mp.at(0);

@@ -8,7 +8,7 @@
  * Defining interfaces and dispatching handlers in response to messages
  */
 import { calcDigest, getIntegritySHA512 } from './calc-digest.esm.js';
-import { NANOS, isIndex, parseQJSON, parseSLID } from './vendor.esm.js';
+import { NANOS, isIndex, parseQJSON, parseSLID } from '@nanos';
 import { SieveCache } from './sieve-cache.esm.js';
 import { unifiedList } from './unified-list.esm.js';
 import './shim.esm.js';
@@ -160,6 +160,7 @@ export const {
 	const featurePromises = new Map(), allFeatures = new NANOS();
 	const modMeta = new NANOS(), modMap = new Map(), modLoaded = new Set();
 	const modMidToName = new Map();
+	const exclusive = new Map(); // Exclusive (private persistent) storage by interface and object
 
 	// Add features from a string / array / list
 	function addFeatures (featureList, modPath, modInfo) {
@@ -262,11 +263,30 @@ export const {
 		// Return code bound to this dispatch
 		b (tpl) { return bindCode(tpl, this); },
 		get js () { return this.octx.js; },
-		// JIT persistent storage NANOS
+		// JIT persistent storage NANOS ("protected" - shared across interfaces)
 		get p () { return this.octx.ps ??= new NANOS(); },
 		get msjsType () { return '@dispatch'; },
 		// JIT transient (scratch) storage NANOS
 		get t () { return this._ts ??= new NANOS(); },
+		// JIT exclusive (private persistent) storage NANOS
+		get x () {
+			if (!this._xs) {
+				const ht = this.ht, rr = this.rr;
+				let htex = exclusive.get(ht);
+				if (!htex) {
+					// JIT create weak map for interface (handler type)
+					htex = new WeakMap();
+					exclusive.set(ht, htex);
+				}
+				this._xs = htex.get(rr);
+				if (!this._xs) {
+					// JIT create storage for this instance (receiver)
+					this._xs = new NANOS();
+					htex.set(rr, this._xs);
+				}
+			}
+			return this._xs;
+		}
 	}, Function.prototype);
 
 	// Dispatch a handler, passing it a fresh @dispatch object

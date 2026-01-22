@@ -32,7 +32,7 @@ if (flags.map) {
 
 if (flags.mapin) {
 	if (flags.rmmap) db.query('delete from path_map where input = ?', [flags.mapin]);
-	else if (flags.mapout) db.query('insert into path_map (input, output) values (?, ?)', [flags.mapin, flags.mapout]);
+	else if (flags.mapout) db.query('insert or replace into path_map (input, output) values (?, ?)', [flags.mapin, flags.mapout]);
 	else {
 		const [rows] = db.query('select output from path_map where input = ?', [flags.mapin]);
 		if (rows) console.log(flags.mapin + ':', rows[0]);

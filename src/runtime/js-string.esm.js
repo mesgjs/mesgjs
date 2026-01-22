@@ -5,7 +5,7 @@
  */
 
 import { getInstance, getInterface, setRO, typeAccepts } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 
 function opInit (d) {
 	setRO(d.octx, 'js', d.mp.at(0, '').toString());

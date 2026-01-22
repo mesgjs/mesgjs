@@ -34,7 +34,7 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 				dispatchTypes: true,
 				stack: 1, // Keep stack trace minimal for this test
 			});
-			
+
 			const result = instance("double", 5);
 
 			assertEquals(result, 10);

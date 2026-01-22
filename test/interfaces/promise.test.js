@@ -4,7 +4,7 @@ import {
 } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { listFromPairs as ls } from '../../src/runtime/runtime.esm.js';
 import '../../src/runtime/mesgjs.esm.js';
-import { NANOS } from '../../src/runtime/vendor.esm.js';
+import { NANOS } from '@nanos';
 import { unifiedList } from '../../src/runtime/unified-list.esm.js';
 
 const newPromise = (init) => {

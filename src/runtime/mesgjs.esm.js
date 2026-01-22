@@ -25,7 +25,7 @@ import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './js-undefined.esm.js';
 
 import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 import { isPlainObject } from './unified-list.esm.js';
 
 // The minimum "main program":

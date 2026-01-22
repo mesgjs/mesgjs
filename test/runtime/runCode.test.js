@@ -20,7 +20,7 @@ Deno.test("runIfCode", async (t) => {
 
 Deno.test("runWhileCode", async (t) => {
 	const finalValue = "done";
-	
+
 	const codeFn3 = (op) => finalValue;
 	codeFn3.msjsType = '@code';
 	const codeFn2 = (op) => codeFn3;

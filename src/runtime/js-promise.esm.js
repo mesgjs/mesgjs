@@ -15,7 +15,7 @@ In the reject dispatch, checks for no reject handler.
 */
 
 import { getInstance, getInterface, setRO } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 
 const identity = x => x, thrower = x => { throw x; };
 const callable = f => typeof f === 'function' && (!f.msjsType || f.msjsType === '@code' || f.msjsType === '@function');

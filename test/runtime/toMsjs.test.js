@@ -2,7 +2,7 @@ import {
 	assertEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "../../src/runtime/vendor.esm.js";
+import { NANOS } from "@nanos";
 
 Deno.test("$toMsjs Type Conversion", async (t) => {
 	const $toMsjs = globalThis.$toMsjs;

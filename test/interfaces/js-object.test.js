@@ -4,7 +4,7 @@ import {
 	assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "../../src/runtime/vendor.esm.js";
+import { NANOS } from "@nanos";
 
 Deno.test("@jsObject Interface", async (t) => {
 	const { $c } = globalThis;

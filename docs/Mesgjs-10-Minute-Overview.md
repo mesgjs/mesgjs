@@ -8,7 +8,8 @@
 - While blocks can contain statements in the sense of executional units and the language recognizes certain "operator-like" sequences for variable access, there are no statements in the sense of declarations or flow control, and no infix-style computational operators; those functions are performed using messages to objects.
 - Many language- and runtime-supplied assets have names or values beginning with `@` to distinguish them from user-supplied assets. The `@` is part of the name or value, *not part of the syntax*. For protection against future extensions, users are strongly encouraged to respect this convention and not use `@` as the first character, even under circumstances in which it is not enforced.
 - Namespaces are live, storage objects for variables. They help avoid naming conflicts, and eliminate the need for pre-declarations. There are namespaces for each of the following scopes/contexts:
-  - `%` ⇒ object persistent properties
+  - `%` ⇒ object persistent properties (protected/shared across interface chain)
+  - `%%` ⇒ object exclusive properties (private/per-interface)
   - `#` ⇒ scratch (local/temporary) variables
   - `!` ⇒ message parameters
   - `%/` or `@mps` ⇒ module private/persistent storage
@@ -23,7 +24,7 @@
 | List literal      | `[x y z key=value]`                                       | List of positional (aka indexed) + named values.                                                                                          |
 | Message           | `object(message parameters...)`                           | Send message to object with parameters.                                                                                                   |
 | Message chain     | `object(message1)(message2)`                              | Send messages to successive results (i.e., send `message2` to the result returned by sending `message1` to `object`).                     |
-| Namespace-at      | `%x #x !x // error if not set`<br>`%?x #?x !?x // @u if not set` | `%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
+| Namespace-at      | `%x %%x #x !x // error if not set`<br>`%?x %%?x #?x !?x // @u if not set` | `%(at x), %%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
 | Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | When `(run)`, evaluates the block.<br>"Non-returning" blocks (`}`) return `@u` (undefined).<br>"Returning" blocks (`!}`) return the last value. |
 | Comments          | `// single-line`<br>`/* multi-line */`                    | Human-readable descriptions of code.                                                                                                      |
 
@@ -33,7 +34,7 @@ RIC values are especially useful for circumstances where values may or may not b
 
 ## Some Additional Important Objects
 
-Beyond the namespace objects (`%`, `#`, `!`, `%*`/`@gss`, and `%/`/`@mps`) already mentioned:
+Beyond the namespace objects (`%`, `%%`, `#`, `!`, `%*`/`@gss`, and `%/`/`@mps`) already mentioned:
 
 | Object              | Purpose                                                                                                                                                                                                             |
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -136,7 +137,7 @@ Note that when a code block is executed as a message handler, it operates using 
 
 * Get familiar with the core object `@c` (interface `@core`) early - it's your toolbox.
 
-* `%x`, `#x`, and `!x` generate an error at runtime if "x" isn't set; `%?x`, `#?x`, and `!?x` use `else=@u` internally to return `@u` (undefined) if "x" isn't set.
+* `%x`, `%%x`, `#x`, and `!x` generate an error at runtime if "x" isn't set; `%?x`, `%%?x`, `#?x`, and `!?x` use `else=@u` internally to return `@u` (undefined) if "x" isn't set.
 
 * To help avoid accidental data leaks, namespace objects may be used
 as a base for messages (as in `%(at ...)`), but they are simply word literals

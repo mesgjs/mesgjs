@@ -4,7 +4,7 @@ import {
 	assertInstanceOf,
 	assertThrows,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
-import { NANOS } from "../../src/runtime/vendor.esm.js";
+import { NANOS } from "@nanos";
 import { listFromPairs, namespaceAt } from "../../src/runtime/runtime.esm.js";
 
 Deno.test("listFromPairs", () => {

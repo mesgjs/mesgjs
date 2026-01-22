@@ -5,7 +5,7 @@
  */
 
 import { getInterface, setRO } from './runtime.esm.js';
-import { NANOS } from './vendor.esm.js';
+import { NANOS } from '@nanos';
 
 function opInit (d) {
 	const { octx, mp } = d, set = mp.at(0);

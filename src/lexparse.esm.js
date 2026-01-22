@@ -4,7 +4,7 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { unescapeJSString } from './vendor.esm.js';
+import { unescapeJSString } from '@escape-js';
 
 // Mesgjs lexical token regexps
 // Group 1:	 ! # %
@@ -329,9 +329,10 @@ export function parse (tokens) {
 		const ns = tokens[read], space = ns?.text;
 		if (ns?.type !== 'wrd') return null;
 		switch (space) {
-		case '%': case '%?':			// Object persistent properties
+		case '%': case '%?':			// Object persistent properties ("protected")
 		case '#': case '#?':			// Transient (scratch) storage
 		case '!': case '!?':			// Message parameters
+		case '%%': case '%%?':			// Object exclusive persistent properties ("private")
 		case '%*': case '%*?':			// Global (@gss alias)
 		case '%/': case '%/?':			// Module (@mps alias)
 			break;
