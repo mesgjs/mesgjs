@@ -39,10 +39,10 @@ export async function setupRuntime ({ modules } = {}) {
 
 // Transpile a Mesgjs source file, returning the generated JavaScript code string.
 // (The config SLID is never returned.)
-export function transpileMesgjs (source, module = 'anonymous') {
+export function transpileMesgjs (source, module = 'anonymous', options = {}) {
 	const { tree, errors: parseErrs } = parse(lex(source).tokens);
 	if (parseErrs.length) throw new Error(`${module}: Mesgjs parsing failed`);
-	const { code, errors: transpErrs, fatal } = transpileTree(tree, { debugBlocks: true, enableJS: true });
+	const { code, errors: transpErrs, fatal } = transpileTree(tree, { debugBlocks: true, enableJS: true, ...options });
 	if (transpErrs.length) throw new Error(`${module}: Mesgjs transpilation failed`);
 	if (fatal) throw new Error(`${module}: Mesgjs transpilation fatal error`);
 	return code;
@@ -58,16 +58,16 @@ export async function loadMesgjsModuleJS (code) {
 }
 
 // Load a module supplied as Mesgjs source code.
-export async function loadMesgjsModuleSource (source, module = 'anonymous') {
-	const code = transpileMesgjs(source, module);
+export async function loadMesgjsModuleSource (source, module = 'anonymous', options = {}) {
+	const code = transpileMesgjs(source, module, options);
 	return loadMesgjsModuleJS(code);
 }
 
 // Load a Mesgjs module from an actual .msjs file.
 // (Any internal or external SLID configuration is ignored.)
-export async function loadMesgjsModulePath (path, module = path) {
+export async function loadMesgjsModulePath (path, module = path, options = {}) {
 	const source = await Deno.readTextFile(path);
-	return loadMesgjsModuleSource(source, module);
+	return loadMesgjsModuleSource(source, module, options);
 }
 
 let module;
