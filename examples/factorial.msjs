@@ -1,0 +1,21 @@
+%*(nset
+// 0! = 1; n! = n * (n-1)!
+factorialRecursive={
+	@c(if { !0(< 0) !} { @c(throw 'Factorial of negative numbers is undefined') }
+		{ !0(= 0) !} 1
+		else={ !0(* %*factorialRecursive(call !0(- 1))) !}
+	)
+!}(fn)
+// n! = 1 * 2 * ... * n
+factorialIterative={
+	@c(if { !0(< 0) !} { @c(throw 'Factorial of negative numbers is undefined') }
+		else={
+			#(nset result=1 loop=@c(get @loop))
+			#loop(run {
+				#(nset result=#result(* #loop(num1))) // num1 is 1-origin iteration
+			} times=!0);
+			#result
+		!}
+	)
+!}(fn)
+)

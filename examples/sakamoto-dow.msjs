@@ -1,0 +1,18 @@
+/*
+ * Tomohiko Sakamoto's day-of-the-week algorithm
+ * https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Sakamoto's_methods
+ * 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Firday, 6=Saturday
+ */
+%*(nset dayOfWeek={
+	#(nset y=!0 m=!1 d=!2 t=[0 3 2 5 0 3 5 1 4 6 2 4])
+	@c(if #m(< 3) { #(nset y=#y(- 1)) })
+	#y(+ #y(/ 4)(int) #y(/ 400)(int) #t(at #m(- 1)) #d)(- #y(/ 100)(int))(/+ 7)
+!}(fn)
+dayOfWeekName={
+	[Sun Mon Tues Wednes Thurs Fri Satur]
+	(at %*dayOfWeek(call !0 !1 !2))(join day)
+!}(fn)
+)
+// @c(log %*dayOfWeekName(call 2026 2 1)) // Sunday
+// @c(log %*dayOfWeekName(call 2024 2 29)) // Thursday
+// @c(log %*dayOfWeekName(call 2000 12 25)) // Monday
