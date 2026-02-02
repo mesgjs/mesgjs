@@ -1,10 +1,13 @@
-<!doctype html><html><head>
+<!doctype html>
+<!-- Try me at: https://www.mesgjs.org/repl.html -->
+<html><head>
 <script type='importmap'>
 {
 "imports": {
-"@escape-js": "../../escape-js//src/escape.esm.js",
-"@nanos": "../../nanos/src/nanos.esm.js",
-"@reactive": "../../reactive/src/reactive.esm.js"
+"@escape-js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@main/src/escape.esm.js",
+"@mesgjs/": "https://cdn.jsdelivr.net/gh/mesgjs/mesgjs@main/src/",
+"@nanos": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@main/src/nanos.esm.js",
+"@reactive": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@main/src/reactive.esm.js"
 }
 }
 </script>
@@ -31,8 +34,8 @@ generated output.</p>
 <h2>JavaScript</h2>
 <textarea id='codeArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <script type='module'>
-import './runtime/mesgjs.esm.js';
-import { transpile } from './transpile.esm.js';
+import '@mesgjs/runtime/mesgjs.esm.js';
+import { transpile } from '@mesgjs/transpile.esm.js';
 Object.assign(globalThis, { c: [], mid: $u, mp: $u }, $modScope());
 const { mp, sm } = d;
 Object.assign(globalThis, { mp, sm });

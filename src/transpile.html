@@ -1,8 +1,11 @@
-<!doctype html><html><head>
+<!doctype html>
+<!-- Try me at: https://www.mesgjs.org/transpile.html -->
+<html><head>
 <script type='importmap'>
 {
 "imports": {
-"@escape-js": "../../escape-js//src/escape.esm.js"
+"@escape-js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@main/src/escape.esm.js",
+"@mesgjs/": "https://cdn.jsdelivr.net/gh/mesgjs/mesgjs@main/src/"
 }
 }
 </script>
@@ -26,7 +29,7 @@ textarea { width: 95%; resize: vertical; min-height: 100px; }
 <input type='checkbox' id='includeSrc'> Include source</p>
 <textarea id='mapArea' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <script type='module'>
-import { transpile, mappingGenerator } from './transpile.esm.js';
+import { transpile, mappingGenerator } from '@mesgjs/transpile.esm.js';
 function transpileNow () {
     const tr = transpile(inputArea.value, { addWhiteSpace: addWhiteSpace.checked, enableJS: enableJS.checked, debugBlocks: debugBlocks.checked, location: { src: 'unnamed.msjs' } });
     const errs = [];
