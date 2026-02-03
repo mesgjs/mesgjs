@@ -125,6 +125,12 @@ function opSetOpts (d) {
 	return d.rr;
 }
 
+// (slice start? end? raw?=@f)
+function opSlice (d) {
+	const { mp } = d;
+	return d.js.slice(mp.at(0), mp.at(1, d.js.next, { raw: d.mp.get('raw') }));
+}
+
 export function install (name) {
 	getInterface(name).set({
 		lock: true, pristine: true,
@@ -183,6 +189,7 @@ export function install (name) {
 			setter: opSetter,
 			shift: (d) => d.js.shift(),
 			size: (d) => d.js.size,
+			slice: opSlice,
 			toJSON: (d) => d.js.toJSON(),
 			toReversed: (d) => d.js.toReversed(),
 			toSLID: (d) => d.js.toSLID(d.mp?.storage || {}),

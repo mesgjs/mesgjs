@@ -146,6 +146,16 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Synopsis: Removes and returns the value at index 0.  
   * Returns `@u` if `(next)` is 0 or there is no value at that index.  
   * If `(next)` is not zero, it is reduced by one and remaining indexes are renumbered (in their current key position) by one (index 1 becomes the new 0, 2 becomes the new 1, etc.).  
+* `(slice start end raw?=@f)`
+  * Synopsis: Returns a shallow copy of a portion of the list as a new `NANOS` instance.  
+  * The slice includes elements from `start` (inclusive) to `end` (exclusive).  
+  * If `start` is omitted or `@u`, it defaults to 0.  
+  * If `end` is omitted or `@u`, it defaults to `(next)` (the list length).  
+  * Negative indices count backward from the end of the list (e.g., -1 refers to the last element).  
+  * If the `raw` option is included and is `@t`, raw (potentially reactive) values will be transferred to the slice
+  * The returned slice preserves sparseness (gaps in index sequences are maintained).  
+  * The original list is not modified.  
+  * JS analogy: `Array.prototype.slice()`  
 * `(size)`
   * Synopsis: Returns the size of the list (total number of actual index and named keys).  
   * Empty/skipped (sparse) indexes do not contribute to size (but note that empty and `@u` (undefined) are not the same).  

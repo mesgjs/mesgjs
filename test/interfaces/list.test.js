@@ -98,4 +98,70 @@ Deno.test("@list Interface", async (t) => {
 		assertEquals(list("at", ls([,0])), "b");
 		assertEquals(list("size"), 2);
 	});
+
+	await t.step("(slice) should return a shallow copy of a portion", () => {
+		const list = newList(ls([,"a",,"b",,"c",,"d",,"e"]));
+		const sliced = list("slice", ls([,1,,4]));
+		assert(sliced instanceof NANOS, "Should return a NANOS instance");
+		assertEquals(sliced.at(0), "b");
+		assertEquals(sliced.at(1), "c");
+		assertEquals(sliced.at(2), "d");
+		assertEquals(sliced.size, 3);
+	});
+
+	await t.step("(slice) with no arguments should copy entire list", () => {
+		const list = newList(ls([,"a",,"b",,"c"]));
+		const sliced = list("slice");
+		assertEquals(sliced.size, 3);
+		assertEquals(sliced.at(0), "a");
+		assertEquals(sliced.at(1), "b");
+		assertEquals(sliced.at(2), "c");
+	});
+
+	await t.step("(slice) with only start should slice to end", () => {
+		const list = newList(ls([,"a",,"b",,"c",,"d"]));
+		const sliced = list("slice", ls([,2]));
+		assertEquals(sliced.size, 2);
+		assertEquals(sliced.at(0), "c");
+		assertEquals(sliced.at(1), "d");
+	});
+
+	await t.step("(slice) with negative start should count from end", () => {
+		const list = newList(ls([,"a",,"b",,"c",,"d",,"e"]));
+		const sliced = list("slice", ls([,-2]));
+		assertEquals(sliced.size, 2);
+		assertEquals(sliced.at(0), "d");
+		assertEquals(sliced.at(1), "e");
+	});
+
+	await t.step("(slice) with negative end should count from end", () => {
+		const list = newList(ls([,"a",,"b",,"c",,"d",,"e"]));
+		const sliced = list("slice", ls([,1,,-1]));
+		assertEquals(sliced.size, 3);
+		assertEquals(sliced.at(0), "b");
+		assertEquals(sliced.at(1), "c");
+		assertEquals(sliced.at(2), "d");
+	});
+
+	await t.step("(slice) should preserve sparseness", () => {
+		const list = newList();
+		list("set", ls([,0, "to", "a"]));
+		list("set", ls([,2, "to", "c"]));
+		list("set", ls([,4, "to", "e"]));
+		const sliced = list("slice", ls([,0, 5]));
+		assertEquals(sliced.size, 3);
+		assertEquals(sliced.at(0), "a");
+		assertEquals(sliced.at(2), "c");
+		assertEquals(sliced.at(4), "e");
+		assert(!sliced.has(1), "Should not have index 1");
+		assert(!sliced.has(3), "Should not have index 3");
+	});
+
+	await t.step("(slice) should not modify original list", () => {
+		const list = newList(ls([,"a",,"b",,"c"]));
+		const sliced = list("slice", ls([,1, 2]));
+		sliced.set(0, "modified");
+		assertEquals(list("at", ls([,1])), "b", "Original should be unchanged");
+		assertEquals(sliced.at(0), "modified", "Slice should be modified");
+	});
 });
