@@ -89,8 +89,14 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * If `(next)` is not zero, it is reduced by one.  
 * `(push value...)`\
 `(|+ value...)`
-  * Synopsis: Adds the value(s) onto the end of the list.  
-  * Indexed items are added, preserving gaps, beginning at `(next)`.  
+  * Synopsis: Adds value(s) onto the end of the list.
+  * When pushing a list, the list itself is added as a single item.
+  * Indexed items are added, preserving gaps, beginning at `(next)`.
+* `(pushx value...)`\
+`(|* value...)`
+  * Synopsis: Adds value(s) onto the end of the list, expanding list, @map, and @set arguments to their elements.
+  * When pushing a list, its individual elements are added instead of the list itself.
+  * Useful for merging lists: `list1(pushx list2)` adds all elements from list2 to list1.
 * `(redact key...)`
   * Synopsis: Marks the key/value pairs for the specified keys (or the entire list) to be redacted.  
   * `(redact @t)` will blanket-redact the entire list (including new items).  
@@ -173,10 +179,34 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Redacted index value: /\*?\*/  
 * `(unshift value...)`\
 `(+| value...)`
-  * Synopsis: Inserts values, ***from last to first***, at the beginning of the list. Existing index items are renumbered to accommodate newly-inserted index items.  
+  * Synopsis: Inserts value(s), ***from last to first***, at the beginning of the list.
+  * When unshifting a list, the list itself is inserted as a single item.
+  * Existing index items are renumbered to accommodate newly-inserted index items.
   * (unshift value1 value2 value3) is equivalent to (unshift value3)(unshift value2)(unshift value1)
+* `(unshx value...)`\
+`(*| value...)`
+  * Synopsis: Inserts value(s), ***from last to first***, at the beginning of the list, expanding list, @map, and @set arguments to their elements.
+  * When unshifting a list, its individual elements are inserted instead of the list itself.
+  * Useful for prepending lists: `list1(unshx list2)` inserts all elements from list2 at the beginning of list1.
+  * Existing index items are renumbered to accommodate newly-inserted index items.
 * `(values)`
   * Synopsis: Returns a ***non-sparse*** list of ***indexed*** values.
+
+## Push/Unshift Technical Details
+
+The difference between `(push)`/`(unshift)` and `(pushx)`/`(unshx)` relates to how message parameters are processed:
+
+* **`(push)` and `(unshift)`**: Receive the message parameters as a NANOS object (d.mp), which is then expanded one level by the underlying NANOS.push()/unshift() methods. This means:
+  * `list(push a b c)` - The parameters a, b, c are in d.mp, which gets expanded, so a, b, c are added individually.
+  * `list(push anotherList)` - The parameter anotherList is in d.mp, which gets expanded one level, so anotherList itself is added as a single item.
+
+* **`(pushx)` and `(unshx)`**: Use the expand() helper to extract values from list, @map, and @set parameters before passing them to NANOS.push()/unshift(). This means:
+  * `list(pushx a b c)` - Same as push: a, b, c are added individually.
+  * `list(pushx anotherList)` - The expand() helper extracts the elements from anotherList, so those elements are added individually, not the list itself.
+  * `list(pushx aMap)` - The expand() helper extracts the values from the @map, adding them individually.
+  * `list(pushx aSet)` - The expand() helper extracts the values from the @set, adding them individually.
+
+This design allows you to choose whether you want to add a collection as a single item (`push`) or merge its contents (`pushx`).
 
 ## Reactive Interface Objects (RIOs)
 

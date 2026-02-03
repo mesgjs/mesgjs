@@ -7,6 +7,14 @@
 import { getInstance, getInterface, runIfCode, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
 
+function expand (mp) {
+	return mp.values().map((v) => {
+		if (typeof v !== 'function') return v;
+		const jsv = v.jsv;
+		return (jsv instanceof NANOS || jsv instanceof Map || jsv instanceof Set) ? jsv : v;
+	});
+}
+
 function opInit (d) {
 	const { octx, mp } = d, list = mp.at(0);
 	setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
@@ -141,9 +149,11 @@ export function install (name) {
 			'==': opNset,
 			'>': (d) => d.js.pop(),
 			'|+': (d) => d.js.push(d.mp),
+			'|*': (d) => d.js.push(...expand(d.mp)),
 			'=': opSet,
 			'<': (d) => d.js.shift(),
 			'+|': (d) => d.js.unshift(d.mp),
+			'*|': (d) => d.js.unshift(...expand(d.mp)),
 			at: opAt,
 			// autoPromote
 			clear: (d) => d.js.clear(),
@@ -178,7 +188,7 @@ export function install (name) {
 			pairs: (d) => new NANOS(d.js.pairs(d.mp.at(0))),
 			pop: (d) => d.js.pop(),
 			push: (d) => d.js.push(d.mp),
-			push1: (d) => d.js.push(d.mp.at(0)),
+			pushx: (d) => d.js.push(...expand(d.mp)),
 			redact: (d) => d.js.redact(...d.mp.indexValues()),
 			reverse: (d) => d.js.reverse(),
 			rio: opRIO,
@@ -195,6 +205,7 @@ export function install (name) {
 			toSLID: (d) => d.js.toSLID(d.mp?.storage || {}),
 			toString: (d) => d.js.toString(d.mp?.storage || {}),
 			unshift: (d) => d.js.unshift(d.mp),
+			unshx: (d) => d.js.unshift(...expand(d.mp)),
 			values: (d) => new NANOS([...d.js.values()]),
 		},
 		cacheHints: {

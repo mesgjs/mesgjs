@@ -21,12 +21,18 @@ This is the interface for Mesgjs objects that wrap JavaScript `Map` instances.
   * Synopsis: Returns a new `@list` object that contains an array of `[key, value]` for each element in the Map object, in insertion order.  
 * `(has key)`
   * Synopsis: Returns `@t` if an element with the specified key exists in the Map object; otherwise `@f`.
+* `(keyIter)`
+  * Synopsis: Returns a JavaScript iterator that yields the keys for each element in the Map object in insertion order (for use by @kvIter).
 * `(keys)`
   * Synopsis: Returns a new `@list` that contains the keys for each element in the Map object in insertion order.
+* `(nset key=value...)`
+  * Synopsis: Sets one or more key/value pairs in the Map object using named parameters. Returns the Map object.
 * `(set key to=value)`\
 `(= key value)`
-  * Synopsis: Sets the `value` for the `key` in the Map object.
-* `(values)`
-  * Synopsis: Returns a new `@list` that contains the values for each element in the Map object in insertion order.
+  * Synopsis: Sets the `value` for the `key` in the Map object. Returns the Map object.
 * `(size)`
   * Synopsis: Returns the number of key/value pairs in the Map.
+* `(toList)`
+  * Synopsis: Returns a new `@list` object (NANOS instance) wrapping the Map.
+* `(values)`
+  * Synopsis: Returns a new `@list` that contains the values for each element in the Map object in insertion order.

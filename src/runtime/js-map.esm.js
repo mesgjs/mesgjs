@@ -22,6 +22,17 @@ function opAt (d) {
 	}});
 }
 
+// (nset key=value...)
+function opNset (d) {
+	const { js, mp } = d;
+	for (const [key, value] of mp.namedEntries()) {
+		js.set(key, value);
+	}
+	return js;
+}
+
+// (set key value)
+// (set key to=value)
 function opSet (d) {
 	d.js.set(d.mp.at(0), d.mp.at('to', d.mp.at(1)));
 	return d.js;
@@ -44,6 +55,7 @@ export function install (name) {
 			has: d => d.js.has(d.mp.at(0)),
 			keyIter: d => d.js.keys(),
 			keys: d => [...d.js.keys()],
+			nset: opNset,
 			set: opSet,
 			size: d => d.js.size,
 			toList: d => new NANOS(d.js),

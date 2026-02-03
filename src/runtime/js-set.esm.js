@@ -8,9 +8,20 @@ import { getInterface, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
 function opInit (d) {
-	const { octx, mp } = d, set = mp.at(0);
-	setRO(octx, 'js', (set instanceof Set) ? set : new Set());
+	const { octx, mp } = d, set = mp.at(0), from = mp.at('from');
+	const initial = (typeof from?.values === 'function') ? [...from.values()] : [];
+	setRO(octx, 'js', (set instanceof Set) ? set : new Set(initial));
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
+}
+
+// (add value...)
+// Add (positional) values to the set
+function opAdd (d) {
+	const { js, mp } = d;
+	for (const v of mp.values()) {
+		js.add(v);
+	}
+	return js;
 }
 
 // List of (keys or) values
@@ -21,24 +32,24 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
-			'@jsv': d => d.js,
-			'+': d => (d.js.add(d.mp.at(0)), d.js),
-			'-': d => d.js.delete(d.mp.at(0)),
-			add: d => (d.js.add(d.mp.at(0)), d.js),
-			clear: d => (d.js.clear(), d.js),
-			delete: d => d.js.delete(d.mp.at(0)),
+			'@jsv': (d) => d.js,
+			'+': opAdd,
+			'-': (d) => d.js.delete(d.mp.at(0)),
+			add: opAdd,
+			clear: (d) => (d.js.clear(), d.js),
+			delete: (d) => d.js.delete(d.mp.at(0)),
 			// difference
-			entries: d => [...d.js.entries()],
+			entries: (d) => [...d.js.entries()],
 			// forEach - use @kvIter
-			has: d => d.js.has(d.mp.at(0)),
+			has: (d) => d.js.has(d.mp.at(0)),
 			// intersection
 			// isDisjointFrom
 			// isSubsetOf
 			// isSupersetOf
-			keyIter: d => d.js.keys(),
+			keyIter: (d) => d.js.keys(),
 			keys: kv,
-			size: d => d.js.size,
-			toList: d => new NANOS(d.js),
+			size: (d) => d.js.size,
+			toList: (d) => new NANOS(d.js),
 			// union
 			values: kv,
 		},
