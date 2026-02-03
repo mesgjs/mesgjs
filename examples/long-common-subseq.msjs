@@ -1,0 +1,20 @@
+// Length of longest common sub-sequence
+%*(nset
+llcs={
+	@c(if @c(or !0(= '') !1(= '')) { @d(return 0) })
+	#(nset a=!0(split) b=!1(split) dp=[])
+	#(nset ia=@c(get @kvIter) ib=@c(get @kvIter))
+	#ia(for #a {
+		#ib(for #b {
+			@c(if #ia(value)(= #ib(value)) {
+				#dp(set #ia(key) #ib(key) to=1(+ #dp(at #ia(key)(- 1) #ib(key)(- 1) else=0)))
+			} else={
+				#dp(set #ia(key) #ib(key) to=#dp(at #ia(key)(- 1) #ib(key) else=0)(max #dp(at #ia(key) #ib(key)(- 1) else=0)))
+			})
+		})
+	})
+	#dp(at -1 -1)
+!}(fn)
+)
+// @c(log %*llcs(call empty extra)) // 2
+// @c(lot %*llcs(call their there)) // 4

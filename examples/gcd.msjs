@@ -1,0 +1,7 @@
+// Greatest common divisor
+%*(nset gcd={
+	@c(if !1(= 0) !0 else={ %*gcd(call !1 !0(/+ !1)) !})
+!}(fn)
+)
+// @c(log %*gcd(call 24 27)) // 3
+// @c(log %*gcd(call 45 60)) // 15
