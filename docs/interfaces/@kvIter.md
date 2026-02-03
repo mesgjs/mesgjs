@@ -14,7 +14,7 @@
 * `(isIndex)`  
   * Synopsis: Returns `@t` for index (non-negative integer) keys and `@f` for other (named) keys.  
 * `(key)`  
-  * Synopsis: Returns the current key.  
+  * Synopsis: Returns the current key (numeric for index keys, string otherwise).
 * `(next result=value)`  
   * Synopsis: Starts the next iteration (next or previous key, depending on iteration direction).  
   * If the optional result parameter is present, its value becomes, or adds to (when collect is JS-true), the overall return value.   

@@ -28,14 +28,19 @@ function common (d, keys) {
 			for (const k of keys) {
 				js.capture = false;
 				++count;
-				[js.key, js.value] = [k, get(k)];
+				if (isIndex(k)) {
+					js.isIndex = true;
+					js.key = parseInt(k, 10);
+				} else {
+					js.isIndex = false;
+					js.key = k;
+				}
+				js.value = get(k);
 				if (split) {
-					if (isIndex(k)) {
-						js.isIndex = true;
+					if (js.isIndex) {
 						try { if (onIndex) save(await runIfCode(onIndex)); }
 						catch (e) { react(e); }
 					} else {
-						js.isIndex = false;
 						try { if (onNamed) save(await runIfCode(onNamed)); }
 						catch (e) { react(e); }
 					}
@@ -51,14 +56,19 @@ function common (d, keys) {
 		for (const k of keys) {
 			js.capture = false;
 			++count;
-			[ js.key, js.value ] = [ k, get(k) ];
+			if (isIndex(k)) {
+				js.isIndex = true;
+				js.key = parseInt(k, 10);
+			} else {
+				js.isIndex = false;
+				js.key = k;
+			}
+			js.value = get(k);
 			if (split) {
-				if (isIndex(k)) {
-					js.isIndex = true;
+				if (js.isIndex) {
 					try { if (onIndex) save(runIfCode(onIndex)); }
 					catch (e) { react(e); }
 				} else {
-					js.isIndex = false;
 					try { if (onNamed) save(runIfCode(onNamed)); }
 					catch (e) { react(e); }
 				}

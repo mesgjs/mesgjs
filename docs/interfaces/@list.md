@@ -117,7 +117,7 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * To prevent accidental data leaks, namespace (storage object) references
   only have special meaning as message bases (e.g. as in `%(self)`) or with
   specific keys (e.g. `%x`). Otherwise, they are just word literals, e.g.
-  `[ % ]` is equivalend to `[ '%' ]`.
+  `[ % ]` is equivalent to `[ '%' ]`.
   * If you want to deliberately expose an entire namespace, such as to preserve broad namespace access when creating a `(fn)`, use the `(self)` message.\
   `[ %(self) #(self) !(self) ]`
 * `(set key... path=[key...] to=value insert=bool first=value next=value)`\
