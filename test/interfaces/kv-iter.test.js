@@ -38,7 +38,7 @@ Deno.test("@kvIter Interface", async (t) => {
 
 		iter('rev', ls([, source, , bothBlock]));
 
-		assertEquals(results, ["name", "1", "0"]);
+		assertEquals(results, ["name", 1, 0]);
 	});
 
 	await t.step("should handle collection of results", () => {

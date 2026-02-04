@@ -12,8 +12,8 @@
   - `%%` ⇒ object exclusive properties (private/per-interface)
   - `#` ⇒ scratch (local/temporary) variables
   - `!` ⇒ message parameters
-  - `%/` or `@mps` ⇒ module private/persistent storage
-  - `%*` or `@gss` ⇒ global shared storage
+  - `%/` (recommended) or `@mps` (deprecated) ⇒ module private/persistent storage
+  - `%*` (recommended) or `@gss` (deprecated) ⇒ global shared storage
 
 ## Basic Syntax
 
@@ -25,10 +25,10 @@
 | Message           | `object(message parameters...)`                           | Send message to object with parameters.                                                                                                   |
 | Message chain     | `object(message1)(message2)`                              | Send messages to successive results (i.e., send `message2` to the result returned by sending `message1` to `object`).                     |
 | Namespace-at      | `%x %%x #x !x // error if not set`<br>`%?x %%?x #?x !?x // @u if not set` | `%(at x), %%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
-| Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | When `(run)`, evaluates the block.<br>"Non-returning" blocks (`}`) return `@u` (undefined).<br>"Returning" blocks (`!}`) return the last value. |
+| Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | Code-block literals that create `@code` object instances when referenced.<br>"Non-returning" blocks (`}`) return `@u` (undefined) when `(run)`.<br>"Returning" blocks (`!}`) return the last value when `(run)`. |
 | Comments          | `// single-line`<br>`/* multi-line */`                    | Human-readable descriptions of code.                                                                                                      |
 
-Many messages allow some or all of their parameters to be code blocks. These are known as RIC (run-if-code) values. In such cases, code blocks are sent the `(run)` message, and the resulting value is used in place of the original block value.
+Many messages allow some or all of their parameters to be code blocks. These are known as RIC (run-if-code) values. In such cases, `@code` object instances are sent the `(run)` message, and the resulting value is used in place of the original block value.
 
 RIC values are especially useful for circumstances where values may or may not be needed (such as test/result options in `@c(if)` or `@c(case)`), calculations might potentially be computationally expensive, or in loops or other iterators where different values need to be tested and/or collected in different iterations.
 
@@ -148,10 +148,11 @@ an entire namespace (e.g., `%(self)`). For consistency, this even applies to
 benefit.
 
 * Note that "`!}`" is a single, indivisible, "lexical token", not two. It
-ends a code block, and is meant as a visual alert/reminder that the final
-value will be returned. It is unrelated to the `!` (message parameter)
-namespace. Further note that "`! }`" (as two separate tokens) is a non-returning
-block with a final value consisting of `!`, an operator-style word literal.
+ends a code-block literal, and is meant as a visual alert/reminder that the
+resulting `@code` instance will return the final value when `(run)`. It is
+unrelated to the `!` (message parameter) namespace. Further note that "`! }`"
+(as two separate tokens) is a non-returning block with a final value consisting
+of `!`, an operator-style word literal.
 
 * Namespaces help avoid naming collisions, but you do have to be mindful
 when reading or writing code so as not to mix them up (or potentially

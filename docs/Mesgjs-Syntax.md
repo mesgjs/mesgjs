@@ -36,3 +36,4 @@ mind, source syntax begins with symbol `<SOURCE>`.
 - Namespace-retrieval `opWords` all also correspond to live, messageable objects (see `<varOptName>` (no-`<varName>` case) and `<chain>`).
 - "Dangling" namespace-retrieval `opWords` (not followed by a message (`<chain>`) or an operand (`<varReqName>`)) have no special meaning and just evaluate to their literal textual value, e.g. the list `[#]` is equivalent to `['#']`.
 - The `=` operator is strictly for key/value *association* (*assignments* happen as a *side effect* of *executing messages* like `(nset)` or `(set)`; *there are no assignment operators in Mesgjs*).
+- Code-block literals (`<block>`) are templates that create `@code` object instances when referenced. The `!}` token is atomic and indicates a "returning" block (returns the last expression value when `(run)`), while `}` alone indicates a "non-returning" block (returns `@u` when `(run)`).

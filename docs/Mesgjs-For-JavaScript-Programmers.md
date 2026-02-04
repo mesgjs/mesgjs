@@ -112,20 +112,20 @@ to figuring out what message to send to which object.
 
 ## Mesgjs
 
-- Mesgjs' code blocks appear between `{` and `}` or `{` and `!}`.
-  They are object literals (`@code` interface), and can be stored, retrieved, passed,
-  messaged, etc.
-- The `{ }` version returns `@u` (undefined) unless a specific return value
-  is returned via the code in the block.
-- The `{ !}` version returns the value of the last expression in the block,
-  unless a specific return value is returned via the code in the block first.
-- The `@code` interface for code blocks is *private*; you cannot generate them with `@c(get @code)`.
-- Code blocks normally run in the context in which they were defined
+- Mesgjs' code-block literals appear between `{` and `}` or `{` and `!}`.
+  These literals create `@code` object instances when referenced, and those instances
+  can be stored, retrieved, passed, messaged, etc.
+- The `{ }` version creates a `@code` instance that returns `@u` (undefined) when `(run)`,
+  unless a specific return value is returned via the code in the block.
+- The `{ !}` version creates a `@code` instance that returns the value of the last
+  expression when `(run)`, unless a specific return value is returned via the code first.
+- The `@code` interface is *private*; you cannot generate `@code` instances with `@c(get @code)`.
+- `@code` instances normally run in the context in which they were defined
   (`%`, `#`, and `!` are based on a `(load)` message to the enclosing
   module object).
-- Code blocks registered as message handlers as part of an object interface
+- `@code` instances registered as message handlers as part of an object interface
   definition run in the context of the receiving object and message dispatch
-  (`%` contains the object's persistent properties, a new `#` is created for
+  (`%` and `%%` contain the object's persistent properties (per-object, and per-object-and-interface, respectively), a new `#` is created for
   every message (re)dispatch, and `!` contains the current message parameters).
 - Mesgjs has a single messaging syntax (a (required) message operation and
   optional parameters, bracketed by `(` and `)`):\
@@ -143,10 +143,10 @@ to figuring out what message to send to which object.
   method invocation in JavaScript. Messages _between Mesgjs objects_, however,
   are _attributed_ - the receiving object knows with extreme confidence which
   object sent the message, and its assigned type.
-- Code blocks are executed by sending them a `(run)` message. The message does not use any parameters.
-- Functions are created *exclusively* by sending a `(fn)` message to a code block (`@code` object instance) or function (existing `@function` instance). The `@function` interface is *private* and cannot be instantiated via `@c(get)`.
-- `@function` objects run in a new context, disconnected from the original code block's context.
-- The original code block is unaffected. Any message parameters to the `(fn)` message become the new function object's persistent state (`%`). Persistent state will simply start out empty if there are no message parameters to `(fn)`.
+- `@code` object instances are executed by sending them a `(run)` message. The message does not use any parameters.
+- Functions (`@function` instances) are created *exclusively* by sending a `(fn)` message to a `@code` object instance or to an existing `@function` instance. The `@function` interface is *private* and cannot be instantiated via `@c(get)`.
+- `@function` objects run in a new context, disconnected from the original `@code` instance's context.
+- The original `@code` instance is unaffected. Any message parameters to the `(fn)` message become the new function object's persistent state (`%`). Persistent state will simply start out empty if there are no message parameters to `(fn)`.
 - Functions are invoked by sending them a `(call)` message.
 - To review, when a function is sent a `(call)` message, `%` contains the message
   parameters from the prior `(fn)` message, `#` contains scratch storage, and `!`
@@ -191,11 +191,12 @@ to figuring out what message to send to which object.
 
 ## Mesgjs
 
-- As described earlier, "non-returning" blocks (`{ }`) return `@u`
-  (undefined) by default and "returning" blocks (`{ !}`) return the value
-  of the last expression by default.
+- As described earlier, "non-returning" code-block literals (`{ }`) create `@code`
+  instances that return `@u` (undefined) by default when `(run)`, and "returning"
+  code-block literals (`{ !}`) create `@code` instances that return the value
+  of the last expression by default when `(run)`.
 - Mesgjs does not have a return statement, but you can send a `(return)` message
-  to the dispatch object, `@d`, at any point with similar effect (the
+  to the dispatch object, `@d`, (except in module loading context) with similar effect (the
   dispatch terminates and the value is returned):\
   `@d(return value)`
 
@@ -219,7 +220,7 @@ to figuring out what message to send to which object.
 
 ## Mesgjs
 
-- In Mesgjs, when a function object is created from a code object, the new
+- In Mesgjs, when a `@function` object is created from a `@code` object, the new
   function object doesn't automatically inherit anything from the generating
   scope. Anything the function will need must be passed as a parameter in the
   `(fn)` message. You can pass entire storage objects, or accessors (getters
@@ -232,7 +233,7 @@ to figuring out what message to send to which object.
   // %getZ(run) returns the current #z value
   // %setZ(call value) sets a new #z value
   ```
-- Any returning block (`{ !}`) can be used to provide custom "getter" behavior.
+- Any returning code-block literal (`{ !}`) can be used to provide custom "getter" behavior.
 - You can "curry" functions in either of two ways:
   - You can pass initial parameters as part of the `(fn)` message (but the initial
     parameters will be accessed via `%` storage instead of `!` storage, and the

@@ -17,10 +17,10 @@ const gt = globalThis;
 
 // Flow exception, e.g. @d(return value) throws MsjsFlow('return', value)
 export class MsjsFlow extends Error {
-	get name () { return 'MsjsFlow'; }
+	get name () { return this.constructor.name; }
 }
 export class MsjsFlowError extends RangeError {
-	get name () { return 'MsjsFlowError'; }
+	get name () { return this.constructor.name; }
 };
 
 export async function calcIntegrity (src) {
@@ -324,10 +324,10 @@ export const {
 			return result;
 		}
 		catch (e) {
-			if (disp._capture && e instanceof MsjsFlow) {
-				disp._capture = false;
-				if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ e.info ])}`);
-				return e.info;
+			if (bfnThis.capture && e instanceof MsjsFlow) {
+				const result = bfnThis.result;
+				if (thisDisp !== false) console.log(`[Mesgjs return ${thisDisp}]${fmtDispParams(dbgCfg.dispatchTypes, [ result ])}`);
+				return result
 			}
 			if (thisDisp !== false) console.warn(`[Mesgjs exception ${thisDisp}]`, e);
 			if (trace && !(e instanceof MsjsFlow)) appendStackTrace(e);
@@ -616,18 +616,25 @@ export const {
 		const m = function msjsR$Module () {}, d = function msjsR$Dispatch (op) {
 			({ op } = canMesgProps({ rr: d, op }));
 			switch (op) {
-			case 'op': return 'load';
+			case 'dop': case 'mop': return 'load';
 			case 'rr': case 'sr': return m;
 			case 'rt': case 'st': return '@module';
+			case 'redis':
+			case 'return':
+				throw new Error(`Cannot @d(${op}) in module scope`);
 			// Quietly ignore other messages
 			}
 		};
-		let per, tra;	// JIT persistent, transient storage
-		const b = (tpl) => bindCode(tpl, d), sm = msjsS$SendMessage.bind({ sr: m, st: '@module' }), getPer = () => (per ??= new NANOS()), getTra = () => (tra ??= new NANOS());
+		let per, pri, tra;	// JIT persistent, private, and transient storage
+		const b = (tpl) => bindCode(tpl, d), sm = msjsS$SendMessage.bind({ sr: m, st: '@module' });
+		const getPer = () => (per ??= new NANOS()),
+			getPri = () => (pri ??= new NANOS()),
+			getTra = () => (tra ??= new NANOS());
 		setRO(m, 'msjsType', '@module');
 		Object.defineProperties(m, {
 			p: { get: getPer, enumerable: true },
 			t: { get: getTra, enumerable: true },
+			x: { get: getPri, enumerable: true },
 		});
 		setRO(d, {
 			sr: m, st: '@module', rr: m, rt: '@module', msjsType: '@dispatch',
@@ -636,6 +643,7 @@ export const {
 		Object.defineProperties(d, {
 			p: { get: getPer, enumerable: true },
 			t: { get: getTra, enumerable: true },
+			x: { get: getPri, enumerable: true },
 		});
 		return { d, m,
 			ls: listFromPairs,
@@ -774,8 +782,9 @@ export const {
 			return dispatchHandler(mctx, { octx, op: rdop, isInit, handler: redis, sm }, rdmp);
 		}
 		case 'return':
-			this.bfn._capture = true;
-			throw new MsjsFlow('return', mp.at(0));
+			this.capture = true;
+			this.result = mp.at(0);
+			throw new MsjsFlow('return');
 			// Not reached
 		case 'rr': return mctx.rr;		// Receiver
 		case 'rt': return mctx.rt;		// Receiver type

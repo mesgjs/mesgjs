@@ -60,9 +60,19 @@ List literals create objects that are manipulated using `@list` interface operat
 
 * `{ zero-or-more statements }` \- a "non-(value-)returning" block (the implied return value is undefined)
 * `{ zero-or-more statements !}` \- a "(value-)returning" block (the implied return value is the last statement value, or else undefined)
+* Code-block literals are templates containing Mesgjs statements, and are used to create instances of `@code` objects upon first reference (passing in a message)
 * Mesgjs statements are either literals, variables, message chains, JavaScript embeds, or debugging statements  
-* Code blocks normally run in the context of the message dispatch in which they were created. They are run by sending them the `(run)` message, which is often done for you when the blocks are passed as parameters to other objects (for example, as the body of a loop). Code blocks may run in the context of a message dispatch to another object when registered as a handler for a particular interface and operation.
-* You can also generate function objects from code blocks (or other function objects) by sending them the `(fn)` message. The message parameters, if any, to the `(fn)` message become the persistent object state for the newly-generated function object. Send the `(call)` message to call a function object. You may optionally include message parameters to `(call)` as well.
+* `@code` object instances are unique in that they save the parent dispatch context (`@d`) when created, and that saved dispatch context is used when you `(run)` them (even from within a different context)
+* A `@code` object is always created in the context of some other object responding to a message:
+  * A module loading (represented as a `@module(load)` message from the module to itself)
+    * In this case, storage symbols `%`, `%%`, and `#` refer to module-specific storage
+    * `@d(redis)` (redispatch) and `@d(return)` are not supported for modules and generate runtime errors
+  * An interface-handler responding to a message
+    * Storage is specific to the responding object (`%`), object + currently responding interface (`%%`), and dispatch (`#`, `!`)
+    * `@d(return)` returns from the current (re)dispatch to the previous dispatch or original sender
+  * Function (`@function`) context:
+    * Function objects are just a special case of an interface-handler responding to a message (every instance has the same interface, but a unique, user-supplied `(call)` handler)
+* You can generate function objects from code blocks (or other function objects) by sending them the `(fn)` message. The message parameters, if any, to the `(fn)` message become the persistent object state (`%`) for the newly-generated function object. Send the `(call)` message to call a function object. You may optionally include message parameters to `(call)` as well (accessible via `!`).
 * Blurring the line a bit between code blocks and comments:  
   * JavaScript embeds begin with "`@js{`" and end with "`@}`". **IMPORTANT:** The closing delimiter is `@}` and not `}`. Everything in between must be valid JavaScript. If JavaScript embedding is enabled at transpilation time, the JavaScript content will be included in the generated code. Otherwise, the JavaScript embed is considered an error.
     * A JavaScript embed before the first Mesgjs non-comment line (after any "shebang" line and/or SLID configuration block, which are not technically counted as part of the Mesgjs code) will be outside of the standard Mesgjs module code (at JavaScript's "top level").
