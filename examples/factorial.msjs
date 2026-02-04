@@ -11,9 +11,9 @@ factorialIterative={
 	@c(if { !0(< 0) !} { @c(throw 'Factorial of negative numbers is undefined') }
 		else={
 			#(nset result=1 loop=@c(get @loop))
-			#loop(run {
+			#loop(run times=!0 {
 				#(nset result=#result(* #loop(num1))) // num1 is 1-origin iteration
-			} times=!0);
+			});
 			#result
 		!}
 	)

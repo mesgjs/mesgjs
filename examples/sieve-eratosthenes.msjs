@@ -1,0 +1,23 @@
+// Sieve of Eratosthenes (prime-number finder)
+%*(nset
+sieve={
+	#(nset primes=[] n=!0 fsr=!0(sqrt)(floor) outer=@c(get @loop) inner=@c(get @loop))
+	// Create indexes 2..n
+	#outer(run times=#n {
+		@c(if #outer(num1)(> 1) { #primes(set #outer(num1) to=@t) })
+	})
+	// Remove all products of 2..sqrt(n)
+	#outer(run times=#fsr {
+		@c(if #outer(num1)(= 1) { #outer(next) }) // Skip 1
+		// Remove 2x, 3x, ...
+		#(nset mul=2(* #outer(num1)))
+		#inner(while pre={ #mul(<= #n) !} {
+			#primes(delete #mul)
+			#(nset mul=#mul(add #outer(num1)))
+		})
+	})
+	#primes(keys) // The remaining keys are prime
+!}(fn)
+)
+// @c(log %*sieve(call 20)(toString))
+// [('2' '3' '5' '7' '11' '13' '17' '19')]

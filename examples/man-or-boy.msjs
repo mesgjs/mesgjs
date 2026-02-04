@@ -13,7 +13,6 @@
 !}(fn))
 #(nset kLoop=@c(get @loop))
 // NB: k >= 10 will likely stack-overflow default V8 JS engine settings
-#kLoop(run {
+#kLoop(run times=10 {
   @c(log #kLoop(num)(toString)(join :)
-  #A(call k=#kLoop(num) x1={1!}(fn) x2={-1!}(fn) x3={-1!}(fn) x4={1!}(fn) x5={0!}(fn))) }
-  times=10)
+  #A(call k=#kLoop(num) x1={1!}(fn) x2={-1!}(fn) x3={-1!}(fn) x4={1!}(fn) x5={0!}(fn))) })

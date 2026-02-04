@@ -18,7 +18,7 @@ fibonIterative={
 			 * so b=#a(+ #b) uses the value of #a before a=#b
 			 * (the value of #a does not change until #(nset) executes)!
 			 */
-			#loop(run { #(nset a=#b b=#a(+ #b)) } times=!0(- 1))
+			#loop(run times=!0(- 1) { #(nset a=#b b=#a(+ #b)) })
 			#b
 		!}
 	)
