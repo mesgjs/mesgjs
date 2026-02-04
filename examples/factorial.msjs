@@ -19,3 +19,5 @@ factorialIterative={
 	)
 !}(fn)
 )
+// @c(log %*factorialRecursive(call 3)) // 6
+// @c(log %*factorialIterative(call 4)) // 24

@@ -8,15 +8,18 @@ fibonRecursive={
 		else={ %*fibonRecursive(call !0(- 1))(+ %*fibonRecursive(call !0(- 2))) !}
 	)
 !}(fn)
+// 0; 1; 0 + 1 = 1; 1 + 1 = 2; 1 + 2 = 3; 2 + 3 = 5; ...
 fibonIterative={
 	@c(if { !0(< 0) !} { @c(throw 'Fibonacci of negative numbers is undefined') }
 		{ !0(= 0) !} 0
 		else={
 			#(nset a=0 b=1 loop=@c(get @loop))
 			/*
-			 * `=` is association, NOT assignment, in Mesgjs
-			 * so b=#a(+ #b) uses the value of #a before a=#b
-			 * (the value of #a does not change until #(nset) executes)!
+			 * NOTE: `=` in Mesgjs is association, NOT assignment
+			 * (Mesgjs does not have an assignment operator).
+			 * Assignment is a side effect of a message like (nset),
+			 * which does not run until after the current values of
+			 * #a and #b are used to compute its parameters.
 			 */
 			#loop(run times=!0(- 1) { #(nset a=#b b=#a(+ #b)) })
 			#b
