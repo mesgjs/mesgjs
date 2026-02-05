@@ -5,7 +5,7 @@
 	@init={ %(nset kelvin=!(at 0 else=0)) } // Object stores Kelvin temperature
 	getC={ %kelvin(- 273.15) !} // Get Celsius temperature
 	getF={ %kelvin(- 273.15)(* 9)(/ 5)(+ 32) !} // Get Fahrenheit temperature
-	getK={ %kelvin !}. // Get Kelvin temperature
+	getK={ %kelvin !} // Get Kelvin temperature
 	setC={ %(nset kelvin=!0(+ 273.15)) } // Set Celsius temperature
 	setF={ %(nset kelvin=!0(- 32)(* 5)(/ 9)(+ 273.15)) } // Set Fahrenheit temperature
 	setK={ %(nset kelvin=!0) } // Set Kelvin temperature
