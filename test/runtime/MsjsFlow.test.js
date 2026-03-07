@@ -8,7 +8,8 @@ import { MsjsFlow, MsjsFlowError } from "../../src/runtime/runtime.esm.js";
 Deno.test("MsjsFlow class", async (t) => {
 	await t.step("should be instantiable with a message", () => {
 		const flow = new MsjsFlow("test-message");
-		assertIsError(flow, Error, "test-message");
+		assert(flow instanceof MsjsFlow);
+		assertEquals(flow.message, 'test-message');
 		assertEquals(flow.name, "MsjsFlow");
 	});
 });

@@ -1,9 +1,18 @@
 import {
+	assert,
 	assertEquals,
-	assertThrows,
+	// assertThrows,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import { MsjsFlow, MsjsFlowError, throwFlow } from "../../src/runtime/runtime.esm.js";
 import { NANOS } from "@nanos";
+
+function assertThrows (fn, type, message) {
+	let exception;
+	try { fn(); }
+	catch (exc) { exception = exc; }
+	assert(exception instanceof type);
+	assert(exception?.message.includes(message));
+}
 
 Deno.test("throwFlow", async (t) => {
 

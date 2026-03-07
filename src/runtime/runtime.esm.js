@@ -15,9 +15,13 @@ import './shim.esm.js';
 
 const gt = globalThis;
 
-// Flow exception, e.g. @d(return value) throws MsjsFlow('return', value)
-export class MsjsFlow extends Error {
+// Flow exception, e.g. @d(return value) throws MsjsFlow('return')
+export class MsjsFlow {
+	constructor (message) {
+		this.message = message;
+	}
 	get name () { return this.constructor.name; }
+	toString () { return `${this.name}: ${this.message}`; }
 }
 export class MsjsFlowError extends RangeError {
 	get name () { return this.constructor.name; }

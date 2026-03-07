@@ -32,6 +32,22 @@ to figuring out what message to send to which object.
   "`this`" object, sharing a namespace with the object's private methods and
   prototyped properties and methods.\
   `this.x = 5;`
+- JavaScript also has `#` private fields (introduced in ES2022), which are private per-**class**. Each instance has its own value, but methods within the class can see any instance's value.\
+  ```javascript
+  class Base {
+    #count = 0; // Visible only to Base methods
+    increment () { this.#count++; }
+    // Can increment another Base instance
+    // or the Base-level #count of e.g. a Sub
+    incrementOther (other) { other.#count++; }
+  }
+  class Sub extends Base {
+    // Same name, different #count
+    // This one is visible only to Sub methods
+    #count = 0;
+    subIncrement () { this.#count++; }
+  }
+  ```
 - Variables are mutable, and are generally declared using "`let`" in modern
   JavaScript.
 - Constant values are declared using "`const`".\
@@ -65,6 +81,13 @@ to figuring out what message to send to which object.
   %(nset x=5) %(at x) // 5
   %x // shortcut for %(at x); also 5
   ```
+- **Important distinction from JavaScript `#` private fields:** Mesgjs `%` storage
+  is private per-**instance**, not per-class/interface. Each object instance has its own
+  completely separate `%` storage that is only accessible to that instance's
+  message handlers. Unlike JavaScript's `#` fields, a handler cannot access
+  another instance's `%` storage, even if both instances have the same type.
+  This provides stronger encapsulation than JavaScript's class-based privacy.
+- Mesgjs objects can provide JS-equivalent (per-interface) access via accessor messages that operate conditionally based on the sending object's type.
 - The storage object called "`#`" is for temporary "scratch" values that don't
   need to persist between messages. Each message dispatch (or redispatch) gets
   its own `#`. This storage is similar to local, block-scoped variables in a
