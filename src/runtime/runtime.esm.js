@@ -154,11 +154,11 @@ export const {
 	let codeBaton, mesgBaton, nextAnon = 0, nextUCID = 0, initPhase = 2, dispNo = 0;
 	const getCode = Symbol('getCode'), initSym = Symbol('@init');
 	const interfaces = Object.create(null), firstInit = [];
-	const dbgCfg = Object.setPrototypeOf({
+	const dbgCfg = Object.assign(Object.create(null), {
 		dispatch: false, dispatchSource: false, dispatchTypes: false,
 		stack: 0, stackSource: false, stackTypes: false,
 		handlerCache: false,
-	}, null), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
+	}), stack = [], hdr = '-- Mesgjs Dispatch Stack --';
 	const handlerCache = new SieveCache(1024);
 	const dacHandMctx = { st: '@core', rt: '@core', sm: sendAnonMessage };
 	const featurePromises = new Map(), allFeatures = new NANOS();

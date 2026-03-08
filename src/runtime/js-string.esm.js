@@ -4,8 +4,19 @@
  * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, setRO, typeAccepts } from './runtime.esm.js';
+import { getInstance, getInterface, runIfCode, setRO, typeAccepts } from './runtime.esm.js';
 import { NANOS } from '@nanos';
+
+function opEq (d) {
+	const { mp, js } = d;
+	let first = true;
+	for (const v of mp.values()) {
+		const fv = first ? v : runIfCode(v);
+		first = false;
+		if (js === fv) return true;
+	}
+	return false;
+}
 
 function opInit (d) {
 	setRO(d.octx, 'js', d.mp.at(0, '').toString());
@@ -63,20 +74,20 @@ export function install () {
 		handlers: {
 			'@init': opInit,
 			'@jsv': d => d.js,
-			'=': d => d.js === d.mp.at(0), // eq
+			'=': opEq, // eq
 			'>=': d => d.js >= d.mp.at(0), // ge
 			'>': d => d.js > d.mp.at(0), // gt
 			'+': opJoin,
 			'-': opJoining,
 			'<=': d => d.js <= d.mp.at(0), // le
 			'<': d => d.js < d.mp.at(0), // lt
-			'!=': d => d.js !== d.mp.at(0), // ne
+			'!=': d => !opEq(d), // ne
 			at: d => d.js.at(d.mp.at(0, 0)),
 			charAt: d => d.js.charAt(d.mp.at(0, 0)),
 			charCodeAt: d => d.js.charCodeAt(d.mp.at(0, 0)),
 			codePointAt: d => d.js.codePointAt(d.mp.at(0, 0)),
 			endsWith: d => d.js.endsWith(d.mp.at(0, ''), d.mp.at(1, d.js.length)),
-			eq: d => d.js === d.mp.at(0),
+			eq: opEq,
 			escRE: d => RegExp.escape(d.js),	// regex-escaped version
 			ge: d => d.js >= d.mp.at(0),
 			gt: d => d.js > d.mp.at(0),
@@ -89,7 +100,7 @@ export function install () {
 			le: d => d.js <= d.mp.at(0),
 			length: d => d.js.length,
 			lt: d => d.js < d.mp.at(0),
-			ne: d => d.js !== d.mp.at(0),
+			ne: d => !opEq(d),
 			normalize: d => d.js.normalize(d.mp.at(0, 'NFC')),
 			padEnd: d => d.js.padEnd(d.mp.at(0, 0), d.mp.at(1, ' ')),
 			padStart: d => d.js.padStart(d.mp.at(0, 0), d.mp.at(1, ' ')),

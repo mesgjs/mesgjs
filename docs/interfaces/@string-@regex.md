@@ -2,7 +2,7 @@
 
 # Mesgjs `@string` Interface
 
-No RIC (run-if-code) values are used in this interface.
+RIC (run-if-code) values are only used where explicitly indicated.
 
 * `(@init string)`
   * Synopsis: Instance initializer
@@ -21,9 +21,11 @@ No RIC (run-if-code) values are used in this interface.
   * Synopsis: Returns a non-negative integer that is the Unicode code point of the character starting at the given index (counting UTF-16 code units, not Unicode code points).
 * `(endsWith string)`
   * Synopsis: Returns `@t` (true) if the receiver ends with `string`, or `@f` (false) otherwise.
-* `(eq string)`\
-`(= string)`
-  * Synopsis: Returns `@t` (true) if the strings are equal, or `@f` (false) otherwise.
+* `(eq string...)`\
+`(= string...)`
+  * Synopsis: Returns `@t` (true) if the receiver equals any of the provided strings, or `@f` (false) if none match.
+  * All comparison values except the first are RIC (run-if-code) values.
+  * Example: `#answer(toLower)(= y yes yup yeah)` returns `@t` if `#answer` (lowercased) is "y", "yes", "yup", or "yeah".
 * `(escRE)`
   * Synopsis: Returns a new string consisting of the receiver string escaped to use as a literal value in a regular expression.
   * Based on JS RegExp.escape.
@@ -61,9 +63,11 @@ No RIC (run-if-code) values are used in this interface.
 * `(lt string)`\
 `(< string)`
   * Synopsis: Returns `@t` (true) if the receiver is less than `string`, or `@f` (false) otherwise.
-* `(ne string)`\
-`(!= string)`
-  * Synopsis: Returns `@t` (true) if the strings are not equal, or `@f` (false) otherwise.
+* `(ne string...)`\
+`(!= string...)`
+  * Synopsis: Returns `@f` (false) if the receiver equals any of the provided strings, or `@t` (true) if none match.
+  * All comparison values except the first are RIC (run-if-code) values.
+  * Example: `#answer(toLower)(!= n no nope nah)` returns `@f` if `#answer` (lowercased) is "n", "no", "nope", or "nah".
 * `(normalize)`
   * Synopsis: Returns the Unicode Normalization Form of the receiver.
 * `(padEnd length string)`
