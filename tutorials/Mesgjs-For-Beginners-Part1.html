@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesgjs For Beginners — Part 1</title>
+<link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+
+<h1>Mesgjs For Beginners</h1>
+<p class="part-nav">Part 1 of 4 &nbsp;|&nbsp; <a href="#part2-preview">Preview: What's in Part 2 →</a></p>
+
+<p>Welcome to <strong>Mesgjs</strong> (pronounced "messages" — or "message J S" if that's clearer)!
+This tutorial is designed for people who are brand new to programming, or who are new to Mesgjs specifically.
+We'll go step by step, with plenty of examples you can try yourself.</p>
+
+<p>Don't worry if things feel unfamiliar at first — that's completely normal. By the end of Part 1, you'll be writing real Mesgjs programs!</p>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#repl">Opening the REPL and Browser Console</a></li>
+    <li><a href="#concepts">Two Core Concepts: Objects and Messages</a></li>
+    <li><a href="#first-program">Your First Program</a></li>
+    <li><a href="#math">Mathematical Operations in Mesgjs</a></li>
+    <li><a href="#combining">Ways to Combine Messages</a></li>
+    <li><a href="#named-values">Named Values in Messages</a></li>
+    <li><a href="#storage">Saving Values for Later: Scratch Storage</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="repl">1. Opening the REPL and Browser Console</h2>
+
+<div class="lesson">
+<p>The easiest way to try Mesgjs is the online <strong>REPL</strong>. A REPL is simply a page where you can type code and run it immediately — no installation needed.</p>
+
+<p>Open the REPL in a new tab:<br>
+<a class="repl-link" href="https://www.mesgjs.org/repl.html" target="_blank">Open the Mesgjs REPL ↗</a></p>
+
+<p>You'll see a text area where you can type (or paste) Mesgjs code, and a <strong>Transpile</strong> button to run it.</p>
+
+<h3>Where does the output go?</h3>
+
+<p>Unlike some programming environments, Mesgjs doesn't print output directly on the page. Instead, output appears in the browser's <strong>developer console</strong>. Here's how to open it:</p>
+
+<ul>
+  <li><strong>Windows / Linux:</strong> Press <kbd>F12</kbd>, then click the <strong>Console</strong> tab</li>
+  <li><strong>Mac:</strong> Press <kbd>Cmd + Option + I</kbd>, then click the <strong>Console</strong> tab</li>
+  <li>Or right-click anywhere on the page and choose <strong>Inspect</strong>, then click <strong>Console</strong></li>
+</ul>
+
+<p>Keep the console open while you work through this tutorial — that's where you'll see the results of your programs.</p>
+</div>
+
+<div class="tip">You can paste any of the code examples in this tutorial directly into the REPL and click <strong>Transpile</strong> to run them. Each example has a 📋 button to copy it to your clipboard.</div>
+
+<div class="exercise">
+  <h4>Exercise 1.1 — Open the REPL</h4>
+  <ol>
+    <li>Open <a href="https://www.mesgjs.org/repl.html" target="_blank">https://www.mesgjs.org/repl.html</a> in a new tab.</li>
+    <li>Open the browser developer console (see instructions above).</li>
+    <li>The REPL already has a sample program in it. Click <strong>Transpile</strong> and look for output in the console.</li>
+  </ol>
+  <p>You should see <code>Hello, world!</code> appear in the console. If you do — great, everything is working!</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="concepts">2. Two Core Concepts: Objects and Messages</h2>
+
+<div class="lesson">
+<p>Almost everything in Mesgjs comes down to just two ideas:</p>
+
+<table>
+  <tr><th>Concept</th><th>What it is</th><th>Real-world analogy</th></tr>
+  <tr>
+    <td><strong>Object</strong></td>
+    <td>Something that holds information and knows how to do certain things</td>
+    <td>An accountant who keeps your financial records</td>
+  </tr>
+  <tr>
+    <td><strong>Message</strong></td>
+    <td>A request you send to an object, asking it to do something and give you back a result</td>
+    <td>Calling that accountant and asking them to prepare your tax return</td>
+  </tr>
+</table>
+
+<p>In Mesgjs, <em>every action is a message</em>. Want to add two numbers? Send a message. Want to combine two pieces of text? Send a message. Want to display something on screen? Send a message.</p>
+
+<p>The basic pattern for sending a message looks like this:</p>
+
+<div class="code-block">
+  <pre>receiver(operation  optional-extra-values)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Where:</p>
+<ul>
+  <li><strong>receiver</strong> — the object you're sending the message to</li>
+  <li><strong>operation</strong> — the name of the action you want (always the first thing inside the parentheses)</li>
+  <li><strong>optional-extra-values</strong> — any additional information the operation needs</li>
+</ul>
+
+<p>That's really the heart of Mesgjs. Let's see it in action!</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="first-program">3. Your First Program</h2>
+
+<div class="lesson">
+<p>Here's a simple Mesgjs program. Let's look at it piece by piece:</p>
+
+<div class="code-block">
+  <pre>@c(log "The answer is:" 42)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Breaking it down:</p>
+<table>
+  <tr><th>Part</th><th>What it is</th></tr>
+  <tr><td><code>@c</code></td><td>The Mesgjs <strong>core</strong> object — a built-in toolbox of useful operations. Think of it as your Swiss Army knife.</td></tr>
+  <tr><td><code>(</code> and <code>)</code></td><td>These parentheses mean "send a message." They always come in matching pairs.</td></tr>
+  <tr><td><code>log</code></td><td>The operation (the action we're requesting) — this one asks <code>@c</code> to write something to the console</td></tr>
+  <tr><td><code>"The answer is:"</code></td><td>A piece of text surrounded by double-quotes. Text like this is called a <strong>string</strong>. It can contain spaces and special characters.</td></tr>
+  <tr><td><code>42</code></td><td>A <strong>number</strong></td></tr>
+</table>
+
+<p>What the program does: it sends the <code>log</code> message to <code>@c</code>, asking it to write both <code>"The answer is:"</code> and <code>42</code> to the browser console.</p>
+
+<div class="note">The <code>@</code> symbol at the start of <code>@c</code> is a special marker used by the Mesgjs language itself. You'll see a few other <code>@</code>-prefixed names as you learn more, like <code>@t</code> (meaning "true"), <code>@f</code> (meaning "false"), and <code>@u</code> (meaning "undefined" — nothing). You won't use <code>@</code> at the start of your own names.</div>
+
+<h3>Three ways to write text</h3>
+<p>Mesgjs has three ways to write text values:</p>
+<ul>
+  <li><code>"double-quoted"</code> — text between double-quotes; can contain spaces; use <code>\"</code> to include a literal double-quote inside</li>
+  <li><code>'single-quoted'</code> — works the same way; use <code>\'</code> to include a literal single-quote inside</li>
+  <li><code>word</code> — a simple unquoted word with no spaces (like <code>log</code>, <code>hello</code>, <code>firstName</code>)</li>
+</ul>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.1 — Hello, World!</h4>
+  <p>Paste this into the REPL and click Transpile. Check the console for output.</p>
+  <div class="code-block">
+    <pre>@c(log "Hello, world!")</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>You should see <code>Hello, world!</code> in the console.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.2 — Multiple Values</h4>
+  <p>The <code>log</code> operation can display several values at once, separated by spaces. Try:</p>
+  <div class="code-block">
+    <pre>@c(log "My name is" "Alice" "and I am" 30 "years old.")</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you see in the console? Try changing the name and age to your own.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.3 — Words vs. Quoted Strings</h4>
+  <p>Simple words (without spaces) and quoted strings are both text values. Try logging a word and a quoted string:</p>
+  <div class="code-block">
+    <pre>@c(log hello)
+@c(log "hello")</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Both display <code>hello</code> — they're the same value, just written differently.</p>
+  <p>The important rule: if your text needs to contain a <strong>space</strong>, you must use quotes. A bare word like <code>hello world</code> would be read as <em>two separate values</em> (<code>hello</code> and <code>world</code>), not one. Try:</p>
+  <div class="code-block">
+    <pre>@c(log "hello world")</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>This logs a single value: <code>hello world</code>.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="math">4. Mathematical Operations in Mesgjs</h2>
+
+<div class="lesson">
+<p>In Mesgjs, you don't write calculations in traditional mathematical notation like <code>1 + 2</code> or <code>3 × 4</code>. Instead, you send messages to numbers asking them to do math. This might feel unusual at first, but it's very consistent — <em>everything</em> is a message!</p>
+
+<p>Here are some of the basic math messages you can send to a number:</p>
+<table>
+  <tr><th>Message</th><th>Meaning</th><th>Example</th><th>Result</th></tr>
+  <tr><td><code>(add n)</code></td><td>Add</td><td><code>3(add 4)</code></td><td>7</td></tr>
+  <tr><td><code>(sub n)</code></td><td>Subtract</td><td><code>10(sub 3)</code></td><td>7</td></tr>
+  <tr><td><code>(mul n)</code></td><td>Multiply</td><td><code>3(mul 4)</code></td><td>12</td></tr>
+  <tr><td><code>(div n)</code></td><td>Divide</td><td><code>12(div 4)</code></td><td>3</td></tr>
+</table>
+
+<p>You can also pass <strong>multiple values</strong> to a math message, and it will apply them all in sequence. For example, <code>10(add 20 30)</code> adds both 20 and 30 to 10, giving 60:</p>
+
+<div class="code-block">
+  <pre>@c(log 10(add 20 30))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>You can also use a message result as part of another message. For example, the <code>join</code> message attaches more text to the end of a string:</p>
+
+<div class="code-block">
+  <pre>@c(log "The answer"(join " is:") 6(mul 7))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Here, <code>"The answer"(join " is:")</code> produces <code>"The answer is:"</code>, and <code>6(mul 7)</code> produces <code>42</code>. Both results are then passed to <code>@c(log ...)</code>. In the next section, we'll look more closely at the different ways you can combine messages like this.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.1 — Basic Arithmetic</h4>
+  <p>Try each of these in the REPL:</p>
+  <div class="code-block">
+    <pre>@c(log 5(add 3))
+@c(log 10(sub 4))
+@c(log 6(mul 7))
+@c(log 15(div 3))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What results do you see?</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.2 — Multiple Values at Once</h4>
+  <p>The <code>add</code> message can accept multiple values to add all at once. Try:</p>
+  <div class="code-block">
+    <pre>@c(log 10(add 20 30))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Now try using <code>mul</code> with multiple values. What does <code>2(mul 3 4)</code> give you?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-2')">Show Answer</button>
+  <div class="answer" id="ans-4-2">
+    <div class="code-block">
+      <pre>@c(log 2(mul 3 4))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: 24. The <code>mul</code> message multiplies 2 by 3 (giving 6), then multiplies that by 4 (giving 24).</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.3 — Joining Text</h4>
+  <p>The <code>join</code> message on text values attaches more text to the end. Try:</p>
+  <div class="code-block">
+    <pre>@c(log Hello(join ", " world "!"))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What does this produce? Try building your own greeting by changing the values.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="combining">5. Ways to Combine Messages</h2>
+
+<div class="lesson">
+<p>Did you notice in the previous section how we had a message inside another message — like <code>6(mul 7)</code> sitting inside <code>@c(log ...)</code>? There are actually <strong>two different ways</strong> to combine messages, and understanding both will give you a lot of power.</p>
+
+<h3>Nesting (inner result feeds outer)</h3>
+
+<p>You can put a message <em>inside</em> another message's values. This is called <strong>nesting</strong>. The inner message runs first, and its result is used by the outer message.</p>
+
+<p>Here's a simple example — calculating <code>2 + (3 × 5)</code>:</p>
+
+<div class="code-block">
+  <pre>@c(log 2(add 3(mul 5)))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Reading from the inside out:</p>
+<ol>
+  <li><code>3(mul 5)</code> — multiply 3 by 5, giving <code>15</code></li>
+  <li><code>2(add 15)</code> — add 15 to 2, giving <code>17</code></li>
+  <li><code>@c(log 17)</code> — display <code>17</code> in the console</li>
+</ol>
+
+<p>Here's another nesting example — calculating <code>9 - (2 × 3)</code>:</p>
+
+<div class="code-block">
+  <pre>@c(log 9(sub 2(mul 3)))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Reading from the inside out: <code>2(mul 3)</code> gives 6, then <code>9(sub 6)</code> gives 3.</p>
+
+<h3>Chaining (left to right, one after another)</h3>
+
+<p>You can also write messages one after another. This is called <strong>chaining</strong>. Each message is sent to the result of the one before it:</p>
+
+<div class="code-block">
+  <pre>@c(log 6(mul 7)(div 2))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Reading left to right, and inner to outer:</p>
+<ol>
+  <li><code>6(mul 7)</code> — multiply 6 by 7, giving <code>42</code></li>
+  <li><code>42(div 2)</code> — divide 42 by 2, giving <code>21</code></li>
+  <li><code>@c(log 21)</code> — display <code>21</code> in the console</li>
+</ol>
+
+<p>This is <code>(6 × 7) ÷ 2</code>.</p>
+
+<p>Chaining works with text too. Here we start with a word and build up a sentence step by step:</p>
+
+<div class="code-block">
+  <pre>@c(log "Mesgjs"(join " is")(join " fun!"))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Step by step:</p>
+<ol>
+  <li><code>"Mesgjs"(join " is")</code> → <code>"Mesgjs is"</code></li>
+  <li><code>"Mesgjs is"(join " fun!")</code> → <code>"Mesgjs is fun!"</code></li>
+  <li>That result is logged to the console</li>
+</ol>
+
+<h3>Nesting vs. Chaining — the key difference</h3>
+<table>
+  <tr><th>Technique</th><th>How it works</th><th>Example</th><th>Meaning</th></tr>
+  <tr>
+    <td><strong>Nesting</strong></td>
+    <td>Inner message runs first; its result is used by the outer message</td>
+    <td><code>9(sub 2(mul 3))</code></td>
+    <td>9 − (2 × 3) = 3</td>
+  </tr>
+  <tr>
+    <td><strong>Chaining</strong></td>
+    <td>Messages run left to right; each uses the result of the previous</td>
+    <td><code>9(sub 2)(mul 3)</code></td>
+    <td>(9 − 2) × 3 = 21</td>
+  </tr>
+</table>
+
+<p>You can also mix nesting and chaining in the same expression!</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.1 — Calculate (9 − 2) × 3</h4>
+  <p>Use <code>sub</code> and <code>mul</code> messages in a <em>chain</em> to calculate <code>(9 - 2) × 3</code>:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-1')">Show Answer</button>
+  <div class="answer" id="ans-5-1">
+    <div class="code-block">
+      <pre>@c(log 9(sub 2)(mul 3))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: 21. The chain <code>9(sub 2)</code> gives 7, then <code>7(mul 3)</code> gives 21.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.2 — Calculate 9 − (2 × 3)</h4>
+  <p>Now calculate <code>9 - (2 × 3)</code> using <em>nesting</em> so the multiplication happens first.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-2')">Show Answer</button>
+  <div class="answer" id="ans-5-2">
+    <div class="code-block">
+      <pre>@c(log 9(sub 2(mul 3)))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: 3. The nested <code>2(mul 3)</code> gives 6, then <code>9(sub 6)</code> gives 3.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.3 — Text Chain</h4>
+  <p>Build a sentence by chaining <code>join</code> messages. Start with <code>hello</code>, join a space to it, then join <code>world</code>. Then, as a bonus, chain one more message to convert the whole result to uppercase using <code>(toUpper)</code>.</p>
+  <p>Try two different approaches — one that joins the space and <code>world</code> in separate steps, and one that joins them both in a single <code>join</code> message.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-3')">Show Answer</button>
+  <div class="answer" id="ans-5-3">
+    <p><strong>Approach 1 — separate joins, then uppercase:</strong></p>
+    <div class="code-block">
+      <pre>@c(log hello(join " ")(join world)(toUpper))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p><strong>Approach 2 — join space and world together, then uppercase:</strong></p>
+    <div class="code-block">
+      <pre>@c(log hello(join " " world)(toUpper))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Both give the same result: <code>HELLO WORLD</code></p>
+    <p>In Approach 2, <code>hello(join " " world)</code> joins the space and <code>world</code> in a single message, giving <code>"hello world"</code>, then <code>(toUpper)</code> converts it to uppercase.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.4 — Average of Three Numbers</h4>
+  <p>Calculate the average of 10, 20, and 30. (Hint: add them all up, then divide by 3.)</p>
+  <p>Remember: <code>add</code> can accept multiple values at once — for example, <code>10(add 20 30)</code> adds 20 and 30 to 10 in one step. Try both approaches!</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-4')">Show Answer</button>
+  <div class="answer" id="ans-5-4">
+    <p><strong>Approach 1 — chain of adds:</strong></p>
+    <div class="code-block">
+      <pre>@c(log 10(add 20)(add 30)(div 3))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p><strong>Approach 2 — add multiple values at once:</strong></p>
+    <div class="code-block">
+      <pre>@c(log 10(add 20 30)(div 3))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Both give the same result: 20. The second approach is more concise — <code>10(add 20 30)</code> adds all three numbers in one message, giving 60, then <code>60(div 3)</code> gives 20.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="named-values">6. Named Values in Messages</h2>
+
+<div class="lesson">
+<p>Some messages accept <strong>named values</strong> — extra information identified by a name rather than just by position. Named values use the <code>=</code> sign to pair a name with a value:</p>
+
+<div class="code-block">
+  <pre>@c(log first(join second third with=", "))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>What's happening:</p>
+<ul>
+  <li><code>first</code>, <code>second</code>, <code>third</code> are simple word values (text without spaces)</li>
+  <li><code>with=", "</code> is a <strong>named value</strong> — the name <code>with</code> is paired with the value <code>", "</code></li>
+  <li>The <code>join</code> message uses the <code>with</code> value as a separator between all the pieces being joined</li>
+  <li>The result is the text <code>"first, second, third"</code></li>
+</ul>
+
+<div class="note">When <code>=</code> appears between a name and a value (like <code>with=", "</code>), it creates a key/value association — it is <strong>not</strong> an assignment. Actual assignment happens through messages like <code>(nset)</code>, as you'll see in the next section. Note that <code>=</code> can also appear as a message operation (e.g., <code>5(= 5)</code> tests for equality), but that's a different use — as a message operation it's always the first thing inside the parentheses.</div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.1 — Join with a Separator</h4>
+  <p>Try joining words with different separators:</p>
+  <div class="code-block">
+    <pre>@c(log one(join two three with=" - "))
+@c(log one(join two three with=" | "))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you get for each line?</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.2 — Build a Sentence</h4>
+  <p>Use <code>join</code> with a space separator to build a sentence from individual words:</p>
+  <div class="code-block">
+    <pre>@c(log The(join quick brown fox with=" "))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try building your own sentence this way.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.3 — More Values, Same Separator</h4>
+  <p>You can join as many values as you like. Try adding more:</p>
+  <div class="code-block">
+    <pre>@c(log a(join b c d e with="-"))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you get?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-6-3')">Show Answer</button>
+  <div class="answer" id="ans-6-3">
+    <p>You get: <code>a-b-c-d-e</code></p>
+    <p>The <code>join</code> message joins the starting value (<code>a</code>) with all the extra values (<code>b</code>, <code>c</code>, <code>d</code>, <code>e</code>), placing the <code>with</code> separator between each pair.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="storage">7. Saving Values for Later: Scratch Storage</h2>
+
+<div class="lesson">
+<p>So far, every value we've used has been written directly in the code. But what if you want to calculate something once and use the result in several places? Or what if you want to give a value a meaningful name?</p>
+
+<p>Mesgjs provides several <strong>storage objects</strong> for saving and retrieving values. They have very short names because they're used so often.</p>
+
+<p>The <strong><code>#</code></strong> object is used for <strong>scratch storage</strong> — a temporary notepad for values you need during the current operation. Think of it like a whiteboard you can write on and erase.</p>
+
+<h3>Saving a value</h3>
+
+<p>Use <code>#(nset name=value)</code> to save a value with a name. The <code>nset</code> message (short for "named set") can save several values at once:</p>
+
+<div class="code-block">
+  <pre>#(nset firstName=Alice lastName=Smith age=30)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>You can also save a single value using <code>#(set name to=value)</code>:</p>
+
+<div class="code-block">
+  <pre>#(set greeting to="Hello, world!")</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<h3>Retrieving a value</h3>
+
+<p>Use <code>#(at name)</code> to get a saved value back:</p>
+
+<div class="code-block">
+  <pre>@c(log #(at firstName))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Because retrieving values is so common, there's a handy shortcut: just write <code>#name</code> and Mesgjs automatically retrieves it for you:</p>
+
+<div class="code-block">
+  <pre>@c(log #firstName)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Both forms do exactly the same thing. The shortcut (<code>#name</code>) is much more common in practice.</p>
+
+<h3>A complete example</h3>
+
+<div class="code-block">
+  <pre>// Save some values
+#(nset firstName=Alice lastName=Smith)
+
+// Use them
+@c(log My name is #firstName #lastName)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays: <code>My name is Alice Smith</code></p>
+
+<div class="note">The <code>//</code> at the start of a line begins a <strong>comment</strong> — text that Mesgjs ignores completely. Comments are just notes for the person reading the code. You'll learn more about comments in Part 2.</div>
+
+<h3>A quick look at all the storage types</h3>
+<p>Mesgjs has several storage objects, each for a different purpose. You'll learn about all of them as you progress through the tutorials:</p>
+<table>
+  <tr><th>Storage</th><th>Name</th><th>Purpose</th></tr>
+  <tr><td><code>#</code></td><td>Scratch</td><td>Temporary values for the current operation (this tutorial)</td></tr>
+  <tr><td><code>%</code></td><td>Object properties</td><td>Persistent values belonging to an object (Part 3)</td></tr>
+  <tr><td><code>!</code></td><td>Message parameters</td><td>Values passed along with a message (Part 3)</td></tr>
+  <tr><td><code>%*</code></td><td>Global shared storage</td><td>Values shared across the entire program (Part 4)</td></tr>
+  <tr><td><code>%/</code></td><td>Module storage</td><td>Values private to a module (Part 4)</td></tr>
+</table>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.1 — Save and Retrieve</h4>
+  <p>Save your name and favorite number, then display them:</p>
+  <div class="code-block">
+    <pre>#(nset myName="Your Name" favoriteNumber=42)
+@c(log "My name is" #myName "and my favorite number is" #favoriteNumber)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Change the values to your own name and number, then run it.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.2 — Save a Calculation Result</h4>
+  <p>You can save the result of a calculation and use it later:</p>
+  <div class="code-block">
+    <pre>#(nset result=6(mul 7))
+@c(log "6 times 7 is" #result)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Now try saving the result of <code>(9 - 2) × 3</code> and displaying it.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-7-2')">Show Answer</button>
+  <div class="answer" id="ans-7-2">
+    <div class="code-block">
+      <pre>#(nset result=9(sub 2)(mul 3))
+@c(log "(9 - 2) x 3 =" #result)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: <code>(9 - 2) x 3 = 21</code></p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.3 — Multiple Scratch Values</h4>
+  <p>Save a city and country, then use them in a sentence:</p>
+  <div class="code-block">
+    <pre>#(nset city=Chicago country="United States")
+@c(log #city "is in the" #country)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try changing the city and country to somewhere you know.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.4 — Reusing a Value</h4>
+  <p>One big benefit of saving values is that you can reuse them without retyping or recalculating. Try:</p>
+  <div class="code-block">
+    <pre>#(nset base=12)
+@c(log #base "squared is" #base(mul #base))
+@c(log #base "cubed is" #base(mul #base)(mul #base))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you get? Try changing the base value to something else.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-7-4')">Show Answer</button>
+  <div class="answer" id="ans-7-4">
+    <p>With <code>base=12</code>:</p>
+    <ul>
+      <li><code>12 squared is 144</code></li>
+      <li><code>12 cubed is 1728</code></li>
+    </ul>
+    <p>Notice how <code>#base</code> is used as both the starting value and as a parameter: <code>#base(mul #base)</code> means "multiply the base by itself."</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.5 — Shortcut vs. Full Form</h4>
+  <p>Both <code>#name</code> and <code>#(at name)</code> retrieve a value. Verify they're equivalent:</p>
+  <div class="code-block">
+    <pre>#(nset x=99)
+@c(log #x)
+@c(log #(at x))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Both lines should display <code>99</code>.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 7.6 — Building a Full Name</h4>
+  <p>Save a first name and last name, then use <code>join</code> to combine them with a space in between:</p>
+  <div class="code-block">
+    <pre>#(nset first=Jane last=Doe)
+@c(log #first(join " " #last))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try it with your own name. Can you also display the name in "Last, First" format?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-7-6')">Show Answer</button>
+  <div class="answer" id="ans-7-6">
+    <div class="code-block">
+      <pre>#(nset first=Jane last=Doe)
+@c(log #last(join ", " #first))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: <code>Doe, Jane</code></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="summary">8. Summary</h2>
+
+<div class="lesson">
+<p>Excellent work! Here's a recap of everything you've learned in Part 1:</p>
+
+<table>
+  <tr><th>Concept</th><th>Example</th><th>What it does</th></tr>
+  <tr><td>Send a message</td><td><code>@c(log "hello")</code></td><td>Asks <code>@c</code> to display "hello" in the console</td></tr>
+  <tr><td>Number arithmetic</td><td><code>6(mul 7)</code></td><td>Multiplies 6 by 7, giving 42</td></tr>
+  <tr><td>Multiple values in one message</td><td><code>10(add 20 30)</code></td><td>Adds 20 and 30 to 10, giving 60</td></tr>
+  <tr><td>Join text</td><td><code>"hello"(join " world")</code></td><td>Gives "hello world"</td></tr>
+  <tr><td>Nesting</td><td><code>9(sub 2(mul 3))</code></td><td>9 − (2×3) = 3; inner runs first</td></tr>
+  <tr><td>Chaining</td><td><code>6(mul 7)(div 2)</code></td><td>(6×7) ÷ 2 = 21; left to right</td></tr>
+  <tr><td>Named values</td><td><code>a(join b with="-")</code></td><td>Gives "a-b"</td></tr>
+  <tr><td>Save to scratch</td><td><code>#(nset x=42)</code></td><td>Saves 42 with the name <code>x</code></td></tr>
+  <tr><td>Retrieve from scratch</td><td><code>#x</code> or <code>#(at x)</code></td><td>Gets the saved value of <code>x</code></td></tr>
+</table>
+
+<h3>Key things to remember</h3>
+<ul>
+  <li>Message syntax is always <code>receiver(operation  values)</code></li>
+  <li>The <code>=</code> sign is for <em>pairing</em> a name with a value — it is <strong>not</strong> assignment or comparison</li>
+  <li><strong>Nesting</strong>: inner message runs first; its result is used by the outer message</li>
+  <li><strong>Chaining</strong>: messages run left to right; each uses the result of the previous</li>
+  <li><code>#name</code> is a shortcut for <code>#(at name)</code></li>
+  <li>Output goes to the browser console — keep it open!</li>
+</ul>
+</div>
+
+<div class="exercise">
+  <h4>Final Exercise — Putting It All Together</h4>
+  <p>Write a short Mesgjs program that:</p>
+  <ol>
+    <li>Saves your first name, last name, and birth year in scratch storage</li>
+    <li>Calculates your approximate age (use 2026 as the current year)</li>
+    <li>Displays a sentence like: <code>Hello! I'm Jane Doe and I'm about 30 years old.</code></li>
+  </ol>
+  <button class="show-answer" onclick="toggleAnswer('ans-final')">Show One Possible Answer</button>
+  <div class="answer" id="ans-final">
+    <div class="code-block">
+      <pre>#(nset firstName=Jane lastName=Doe birthYear=1996)
+#(nset age=2026(sub #birthYear))
+@c(log "Hello! I'm" #firstName #lastName "and I'm about" #age "years old.")</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="part2-preview">Preview: What's in Part 2</h2>
+
+<p>In Part 2, you'll learn about:</p>
+<ul>
+  <li><strong>Operator-style words</strong> — shorthand aliases like <code>*</code> for <code>mul</code> and <code>/</code> for <code>div</code></li>
+  <li><strong>Lists</strong> — Mesgjs's powerful collection type that can hold any mix of values</li>
+  <li><strong>Code blocks</strong> — reusable chunks of code you can store and run later</li>
+  <li><strong>Comments</strong> — how to leave notes in your code (both single-line and multi-line)</li>
+</ul>
+
+<div class="nav">
+  <span></span>
+  <span><a href="Mesgjs-For-Beginners-Part2.html">Part 2: Lists, Code Blocks, and Comments →</a></span>
+</div>
+
+<script>
+function toggleAnswer(id) {
+  const el = document.getElementById(id);
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+  } else {
+    el.style.display = 'block';
+  }
+}
+
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    // Fallback for environments without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>

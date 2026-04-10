@@ -1,0 +1,227 @@
+/* Mesgjs Tutorial Stylesheet */
+
+body {
+  font-family: sans-serif;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1em 1.5em 3em;
+  line-height: 1.7;
+  color: #222;
+  font-size: 1.05em;
+}
+
+h1 {
+  color: #1a4a8a;
+  border-bottom: 2px solid #1a4a8a;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  color: #1a4a8a;
+  margin-top: 2em;
+}
+
+h3 {
+  color: #2a5a9a;
+}
+
+code, pre {
+  font-family: 'Courier New', Courier, monospace;
+  background: #f4f4f4;
+  border-radius: 3px;
+}
+
+code {
+  padding: 0.1em 0.3em;
+  font-size: 0.95em;
+}
+
+/* Code block with copy button */
+.code-block {
+  position: relative;
+  margin: 0.8em 0;
+}
+
+.code-block pre {
+  padding: 0.8em 3em 0.8em 1em;
+  overflow-x: auto;
+  border-left: 4px solid #1a4a8a;
+  font-size: 0.92em;
+  margin: 0;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.4em;
+  right: 0.4em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1em;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  background: #e0e8ff;
+}
+
+.copy-btn.copied {
+  opacity: 1;
+}
+
+/* Lesson box */
+.lesson {
+  background: #f9f9ff;
+  border: 1px solid #ccd;
+  border-radius: 6px;
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+}
+
+/* Exercise box */
+.exercise {
+  background: #fffbe6;
+  border: 1px solid #e6d800;
+  border-radius: 6px;
+  padding: 1em 1.5em;
+  margin: 1em 0;
+}
+
+.exercise h4 {
+  margin-top: 0;
+  color: #7a6000;
+}
+
+/* Tip callout */
+.tip {
+  background: #e8f5e9;
+  border: 1px solid #81c784;
+  border-radius: 6px;
+  padding: 0.8em 1.2em;
+  margin: 1em 0;
+}
+
+.tip::before {
+  content: "💡 Tip: ";
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+/* Note callout */
+.note {
+  background: #e3f2fd;
+  border: 1px solid #64b5f6;
+  border-radius: 6px;
+  padding: 0.8em 1.2em;
+  margin: 1em 0;
+}
+
+.note::before {
+  content: "📝 Note: ";
+  font-weight: bold;
+  color: #1565c0;
+}
+
+/* Collapsible answer */
+.answer {
+  display: none;
+  background: #f0fff0;
+  border: 1px solid #90ee90;
+  border-radius: 4px;
+  padding: 0.8em 1em;
+  margin-top: 0.5em;
+}
+
+/* Show answer button */
+.show-answer {
+  background: #1a4a8a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4em 0.9em;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+}
+
+.show-answer:hover {
+  background: #2a5a9a;
+}
+
+/* REPL link button */
+.repl-link {
+  display: inline-block;
+  background: #1a4a8a;
+  color: white;
+  text-decoration: none;
+  padding: 0.4em 1em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  margin: 0.3em 0;
+}
+
+.repl-link:hover {
+  background: #2a5a9a;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 0.5em 0.8em;
+  text-align: left;
+}
+
+th {
+  background: #e8eaf6;
+}
+
+/* Bottom navigation */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3em;
+  padding-top: 1em;
+  border-top: 1px solid #ccc;
+}
+
+/* Table of contents */
+.toc {
+  background: #f0f4ff;
+  border: 1px solid #b0c0e0;
+  border-radius: 6px;
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+}
+
+.toc h3 {
+  margin-top: 0;
+}
+
+.toc ol {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.toc li {
+  margin: 0.3em 0;
+}
+
+.toc a {
+  color: #1a4a8a;
+}
+
+/* Part navigation line */
+.part-nav {
+  font-size: 0.9em;
+  color: #666;
+}
