@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesgjs For Beginners — Part 2</title>
+<link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+
+<h1>Mesgjs For Beginners</h1>
+<p class="part-nav"><a href="Mesgjs-For-Beginners-Part1.html">← Part 1</a> &nbsp;|&nbsp; Part 2 of 4 &nbsp;|&nbsp; <a href="#part3-preview">Preview: What's in Part 3 →</a></p>
+
+<p>Welcome back! In Part 1 you learned the two core ideas of Mesgjs — objects and messages — and how to use scratch storage to save and retrieve values. In this part we'll cover four more building blocks that you'll use in almost every real program:</p>
+
+<ul>
+  <li><strong>Operator-style words</strong> — shorthand aliases for common messages</li>
+  <li><strong>Lists</strong> — collections that can hold any mix of values</li>
+  <li><strong>Code blocks</strong> — reusable chunks of code you can store and run later</li>
+  <li><strong>Comments</strong> — notes you leave in your code for yourself and others</li>
+</ul>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#op-words">Operator-Style Words</a></li>
+    <li><a href="#lists">Lists</a></li>
+    <li><a href="#code-blocks">Code Blocks</a></li>
+    <li><a href="#comments">Comments</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="op-words">1. Operator-Style Words</h2>
+
+<div class="lesson">
+<p>In Part 1 you used messages like <code>(add)</code>, <code>(sub)</code>, <code>(mul)</code>, and <code>(div)</code> to do arithmetic. Mesgjs also provides shorter <strong>operator-style words</strong> (often called "op-words") that are aliases for those same messages. They look like the symbols you might already know from math:</p>
+
+<table>
+  <tr><th>Long form</th><th>Short form</th><th>Meaning</th><th>Example</th><th>Result</th></tr>
+  <tr><td><code>(add n)</code></td><td><code>(+ n)</code></td><td>Add</td><td><code>3(+ 4)</code></td><td>7</td></tr>
+  <tr><td><code>(sub n)</code></td><td><code>(- n)</code></td><td>Subtract</td><td><code>10(- 3)</code></td><td>7</td></tr>
+  <tr><td><code>(mul n)</code></td><td><code>(* n)</code></td><td>Multiply</td><td><code>3(* 4)</code></td><td>12</td></tr>
+  <tr><td><code>(div n)</code></td><td><code>(/ n)</code></td><td>Divide</td><td><code>12(/ 4)</code></td><td>3</td></tr>
+  <tr><td><code>(pow n)</code></td><td><code>(** n)</code></td><td>Power</td><td><code>2(** 8)</code></td><td>256</td></tr>
+  <tr><td><code>(mod n)</code></td><td><code>(/+ n)</code></td><td>Remainder</td><td><code>10(/+ 3)</code></td><td>1</td></tr>
+</table>
+
+<p>These are just aliases — they do exactly the same thing as the long forms. You can use whichever style you prefer, and you can mix them freely:</p>
+
+<div class="code-block">
+  <pre>// Long form
+@c(log "The answer"(join " is:") 6(mul 7)(div 2))
+
+// Short form — identical result
+@c(log "The answer"(+ " is:") 6(* 7)(/ 2))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Both lines display: <code>The answer is: 21</code></p>
+
+<div class="note">Op-words are <em>words</em> in the Mesgjs sense — they're just words that happen to be made entirely of punctuation characters. They follow the same message-sending rules as any other operation name. The <code>+</code> in <code>(+ n)</code> is the operation name, not a traditional infix operator — it still goes <em>inside</em> the parentheses, after the receiver.</div>
+
+<p>The <code>join</code> message on strings also has a short alias: <code>(+)</code>. So you can write:</p>
+
+<div class="code-block">
+  <pre>@c(log Hello(+ ", " world "!"))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays: <code>Hello, world!</code></p>
+
+<p>There are also comparison op-words you'll use later when you learn about conditionals:</p>
+
+<table>
+  <tr><th>Long form</th><th>Short form</th><th>Meaning</th></tr>
+  <tr><td><code>(eq v)</code></td><td><code>(= v)</code></td><td>Equal to</td></tr>
+  <tr><td><code>(ne v)</code></td><td><code>(!= v)</code></td><td>Not equal to</td></tr>
+  <tr><td><code>(gt v)</code></td><td><code>(&gt; v)</code></td><td>Greater than</td></tr>
+  <tr><td><code>(ge v)</code></td><td><code>(&gt;= v)</code></td><td>Greater than or equal</td></tr>
+  <tr><td><code>(lt v)</code></td><td><code>(&lt; v)</code></td><td>Less than</td></tr>
+  <tr><td><code>(le v)</code></td><td><code>(&lt;= v)</code></td><td>Less than or equal</td></tr>
+</table>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 1.1 — Rewrite with Op-Words</h4>
+  <p>Rewrite this expression using op-word aliases instead of the long-form names:</p>
+  <div class="code-block">
+    <pre>@c(log 10(add 5)(mul 3)(sub 1))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <button class="show-answer" onclick="toggleAnswer('ans-1-1')">Show Answer</button>
+  <div class="answer" id="ans-1-1">
+    <div class="code-block">
+      <pre>@c(log 10(+ 5)(* 3)(- 1))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: 44. Both forms are identical — <code>(10 + 5) × 3 − 1 = 44</code>.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 1.2 — Powers and Remainders</h4>
+  <p>Try these op-word examples:</p>
+  <div class="code-block">
+    <pre>@c(log 2(** 10))
+@c(log 17(/+ 5))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you get? (Hint: <code>2(** 10)</code> is 2 raised to the power of 10; <code>17(/+ 5)</code> is the remainder (mnemonic: the additional amount left over after division) when 17 is divided by 5.)</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-1-2')">Show Answer</button>
+  <div class="answer" id="ans-1-2">
+    <p><code>2(** 10)</code> → <code>1024</code></p>
+    <p><code>17(/+ 5)</code> → <code>2</code> (17 = 3×5 + 2)</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 1.3 — String Join with Op-Word</h4>
+  <p>Use the <code>(+)</code> op-word alias for <code>join</code> to build a greeting:</p>
+  <div class="code-block">
+    <pre>@c(log Good(+ " morning, " world "!"))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try building your own greeting using <code>(+)</code>.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="lists">2. Lists</h2>
+
+<div class="lesson">
+<p>A <strong>list</strong> is a collection that can hold any number of values — numbers, text, other lists, code blocks, or anything else. Lists are used heavily in Mesgjs.</p>
+
+<h3>Positional and named items</h3>
+
+<p>A list can contain two kinds of items:</p>
+<ul>
+  <li><strong>Positional items</strong> — values listed one after another, automatically numbered starting from <code>0</code></li>
+  <li><strong>Named items</strong> — values paired with a name using <code>=</code>, just like named values in messages</li>
+</ul>
+
+<p>A list can have both kinds at the same time:</p>
+
+<div class="code-block">
+  <pre>// Three positional items (indices 0, 1, 2)
+[red green blue]
+
+// Two named items
+[name=Alice age=30]
+
+// Mixed: one positional item and two named items
+["software engineer" name=Alice age=30]</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<h3>Creating a list</h3>
+
+<p>You create a list by putting values between <code>[</code> and <code>]</code>. Lists can contain a mix of value types, and they can even contain other lists:</p>
+
+<div class="code-block">
+  <pre>// A list of three numbers
+#(nset scores=[10 20 30])
+
+// A list with named items
+#(nset person=[name=Alice age=30])
+
+// A list containing another list
+#(nset breakfast=['orange juice' crepes=[milk eggs flour]])</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>In the last example, <code>#breakfast</code> is a list with two items:</p>
+<ul>
+  <li>A positional value (index 0): the string <code>'orange juice'</code></li>
+  <li>A named value: <code>crepes</code>, which is itself a list of three positional items</li>
+</ul>
+
+<h3>Accessing list items</h3>
+
+<p>Use <code>(at key)</code> to get an item from a list. You can provide a series of keys to navigate into nested lists in one step:</p>
+
+<div class="code-block">
+  <pre>#(nset breakfast=['orange juice' crepes=[milk eggs flour]])
+
+// Get the first positional item (index 0)
+@c(log #(at breakfast 0))
+
+// Get the named item "crepes"
+@c(log #(at breakfast crepes))
+
+// Get the first item inside "crepes" (index 0)
+@c(log #(at breakfast crepes 0))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>The output will be:</p>
+<ul>
+  <li><code>orange juice</code></li>
+  <li>The crepes list (displayed as its contents)</li>
+  <li><code>milk</code></li>
+</ul>
+
+<div class="note">Notice that <code>#(at breakfast 0)</code> uses the <em>full form</em> of the <code>at</code> message sent directly to <code>#</code>. This is more efficient than the two-step <code>#breakfast(at 0)</code> (which first retrieves the list, then sends <code>at</code> to it), though both work. For deeply nested access, the full form is preferred.</div>
+
+<h3>Setting values in lists (including nested lists)</h3>
+
+<p>You can set or update a value inside a list — even deep inside a nested list — using the <code>(set)</code> message. Provide the key path leading to the item, then use <code>to=</code> for the new value:</p>
+
+<div class="code-block">
+  <pre>// Start with the breakfast list from before
+#(nset breakfast=['orange juice' crepes=[milk eggs flour]])
+
+// Add a "toppings" list inside the nested "crepes" list
+#(set breakfast crepes toppings to=[berries 'whipped cream'])
+
+// Verify it was set
+@c(log #(at breakfast crepes toppings 0))
+@c(log #(at breakfast crepes toppings 1))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<ul>
+  <li><code>berries</code></li>
+  <li><code>whipped cream</code></li>
+</ul>
+
+<p>The key path <code>breakfast crepes toppings</code> tells Mesgjs to navigate into <code>#breakfast</code>, then into the <code>crepes</code> item, and set the <code>toppings</code> key there. Mesgjs creates any missing intermediate lists automatically.</p>
+
+<p>You can also update a single value at any depth the same way:</p>
+
+<div class="code-block">
+  <pre>// Change the first crepe ingredient from "milk" to "oat milk"
+#(set breakfast crepes 0 to='oat milk')
+@c(log #(at breakfast crepes 0))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays: <code>oat milk</code></p>
+
+<h3>The shortcut for named items</h3>
+
+<p>Just like <code>#name</code> is a shortcut for <code>#(at name)</code>, you can chain the shortcut for named items in a list:</p>
+
+<div class="code-block">
+  <pre>#(nset config=[host=localhost port=8080])
+
+// Full form
+@c(log #(at config host))
+
+// Two-step shortcut
+@c(log #config(at host))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Both display <code>localhost</code>.</p>
+
+<h3>Lists, storage, and message parameters</h3>
+
+<p>You may have noticed that the storage objects <code>#</code>, <code>%</code>, <code>!</code>, and others respond to the same <code>(at)</code>, <code>(nset)</code>, and <code>(set)</code> messages as lists. That's because storage objects <em>are</em> lists — they're just special built-in ones. Everything you learn about lists applies to storage too.</p>
+
+<p>In fact, the values you pass inside a message are <em>also</em> a list — just without the <code>[</code> and <code>]</code> brackets. The values start after the operation name and end at the closing <code>)</code>. This is why named values work the same way in messages and in lists — they're the same underlying concept:</p>
+
+<div class="code-block">
+  <pre>// Named values in a message parameter list
+#(nset name=Alice age=30)
+
+// Named values in a [ ] list
+[name=Alice age=30]</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>In both cases, <code>name=Alice</code> and <code>age=30</code> are named items in a list. The <code>with=", "</code> you used in Part 1's <code>join</code> message is a named item in the message's parameter list, just like <code>name=Alice</code> is a named item in a <code>[...]</code> list.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.1 — Create and Access a List</h4>
+  <p>Create a list of your three favorite foods and display the second one (index 1):</p>
+  <div class="code-block">
+    <pre>#(nset foods=[pizza sushi tacos])
+@c(log #(at foods 1))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Change the foods to your own favorites. What index would you use to get the third item?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-2-1')">Show Answer</button>
+  <div class="answer" id="ans-2-1">
+    <p>Index <code>2</code> gets the third item (remember: counting starts at 0).</p>
+    <div class="code-block">
+      <pre>@c(log #(at foods 2))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.2 — Named Items in a List</h4>
+  <p>Create a list describing a book with named items, then display the title and author:</p>
+  <div class="code-block">
+    <pre>#(nset book=[title="The Hobbit" author="J.R.R. Tolkien" year=1937])
+@c(log #(at book title) by #(at book author))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try changing the book to one of your favorites.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.3 — Nested Lists</h4>
+  <p>Create a nested list and access items at different depths:</p>
+  <div class="code-block">
+    <pre>#(nset data=[name=Alice scores=[95 87 92]])
+@c(log #(at data name))
+@c(log #(at data scores 0))
+@c(log #(at data scores 2))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you expect each line to display?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-2-3')">Show Answer</button>
+  <div class="answer" id="ans-2-3">
+    <ul>
+      <li>Line 1: <code>Alice</code></li>
+      <li>Line 2: <code>95</code> (first score, index 0)</li>
+      <li>Line 3: <code>92</code> (third score, index 2)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.4 — Mixed Positional and Named Items</h4>
+  <p>A list can have both positional and named items. Try this:</p>
+  <div class="code-block">
+    <pre>#(nset info=["Alice Smith" age=30 city=Chicago])
+@c(log #(at info 0))
+@c(log #(at info age))
+@c(log #(at info city))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What does each line display?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-2-4')">Show Answer</button>
+  <div class="answer" id="ans-2-4">
+    <ul>
+      <li>Line 1: <code>Alice Smith</code> (positional index 0)</li>
+      <li>Line 2: <code>30</code> (named key <code>age</code>)</li>
+      <li>Line 3: <code>Chicago</code> (named key <code>city</code>)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.5 — Setting Nested Values</h4>
+  <p>Start with a list describing a person, then add a nested <code>address</code> list to it using <code>(set)</code>:</p>
+  <div class="code-block">
+    <pre>#(nset person=[name=Alice age=30])
+
+// Add an address nested inside person
+#(set person address to=[city=Chicago country="United States"])
+
+// Read back the nested values
+@c(log #(at person name))
+@c(log #(at person address city))
+@c(log #(at person address country))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Now update just the city to a different value using <code>(set)</code>:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-2-5')">Show Answer</button>
+  <div class="answer" id="ans-2-5">
+    <div class="code-block">
+      <pre>#(set person address city to=Seattle)
+@c(log #(at person address city))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>This displays: <code>Seattle</code></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="code-blocks">3. Code Blocks</h2>
+
+<div class="lesson">
+<p>A <strong>code block</strong> is an object that contains a chunk of Mesgjs code. You can store it, pass it around, and run it whenever you want — even multiple times. Code blocks are the foundation for reusable code in Mesgjs.</p>
+
+<h3>Creating a code block</h3>
+
+<p>A code block is written as Mesgjs code surrounded by curly braces. There are two forms:</p>
+
+<table>
+  <tr><th>Form</th><th>Syntax</th><th>Default return value</th></tr>
+  <tr><td>Standard block</td><td><code>{ ... }</code></td><td><code>@u</code> (undefined)</td></tr>
+  <tr><td>Value-returning block</td><td><code>{ ... !}</code></td><td>The last value in the block</td></tr>
+</table>
+
+<div class="note"><code>!}</code> is a single token — it means "end this block and return the last value." Do not put a space between <code>!</code> and <code>}</code>, as that would change the meaning.</div>
+
+<p>Writing a code block <em>creates</em> it as an object — the code inside is not executed at that point. The block just sits there, ready to be used, until something explicitly runs it.</p>
+
+<h3>Running a code block</h3>
+
+<p>Send the <code>(run)</code> message to a code block to execute it:</p>
+
+<div class="code-block">
+  <pre>// Create a code block and store it
+#(nset greet={ @c(log "Hello from a code block!") })
+
+// Run it
+#greet(run)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays: <code>Hello from a code block!</code></p>
+
+<p>You can run the same block as many times as you like:</p>
+
+<div class="code-block">
+  <pre>#(nset greet={ @c(log "Hello!") })
+#greet(run)
+#greet(run)
+#greet(run)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays <code>Hello!</code> three times.</p>
+
+<h3>Value-returning blocks</h3>
+
+<p>When a block ends with <code>!}</code>, it returns the last value evaluated inside it. This is useful when you want to use the result of a block:</p>
+
+<div class="code-block">
+  <pre>// This block returns the result of the calculation
+#(nset calc={ 6(* 7) !})
+@c(log "The result is:" #calc(run))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays: <code>The result is: 42</code></p>
+
+<h3>A self-returning block</h3>
+
+<p>Here's a clever trick: a block can return <em>itself</em>, which lets you chain <code>(run)</code> calls:</p>
+
+<div class="code-block">
+  <pre>#(nset greet={ @c(log Welcome to Mesgjs) #greet !})
+#greet(run)(run)(run)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>What's happening step by step:</p>
+<ol>
+  <li><code>#(nset greet=...)</code> stores the code block in scratch storage as <code>greet</code></li>
+  <li>The code block, when run, logs <code>"Welcome to Mesgjs"</code> and then returns <code>#greet</code> — itself!</li>
+  <li><code>#greet(run)</code> runs the block the first time, returning the block itself</li>
+  <li><code>(run)</code> is chained onto that result, running it a second time</li>
+  <li>Another <code>(run)</code> runs it a third time</li>
+</ol>
+
+<p>This displays <code>Welcome to Mesgjs</code> three times.</p>
+
+<div class="tip">Code blocks are the building blocks for functions, loops, and conditionals in Mesgjs. You'll learn about those in Part 3. For now, focus on understanding how to create, store, and run them.</div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.1 — Your First Code Block</h4>
+  <p>Create a code block that displays your name, store it, and run it:</p>
+  <div class="code-block">
+    <pre>#(nset sayName={ @c(log My name is Alice) })
+#sayName(run)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Change the name to your own, then run it three times by calling <code>#sayName(run)</code> three times.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.2 — Value-Returning Block</h4>
+  <p>Create a block that calculates and returns a value, then use the result:</p>
+  <div class="code-block">
+    <pre>#(nset area={ 5(* 8) !})
+@c(log "Area of 5×8 rectangle:" #area(run))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try changing the dimensions. What happens if you use <code>}</code> instead of <code>!}</code>?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-2')">Show Answer</button>
+  <div class="answer" id="ans-3-2">
+    <p>With <code>}</code> (standard block), the block returns <code>@u</code> (undefined) instead of the calculation result. The log would display <code>Area of 5×8 rectangle: undefined</code> (or similar, depending on how the browser displays undefined).</p>
+    <p>With <code>!}</code> (value-returning block), the last value — the result of <code>5(* 8)</code> — is returned, so the log displays <code>Area of 5×8 rectangle: 40</code>.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.3 — Block Using Scratch Storage</h4>
+  <p>A code block can read from scratch storage. Try this:</p>
+  <div class="code-block">
+    <pre>#(nset greeting="Good morning")
+#(nset name=Alice)
+#(nset sayHi={ @c(log #greeting #name) })
+#sayHi(run)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Now change <code>#name</code> to a different value and run the block again. Does it pick up the new value?</p>
+  <div class="code-block">
+    <pre>#(nset name=Bob)
+#sayHi(run)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-3')">Show Answer</button>
+  <div class="answer" id="ans-3-3">
+    <p>Yes! The block reads <code>#name</code> at the time it runs, not at the time it was created. So after setting <code>#name</code> to <code>Bob</code>, running the block again displays <code>Good morning Bob</code>.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.4 — Self-Returning Block</h4>
+  <p>Create a countdown block that returns itself, then chain three runs:</p>
+  <div class="code-block">
+    <pre>#(nset count=3)
+#(nset tick={
+  @c(log #count)
+  #(nset count=#count(- 1))
+  #tick
+!})
+#tick(run)(run)(run)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you see? (Don't worry about the <code>#(nset count=...)</code> line inside the block — it updates the scratch value each time the block runs. You'll learn more about this pattern in Part 3.)</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-4')">Show Answer</button>
+  <div class="answer" id="ans-3-4">
+    <p>The output is:</p>
+    <pre>3
+2
+1</pre>
+    <p>Each run logs the current count, decrements it by 1, and returns the block itself so the next <code>(run)</code> in the chain can execute it again.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="comments">4. Comments</h2>
+
+<div class="lesson">
+<p>A <strong>comment</strong> is text in your code that Mesgjs completely ignores. Comments are notes for the people reading the code — including your future self! Good comments explain <em>why</em> something is done, not just what.</p>
+
+<h3>Single-line comments</h3>
+
+<p>A single-line comment starts with <code>//</code> and continues to the end of that line:</p>
+
+<div class="code-block">
+  <pre>// This entire line is a comment
+@c(log Hello) // This part is a comment; the code before it still runs</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Everything from <code>//</code> to the end of the line is ignored. You can put a comment on its own line, or at the end of a line of code.</p>
+
+<p>Multiple <code>//</code> markers on the same line don't create separate comments — it's all one comment from the first <code>//</code> to the end of the line:</p>
+
+<div class="code-block">
+  <pre>// &lt;-- starts here // all // one // comment // ends here --&gt;</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<h3>Multi-line comments</h3>
+
+<p>A multi-line comment starts with <code>/*</code> and ends with <code>*/</code>. Everything between them is ignored, even if it spans multiple lines:</p>
+
+<div class="code-block">
+  <pre>/* This is a multi-line comment.
+   It can span as many lines as you need.
+   Mesgjs ignores all of this. */
+@c(log This runs normally)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Multi-line comments can also appear within a line:</p>
+
+<div class="code-block">
+  <pre>@c(log /* this part is ignored */ Hello)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<div class="note">Multi-line comments do <strong>not</strong> nest. The comment ends at the <em>first</em> <code>*/</code> encountered, regardless of any <code>/*</code> inside it:
+<div class="code-block">
+  <pre>/* &lt;-- starts here /* ends here --&gt; */ not part of comment */</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+In this example, the comment ends at the first <code>*/</code>, and the text after it (<code>not part of comment */</code>) would be treated as code — which would likely cause an error. Be careful not to nest <code>/* ... */</code> comments.</div>
+
+<h3>When to use which</h3>
+<ul>
+  <li>Use <code>//</code> for short notes on a single line</li>
+  <li>Use <code>/* ... */</code> for longer explanations, or to temporarily disable a block of code</li>
+</ul>
+
+<h3>Putting it all together</h3>
+
+<p>Here's a well-commented example using everything from Part 2:</p>
+
+<div class="code-block">
+  <pre>/* Calculate the area and perimeter of a rectangle.
+   Width = 8, Height = 5 */
+
+// Store the dimensions
+#(nset width=8 height=5)
+
+// Calculate area and perimeter using op-words
+#(nset area=#width(* #height))
+#(nset perimeter=2(* #width(+ #height)))
+
+// Display the results
+@c(log "Width:" #width "Height:" #height)
+@c(log "Area:" #area)
+@c(log "Perimeter:" #perimeter)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>This displays:</p>
+<pre style="background:#f4f4f4;padding:0.5em 1em;border-radius:3px;">Width: 8 Height: 5
+Area: 40
+Perimeter: 26</pre>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.1 — Add Comments</h4>
+  <p>Take this code and add a single-line comment before each line explaining what it does:</p>
+  <div class="code-block">
+    <pre>#(nset price=25 quantity=4)
+#(nset total=#price(* #quantity))
+@c(log "Total cost:" #total)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-1')">Show Answer</button>
+  <div class="answer" id="ans-4-1">
+    <div class="code-block">
+      <pre>// Store the price per item and the quantity
+#(nset price=25 quantity=4)
+// Calculate the total cost
+#(nset total=#price(* #quantity))
+// Display the result
+@c(log "Total cost:" #total)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.2 — Disable Code with a Comment</h4>
+  <p>One handy use of comments is temporarily disabling a line of code. Try commenting out the second log line:</p>
+  <div class="code-block">
+    <pre>@c(log Line 1 is active)
+@c(log Line 2 is disabled)
+@c(log Line 3 is active)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Add <code>//</code> at the start of the second line to disable it, then run the code. Only lines 1 and 3 should appear in the console.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-2')">Show Answer</button>
+  <div class="answer" id="ans-4-2">
+    <div class="code-block">
+      <pre>@c(log Line 1 is active)
+// @c(log Line 2 is disabled)
+@c(log Line 3 is active)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.3 — Multi-Line Comment</h4>
+  <p>Use a multi-line comment to add a header block to this program:</p>
+  <div class="code-block">
+    <pre>#(nset celsius=100)
+#(nset fahrenheit=#celsius(* 9)(/ 5)(+ 32))
+@c(log #celsius "°C =" #fahrenheit "°F")</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Add a <code>/* ... */</code> comment at the top that describes what the program does.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-3')">Show Answer</button>
+  <div class="answer" id="ans-4-3">
+    <div class="code-block">
+      <pre>/* Temperature converter: Celsius to Fahrenheit
+   Formula: F = (C × 9/5) + 32 */
+#(nset celsius=100)
+#(nset fahrenheit=#celsius(* 9)(/ 5)(+ 32))
+@c(log #celsius "°C =" #fahrenheit "°F")</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="summary">5. Summary</h2>
+
+<div class="lesson">
+<p>Great work! Here's a recap of everything you've learned in Part 2:</p>
+
+<table>
+  <tr><th>Concept</th><th>Example</th><th>What it does</th></tr>
+  <tr><td>Op-word alias</td><td><code>6(* 7)(/ 2)</code></td><td>Same as <code>6(mul 7)(div 2)</code> — gives 21</td></tr>
+  <tr><td>String join op-word</td><td><code>Hello(+ " world")</code></td><td>Same as <code>Hello(join " world")</code></td></tr>
+  <tr><td>Create a list</td><td><code>[10 20 30]</code></td><td>A list of three numbers</td></tr>
+  <tr><td>Named item in list</td><td><code>[name=Alice age=30]</code></td><td>A list with two named items</td></tr>
+  <tr><td>Access by index</td><td><code>#(at scores 0)</code></td><td>Gets the first item in the <code>scores</code> list</td></tr>
+  <tr><td>Access by name</td><td><code>#(at person name)</code></td><td>Gets the <code>name</code> item from the <code>person</code> list</td></tr>
+  <tr><td>Nested access</td><td><code>#(at data scores 1)</code></td><td>Gets index 1 of the <code>scores</code> list inside <code>data</code></td></tr>
+  <tr><td>Set nested value</td><td><code>#(set data scores 1 to=99)</code></td><td>Sets index 1 of the <code>scores</code> list inside <code>data</code> to 99</td></tr>
+  <tr><td>Standard code block</td><td><code>{ @c(log hello) }</code></td><td>A block that returns <code>@u</code> (undefined) when run</td></tr>
+  <tr><td>Value-returning block</td><td><code>{ 6(* 7) !}</code></td><td>A block that returns its last value (42) when run</td></tr>
+  <tr><td>Run a block</td><td><code>#myBlock(run)</code></td><td>Executes the stored code block</td></tr>
+  <tr><td>Single-line comment</td><td><code>// note here</code></td><td>Ignored from <code>//</code> to end of line</td></tr>
+  <tr><td>Multi-line comment</td><td><code>/* note here */</code></td><td>Ignored from <code>/*</code> to first <code>*/</code></td></tr>
+</table>
+
+<h3>Key things to remember</h3>
+<ul>
+  <li>Op-words like <code>*</code>, <code>/</code>, <code>+</code>, <code>-</code> are just aliases — they work exactly like <code>mul</code>, <code>div</code>, <code>add</code>, <code>sub</code></li>
+  <li>Lists are created with <code>[</code> and <code>]</code>; items can be positional (numbered from 0) or named</li>
+  <li>Storage objects like <code>#</code> are lists too — the same <code>(at)</code>, <code>(nset)</code>, and <code>(set)</code> messages work on both</li>
+  <li>Message parameters are also a list — the values between the operation name and the closing <code>)</code> work just like <code>[...]</code></li>
+  <li><code>{ ... }</code> returns <code>@u</code>; <code>{ ... !}</code> returns the last value — and <code>!}</code> is a single token (no space!)</li>
+  <li>Code blocks run when sent <code>(run)</code>; they can be stored, reused, and chained</li>
+  <li><code>//</code> comments end at the line break; <code>/* */</code> comments end at the first <code>*/</code> and do not nest</li>
+</ul>
+</div>
+
+<div class="exercise">
+  <h4>Final Exercise — Putting It All Together</h4>
+  <p>Write a Mesgjs program that:</p>
+  <ol>
+    <li>Uses a multi-line comment to describe what the program does</li>
+    <li>Stores a list of three product prices</li>
+    <li>Creates a code block that calculates and displays the total of the three prices (using op-words)</li>
+    <li>Runs the code block</li>
+  </ol>
+  <button class="show-answer" onclick="toggleAnswer('ans-final')">Show One Possible Answer</button>
+  <div class="answer" id="ans-final">
+    <div class="code-block">
+      <pre>/* Shopping cart total calculator.
+   Adds up three product prices and displays the total. */
+
+// Store the prices
+#(nset prices=[12 25 8])
+
+// Code block to calculate and display the total
+#(nset showTotal={
+  // Add all three prices together
+  #(nset total=#(at prices 0)(+ #(at prices 1))(+ #(at prices 2)))
+  @c(log "Total:" #total)
+})
+
+// Run it
+#showTotal(run)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Result: <code>Total: 45</code></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="part3-preview">Preview: What's in Part 3</h2>
+
+<p>In Part 3, you'll learn about:</p>
+<ul>
+  <li><strong>More storage types</strong> — object properties (<code>%</code>), message parameters (<code>!</code>), and safe access with <code>?</code> variants</li>
+  <li><strong>Functions</strong> — creating reusable, callable code with <code>(fn)</code></li>
+  <li><strong>Conditionals</strong> — making decisions with <code>(if)</code> and <code>(case)</code></li>
+  <li><strong>Loops</strong> — repeating actions with <code>(while)</code> and <code>(repeat)</code></li>
+  <li><strong>Early returns</strong> — exiting a block early with <code>@d(return)</code></li>
+</ul>
+
+<div class="nav">
+  <span><a href="Mesgjs-For-Beginners-Part1.html">← Part 1: Objects, Messages, and Scratch Storage</a></span>
+  <span><a href="Mesgjs-For-Beginners-Part3.html">Part 3: Functions, Conditionals, and Loops →</a></span>
+</div>
+
+<script>
+function toggleAnswer(id) {
+  const el = document.getElementById(id);
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+  } else {
+    el.style.display = 'block';
+  }
+}
+
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    // Fallback for environments without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
