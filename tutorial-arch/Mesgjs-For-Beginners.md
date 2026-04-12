@@ -64,8 +64,8 @@
     - What it means:
       - `#breakfast` is a scratch value consisting of a list with *two* items (one *positional* value, and one *named* value)
       - `#(at breakfast 0)` (or, less efficiently, `#breakfast(at 0)`) is a single-quoted tring `'orange juice'` (single-quoted strings work analogously to double-quoted strings)
-      - `#(at breakfast crepes)` is another list, containing three items
-      - `#(at breakfast crepes 0)`, for example, is the word `milk`
+      - `#(at breakfast crepes)` is another (nested) list, containing three items
+      - `#(at breakfast crepes 0)`, for example, is the string `milk`
 - Code blocks are objects that contain reusable chunks of code.
   - They consist of Mesgjs code surrounded by `{` and `}` or `{` and `!}`.
   - They run when sent the `run` message.
@@ -73,8 +73,8 @@
   - The second form (ending with `!}`) returns the last value in the code block by default.
   - `#(nset greet={ @c(log Welcome to Mesgjs) #greet !}) #greet(run)(run)(run)`
   - What it does:
-    - First, it stores a code block in scratch storage named "greet".
-    - The code block, when executeed, writes (logs) "Welcome to Mesgjs" on the console and returns *itself* as the result.
+    - First, it stores a code block in scratch storage named "#greet".
+    - The code block, when executed, writes (logs) "Welcome to Mesgjs" on the console and returns *itself* as the result.
     - Second, the code block is retrieved from scratch storage and sent the `run` message to trigger execution.
     - Since this particular code block returns itself as the result, we can repeat the greeting by sending additional `run` messages to the result of earlier runs!
 - Comments allow you to leave notes to yourself or other readers of your code
@@ -86,17 +86,25 @@
 
 ## Part Three
 
-- Object persistent storage (`%`)
+- Object persistent storage (`%`), global persistent storage (`%*`), and module persistent storage (`%/`)
 - Message parameters (`!`)
-- `(at ... else=defaultValue)` and `#?`/`%?`/`!?` variants
+- `(at ... else=defaultValue)` and `#?`/`%?`/`!?` etc. variants
 - Creating `@function` objects with `fn`
 - Conditionals
-- Mid-block returns with `@d(return)`
-  - Need some sort of segue into `@d`!
+- Mid-block returns with `@d(return value?)`
 - Basic repeat and while loops
-- List iteration loops?
+- List iteration loops
 
 ## Part Four
 
-- Global persistent storage (`%*`) and module persistent storage (`%/`)
 - Creating your own interfaces and objects
+- Examining the current dispatch via `@d`
+- Redispatching with `@d(redis)`
+- The `@default` handler
+- `@c(type)`, `@c(typeAccepts)`, `@c(typeChains)`
+- List-op-style messages
+  - (In general)
+  - In particular, using `else=` when the receiver doesn't accept the requested operation
+- Exercises
+  - What's wrong with the code `@c(log @c(typeAccepts @number =)(toList)(toString))`, and how would you fix it?
+  - Create an interface handler that returns different results depending on whether the sender is of the same type or a different one

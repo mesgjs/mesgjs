@@ -36,6 +36,11 @@ code {
   font-size: 0.95em;
 }
 
+/* Output block (plain pre showing program output) */
+pre.output {
+  padding: 0.5em 1em;
+}
+
 /* Code block with copy button */
 .code-block {
   position: relative;
@@ -124,6 +129,33 @@ code {
   content: "📝 Note: ";
   font-weight: bold;
   color: #1565c0;
+}
+
+/* Advanced notes box */
+.advanced-notes {
+  background: #f3e5f5;
+  border: 1px solid #ba68c8;
+  border-radius: 6px;
+  padding: 0.8em 1.2em;
+  margin: 1em 0;
+}
+
+.advanced-notes > h4 {
+  margin-top: 0;
+  color: #6a1b9a;
+}
+
+.advanced-notes > h4::before {
+  content: "🔬 ";
+}
+
+.advanced-notes ul {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.advanced-notes li {
+  margin-bottom: 0.8em;
 }
 
 /* Collapsible answer */

@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesgjs For Beginners — Part 3</title>
+<link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+
+<h1>Mesgjs For Beginners</h1>
+<p class="part-nav"><a href="Mesgjs-For-Beginners-Part2.html">← Part 2</a> &nbsp;|&nbsp; Part 3 of 4 &nbsp;|&nbsp; <a href="#part4-preview">Preview: What's in Part 4 →</a></p>
+
+<p>Welcome back! In Parts 1 and 2 you learned the core ideas of Mesgjs — objects, messages, scratch storage, lists, code blocks, and comments. In this part we'll cover the tools that make programs truly useful: functions, conditionals, and loops.</p>
+
+<ul>
+  <li><strong>More storage types</strong> — object properties (<code>%</code>), message parameters (<code>!</code>), global storage (<code>%*</code>), module storage (<code>%/</code>) and safe access with <code>?</code> variants</li>
+  <li><strong>Functions</strong> — creating reusable, callable code with <code>(fn)</code></li>
+  <li><strong>Conditionals</strong> — making decisions with <code>(if)</code> and <code>(case)</code></li>
+  <li><strong>Early returns</strong> — exiting a block early with <code>@d(return)</code></li>
+  <li><strong>Loops</strong> — repeating actions with <code>(run)</code> and <code>(while)</code></li>
+  <li><strong>List iteration</strong> — iterating over list entries with <code>@kvIter</code></li>
+</ul>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#more-storage">More Storage Types</a></li>
+    <li><a href="#safe-access">Safe Access: <code>?</code> Variants and Default Values</a></li>
+    <li><a href="#functions">Functions</a></li>
+    <li><a href="#conditionals">Conditionals</a></li>
+    <li><a href="#early-return">Early Returns</a></li>
+    <li><a href="#loops">Loops</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="more-storage">1. More Storage Types</h2>
+
+<div class="lesson">
+<p>In Part 1 you learned about <code>#</code> (scratch storage) — a temporary notepad for values during the current operation. Mesgjs has several other storage objects, each with a different scope (what it's used for) and lifetime (when and how long it's available). Here's the full picture:</p>
+
+<table>
+  <tr><th>Storage</th><th>Name</th><th>Scope / Lifetime</th></tr>
+  <tr><td><code>#</code></td><td>Scratch</td><td>Temporary; per dispatch (current operation)</td></tr>
+  <tr><td><code>!</code></td><td>Message parameters</td><td>The values passed in the current message call</td></tr>
+  <tr><td><code>%</code></td><td>Object properties</td><td>Persistent; belongs to the current object</td></tr>
+  <tr><td><code>%*</code></td><td>Global shared storage</td><td>Persistent; shared across the entire program</td></tr>
+  <tr><td><code>%/</code></td><td>Module storage</td><td>Persistent; private to the current module</td></tr>
+</table>
+
+<p>All of these storage objects respond to the same messages you already know: <code>(at)</code>, <code>(nset)</code>, <code>(set)</code>, and so on — because they're all lists under the hood.</p>
+
+<h3>Message parameters: <code>!</code></h3>
+
+<p>The <code>!</code> storage object holds the values passed in the current message call. You'll use it inside functions (covered below) and object interface methods (covered in Part 4).</p>
+
+<h3>Object properties: <code>%</code></h3>
+
+<p>The <code>%</code> storage object holds values that belong to the <em>current object</em> and persist across multiple calls. This is how objects remember information. You'll use <code>%</code> most when creating your own "interfaces" (covered in Part 4), but you can also use it in functions to give them persistent memory — more on that below.</p>
+
+<h3>Global shared storage: <code>%*</code></h3>
+
+<p>The <code>%*</code> storage object is shared across the entire program. Values stored here are accessible from anywhere. It works just like <code>#</code>, but the values persist for the lifetime of the program rather than just the current operation:</p>
+
+<div class="code-block">
+  <pre>// Store a value in global storage
+%*(nset appName="My Mesgjs App" version=1)
+
+// Access it from anywhere
+@c(log %*appName "version" %*version)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>My Mesgjs App version 1</code></p>
+
+<div class="tip">In the examples throughout this tutorial, you'll often see functions stored in <code>%*</code> (global storage). This is the idiomatic Mesgjs pattern for defining reusable functions — it makes them accessible from anywhere in the program. You'll see this in action starting in <a href="#functions">Section 3</a>.</div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 1.1 — Global Storage</h4>
+  <p>Store your name and favorite color in global storage, then display them:</p>
+  <div class="code-block">
+    <pre>%*(nset myName=Alice favoriteColor=blue)
+@c(log %*myName "likes the color" %*favoriteColor)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Change the values to your own name and color. Then try updating just the color using <code>%*(nset favoriteColor=green)</code> and displaying it again.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="safe-access">2. Safe Access: <code>?</code> Variants and Default Values</h2>
+
+<div class="lesson">
+<p>What happens if you try to access a value that doesn't exist? By default, Mesgjs generates an error. But often you'd rather get a safe fallback instead. Mesgjs gives you two tools for this.</p>
+
+<h3>The <code>?</code> shortcut variants</h3>
+
+<p>The simplest approach is to use a <code>?</code> shortcut variant — a way of telling Mesgjs "I know this might not have a defined value yet, and that's OK." These work just like the regular shortcuts (<code>#name</code>, <code>%name</code>, etc.) but return <code>@u</code> (undefined) instead of generating an error when the key is missing:</p>
+
+<table>
+  <tr><th>Regular shortcut</th><th>Safe shortcut</th><th>Behavior when missing</th></tr>
+  <tr><td><code>#name</code></td><td><code>#?name</code></td><td>Returns <code>@u</code></td></tr>
+  <tr><td><code>%name</code></td><td><code>%?name</code></td><td>Returns <code>@u</code></td></tr>
+  <tr><td><code>!name</code></td><td><code>!?name</code></td><td>Returns <code>@u</code></td></tr>
+  <tr><td><code>%*name</code></td><td><code>%*?name</code></td><td>Returns <code>@u</code></td></tr>
+  <tr><td><code>%/name</code></td><td><code>%/?name</code></td><td>Returns <code>@u</code></td></tr>
+</table>
+
+<div class="code-block">
+  <pre>// When #score doesn't exist yet
+@c(log #?score)   // @u (undefined) — no error
+
+#(nset score=95)
+@c(log #?score)   // 95</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output (you may have to reload the REPL page in your browser):</p>
+<pre class="output">undefined
+95</pre>
+
+<h3>The <code>else=</code> parameter</h3>
+
+<p>Sometimes you want a more specific default value than <code>@u</code>. The <code>(at)</code> message accepts an <code>else=</code> parameter. If the key doesn't exist (or any of the keys, when there's more than one), the <code>else</code> value is returned instead of generating an error:</p>
+
+<div class="code-block">
+  <pre>// When #score doesn't exist yet
+@c(log #(at score else=0))
+
+// Now set it
+#(nset score=95)
+@c(log #(at score else=0))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">0
+95</pre>
+
+<p>The <code>else=</code> value can be any expression, including a code block that will be run to produce the default:</p>
+
+<div class="code-block">
+  <pre>@c(log #(at name else="(unknown)"))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>(unknown)</code></p>
+
+<p>Just as the shortcut <code>#name</code> (for example) sends the message <code>#(at name)</code> for you, <code>#?name</code> sends the message <code>#(at name else=@u)</code> for you.</p>
+
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.1 — Safe Access with <code>?</code></h4>
+  <p>Try accessing a scratch value that doesn't exist using both the regular and safe shortcuts:</p>
+  <div class="code-block">
+    <pre>// This will generate an error:
+// @c(log #missing)
+
+// This returns @u safely:
+@c(log #?missing)
+
+// Now set it and try again:
+#(nset missing=found)
+@c(log #?missing)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you see for each line?</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-2-1')">Show Answer</button>
+  <div class="answer" id="ans-2-1">
+    <ul>
+      <li>Line 1 (commented out): would generate an error</li>
+      <li>Line 2: displays <code>undefined</code></li>
+      <li>Line 3: displays <code>found</code></li>
+    </ul>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 2.2 — Default Values with <code>else=</code></h4>
+  <p>Use <code>else=</code> to provide a specific default when a value might not exist. Try this pattern for a "visit counter" that starts from zero:</p>
+  <div class="code-block">
+    <pre>// First visit: #visits doesn't exist yet, so else=0 is used
+#(nset visits=#(at visits else=0)(+ 1))
+@c(log "Visit count:" #visits)
+
+// Second visit: #visits now exists
+#(nset visits=#(at visits else=0)(+ 1))
+@c(log "Visit count:" #visits)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you see? Try running it a few more times by adding more lines.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="functions">3. Functions</h2>
+
+<div class="lesson">
+<p>In Part 2 you learned about code blocks — chunks of code you can store and run. <strong>Functions</strong> are a step up from code blocks: they have their own persistent storage, fresh scratch storage every call, and they can accept parameters.</p>
+
+<h3>Creating a function</h3>
+
+<p>You create a function by writing a code block and sending it the <code>(fn)</code> message:</p>
+
+<div class="code-block">
+  <pre>// A simple function that squares a number
+%*(nset square={
+  !0(* !0)
+!}(fn))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>The <code>(fn)</code> message creates a new function object. It shares the same code as the original code block, but it is a new and otherwise independent object. Like the original code block, the code inside is not executed yet — it's just stored, ready to be called.</p>
+
+<div class="note">You can also send a <code>(fn)</code> message to a existing function, and it works exactly the same way as if you had sent the message to the original code block.</div>
+
+<h3>Calling a function and accessing parameters with <code>!</code></h3>
+
+<p>Unlike code blocks (which are run with <code>(run)</code>), functions are called with <code>(call)</code>. The key difference is that <code>(call)</code> accepts parameters — the values you pass become the function's <strong>message parameters</strong>, accessible inside the function via the <code>!</code> storage object. Positional parameters are accessed by index: <code>!0</code> is the first, <code>!1</code> is the second, and so on. Named parameters are accessed by name:</p>
+
+<div class="code-block">
+  <pre>%*(nset square={
+  !0(* !0)
+!}(fn))
+
+@c(log %*square(call 5))    // 25
+@c(log %*square(call 12))   // 144</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">25
+144</pre>
+
+<h3>Functions vs. code blocks</h3>
+
+<p>The key difference between a function and a plain code block is <em>context isolation</em>:</p>
+
+<table>
+  <tr><th></th><th>Code block (<code>{ }</code>)</th><th>Function (<code>{ }(fn)</code>)</th></tr>
+  <tr><td>Runs in</td><td>The current dispatch context</td><td>A fresh dispatch context</td></tr>
+  <tr><td>Scratch storage (<code>#</code>)</td><td>Shared with caller</td><td>Fresh, empty each call</td></tr>
+  <tr><td>Parameters (<code>!</code>)</td><td>Caller's parameters</td><td>Values passed to <code>(call)</code></td></tr>
+  <tr><td>Object properties (<code>%</code>)</td><td>Caller's object</td><td>Function's own persistent state</td></tr>
+  <tr><td>Called with</td><td><code>(run)</code></td><td><code>(call)</code></td></tr>
+</table>
+
+<p>(We'll explain dispatch contexts in Part 4.)</p>
+
+<p>Because functions have their own fresh scratch storage, they don't accidentally read or overwrite the caller's scratch values. This makes them safe to use as reusable building blocks.</p>
+
+<h3>A practical example: temperature conversion</h3>
+
+<div class="code-block">
+  <pre>// Convert Celsius to Fahrenheit: F = (C × 9/5) + 32
+%*(nset cToF={
+  !0(* 9)(/ 5)(+ 32)
+!}(fn))
+
+@c(log "0°C =" %*cToF(call 0) "°F")
+@c(log "100°C =" %*cToF(call 100) "°F")
+@c(log "37°C =" %*cToF(call 37) "°F")</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">0°C = 32 °F
+100°C = 212 °F
+37°C = 98.6 °F</pre>
+
+<h3>Named parameters</h3>
+
+<p>You can also pass named parameters to a function. Inside the function, access them by name using <code>!</code>:</p>
+
+<div class="code-block">
+  <pre>#(nset introduce={
+  @c(log My name is !name and I am !age years old.)
+!}(fn))
+
+#introduce(call name=Alice age=30)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>My name is Alice and I am 30 years old.</code></p>
+
+<h3>Functions calling other functions</h3>
+
+<p>Functions can call other functions. Here's an example where one conversion function builds on another:</p>
+
+<div class="code-block">
+  <pre>// First, convert Celsius to Kelvin: K = C + 273.15
+%*(nset cToK={ !0(+ 273.15) !}(fn))
+
+// Then, convert Kelvin to Fahrenheit: F = (K × 9/5) - 459.67
+%*(nset kToF={ !0(* 9)(/ 5)(- 459.67) !}(fn))
+
+// Now build Celsius to Fahrenheit by calling both functions
+%*(nset cToF={
+  #(nset kelvin=%*cToK(call !0))
+  %*kToF(call #kelvin)
+!}(fn))
+
+@c(log "0°C =" %*cToF(call 0) "°F")
+@c(log "100°C =" %*cToF(call 100) "°F")</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">0°C = 32 °F
+100°C = 212 °F</pre>
+
+<p>The <code>cToF</code> function calls <code>cToK</code> first to convert to Kelvin, then calls <code>kToF</code> to convert that result to Fahrenheit.</p>
+
+<h3>Default parameter values with <code>else=</code></h3>
+
+<p>The <code>else=</code> parameter you learned in Section 2 is especially useful inside functions, where a caller might or might not pass a particular argument:</p>
+
+<div class="code-block">
+  <pre>#(nset greet={
+  // Use the provided name, or "stranger" if none was given
+  #(nset name=!(at 0 else=stranger))
+  @c(log Hello, #name !)
+!}(fn))
+
+#greet(call Alice)
+#greet(call)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">Hello, Alice !
+Hello, stranger !</pre>
+
+<h3>Persistent state with <code>%</code> and <code>else=</code></h3>
+
+<p>Another common pattern is using <code>else=</code> with <code>%</code> (object properties) to initialize a value the first time it's needed. Here's a counter function that starts from zero automatically:</p>
+
+<div class="code-block">
+  <pre>// A counter function that remembers how many times it's been called
+#(nset counter={
+  %(nset count=%(at count else=0)(+ 1))
+  @c(log Count: %count)
+}(fn))
+
+#counter(call)
+#counter(call)
+#counter(call)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">Count: 1
+Count: 2
+Count: 3</pre>
+
+<p>On the first call, <code>%count</code> doesn't exist yet, so <code>%(at count else=0)</code> returns <code>0</code> (instead of generating an error). Adding 1 gives <code>1</code>, which is saved back to <code>%count</code>. On subsequent calls, <code>%count</code> already exists, so its current value is used.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.1 — Your First Function</h4>
+  <p>Write a function that takes a number and returns its cube (number × number × number):</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-1')">Show Answer</button>
+  <div class="answer" id="ans-3-1">
+    <div class="code-block">
+      <pre>%*(nset cube={
+  !0(* !0)(* !0) // or just !0((* !0 !0))
+!}(fn))
+
+@c(log %*cube(call 3))   // 27
+@c(log %*cube(call 5))   // 125</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.2 — Function with Multiple Parameters</h4>
+  <p>Write a function that takes a name and an age, and returns a greeting string like <code>"Alice is 30 years old"</code>:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-2')">Show Answer</button>
+  <div class="answer" id="ans-3-2">
+    <div class="code-block">
+      <pre>%*(nset describe={
+  !0(+ " is " !1 " years old")
+!}(fn))
+
+@c(log %*describe(call Alice 30))
+@c(log %*describe(call Bob 25))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 3.3 — Persistent State with <code>%</code></h4>
+  <p>Create a function that accumulates a running total. Each call adds a number to the total and returns the new total:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-3-3')">Show Answer</button>
+  <div class="answer" id="ans-3-3">
+    <div class="code-block">
+      <pre>#(nset accumulate={
+  %(nset total=%(at total else=0)(+ !0))
+  %total
+!}(fn))
+
+@c(log #accumulate(call 10))   // 10
+@c(log #accumulate(call 5))    // 15
+@c(log #accumulate(call 20))   // 35</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Each call adds to <code>%total</code>, which persists between calls because it's stored in the function's own <code>%</code> storage.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="conditionals">4. Conditionals</h2>
+
+<div class="lesson">
+<p>Conditionals let your program make decisions — doing different things depending on whether something is true or false. Mesgjs provides two conditional operations: <code>(if)</code> and <code>(case)</code>.</p>
+
+<h3>The <code>(if)</code> operation</h3>
+
+<p>The <code>(if)</code> operation is sent to <code>@c</code> (the core object). It takes pairs of test/action values, and runs the action for the first test that is true:</p>
+
+<div class="code-block">
+  <pre>@c(if test1 action1
+      test2 action2
+      ...
+      else=defaultAction)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Each test and action is a code block (or any value). Tests are run one at a time; the first one that returns a truthy value causes its corresponding action to run. If no test is true, the <code>else=</code> action runs (or <code>@u</code> is returned if there's no <code>else=</code>).</p>
+
+<p>Here's a simple example:</p>
+
+<div class="code-block">
+  <pre>#(nset x=7)
+
+@c(if { #x(> 10) !} { @c(log "x is greater than 10") }
+      { #x(> 5) !}  { @c(log "x is greater than 5") }
+      else={ @c(log "x is 5 or less") })</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>x is greater than 5</code></p>
+
+<p>The tests are checked in order. Since <code>7 &gt; 10</code> is false, the first action is skipped. Since <code>7 &gt; 5</code> is true, the second action runs.</p>
+
+<div class="note">The test blocks use <code>!}</code> (value-returning blocks) because their result — true or false — needs to be returned to <code>(if)</code>. The action blocks use <code>}</code> (standard blocks) when they don't need to return a value, or <code>!}</code> when they do.</div>
+
+<h3>Simple one-branch <code>(if)</code></h3>
+
+<p>If you only need to do something when a condition is true (and nothing otherwise), you can use a single test/action pair without <code>else=</code>:</p>
+
+<div class="code-block">
+  <pre>#(nset temperature=35)
+
+@c(if { #temperature(> 30) !} {
+  @c(log "It's hot outside!")
+})</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>It's hot outside!</code></p>
+
+<h3>Using <code>(if)</code> to return a value</h3>
+
+<p>The <code>(if)</code> operation returns the result of whichever action ran. This lets you use it as an expression:</p>
+
+<div class="code-block">
+  <pre>#(nset score=85)
+
+#(nset grade=@c(if
+  { #score(>= 90) !} A
+  { #score(>= 80) !} B
+  { #score(>= 70) !} C
+  else=F
+))
+
+@c(log "Grade:" #grade)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>Grade: B</code></p>
+
+<p>Here the actions are plain values (<code>A</code>, <code>B</code>, <code>C</code>, <code>F</code>) rather than code blocks. When an action is a plain value (not a code block), <code>(if)</code> returns it directly.</p>
+
+<h3>The <code>(case)</code> operation</h3>
+
+<p>When you want to compare one value against several possibilities, <code>(case)</code> is cleaner than a chain of <code>(if)</code> tests. It takes a reference value, then pairs of comparison/result values:</p>
+
+<div class="code-block">
+  <pre>#(nset day=3)
+
+#(nset dayName=@c(case #day
+  1 Monday
+  2 Tuesday
+  3 Wednesday
+  4 Thursday
+  5 Friday
+  else=Weekend
+))
+
+@c(log #dayName)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>Wednesday</code></p>
+
+<p><code>(case)</code> compares the first value (<code>#day</code>) to each comparison value in order. When it finds a match, it returns the corresponding result. If nothing matches, it returns the <code>else=</code> value (or <code>@u</code>).</p>
+
+<h3>Logical operations: <code>(and)</code>, <code>(or)</code>, <code>(not)</code></h3>
+
+<p>You can combine conditions using logical operations on <code>@c</code>:</p>
+
+<table>
+  <tr><th>Operation</th><th>Short form</th><th>Meaning</th></tr>
+  <tr><td><code>@c(and a b)</code></td><td><code>@c(& a b)</code></td><td>True if both <code>a</code> and <code>b</code> are true</td></tr>
+  <tr><td><code>@c(or a b)</code></td><td><code>@c(| a b)</code></td><td>True if either <code>a</code> or <code>b</code> is true</td></tr>
+  <tr><td><code>@c(not a)</code></td><td><code>@c(~ a)</code></td><td>True if <code>a</code> is false</td></tr>
+</table>
+
+<div class="code-block">
+  <pre>#(nset age=25 hasTicket=@t)
+
+@c(if { @c(and #age(>= 18) #hasTicket) !} {
+  @c(log "You may enter.")
+} else={
+  @c(log "Entry denied.")
+})</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>You may enter.</code></p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.1 — Simple Conditional</h4>
+  <p>Write a program that checks if a number is positive, negative, or zero and logs the result:</p>
+  <div class="code-block">
+    <pre>#(nset n=-5)
+
+@c(if { #n(> 0) !} { @c(log positive) }
+      { #n(< 0) !} { @c(log negative) }
+      else={ @c(log zero) })</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>Try changing <code>n</code> to different values (positive, negative, zero) and verify the output.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.2 — Conditional in a Function</h4>
+  <p>Write a function that takes a number and returns <code>"even"</code> or <code>"odd"</code>:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-2')">Show Answer</button>
+  <div class="answer" id="ans-4-2">
+    <div class="code-block">
+      <pre>%*(nset evenOrOdd={
+  @c(if { !0(/+ 2)(= 0) !} even else=odd)
+!}(fn))
+
+@c(log %*evenOrOdd(call 4))    // even
+@c(log %*evenOrOdd(call 7))    // odd
+@c(log %*evenOrOdd(call 0))    // even</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p><code>!0(/+ 2)</code> is the remainder when dividing by 2. If it's 0, the number is even.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.3 — Using <code>(case)</code></h4>
+  <p>Write a program that maps a month number (1–12) to a season name. Months 12, 1, 2 are Winter; 3, 4, 5 are Spring; 6, 7, 8 are Summer; 9, 10, 11 are Autumn.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-3')">Show Answer</button>
+  <div class="answer" id="ans-4-3">
+    <div class="code-block">
+      <pre>%*(nset getSeason={
+  @c(case !0
+    12 Winter  1 Winter  2 Winter
+    3 Spring   4 Spring  5 Spring
+    6 Summer   7 Summer  8 Summer
+    9 Autumn  10 Autumn 11 Autumn
+    else=Unknown
+  )
+!}(fn))
+
+@c(log %*getSeason(call 3))    // Spring
+@c(log %*getSeason(call 7))    // Summer
+@c(log %*getSeason(call 12))   // Winter</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 4.4 — Logical Combinations</h4>
+  <p>Write a function that checks if a year is a leap year. A year is a leap year if it's divisible by 4, <em>except</em> for century years (divisible by 100), which must also be divisible by 400.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-4-4')">Show Answer</button>
+  <div class="answer" id="ans-4-4">
+    <div class="code-block">
+      <pre>%*(nset isLeapYear={
+  @c(if
+    { @c(and { !0(/+ 400)(= 0) !} @t) !} @t
+    { @c(and { !0(/+ 100)(= 0) !} @t) !} @f
+    { !0(/+ 4)(= 0) !} @t
+    else=@f
+  )
+!}(fn))
+
+@c(log %*isLeapYear(call 2000))   // @t (divisible by 400)
+@c(log %*isLeapYear(call 1900))   // @f (divisible by 100 but not 400)
+@c(log %*isLeapYear(call 2024))   // @t (divisible by 4)
+@c(log %*isLeapYear(call 2023))   // @f</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="advanced-notes">
+  <h4>Advanced Notes — Conditionals</h4>
+  <ul>
+    <li>
+      <strong>Conditionals are library features, not language syntax.</strong>
+      Unlike most programming languages, <code>(if)</code> and <code>(case)</code> (as well as the looping capabilities we'll cover below) aren't actually built into the Mesgjs language itself — they're part of the standard library that normally comes with Mesgjs. It's possible to add additional conditional or looping capabilities, or even to replace the standard ones if there's a reason to do so.
+    </li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="early-return">5. Early Returns</h2>
+
+<div class="lesson">
+<p>Sometimes you want to exit a function (or code block) before reaching the end — for example, when an error condition is detected, or when you've found the answer you were looking for. Mesgjs provides <code>@d(return)</code> for this purpose.</p>
+
+<h3>The <code>@d(return)</code> message</h3>
+
+<p><code>@d</code> is the current <strong>dispatch</strong> object — it represents the currently-executing message and various details about it (context). Sending it the <code>(return)</code> message immediately exits the current function or object message, optionally returning a value:</p>
+
+<div class="code-block">
+  <pre>@d(return)           // Exit with no value (@u)
+@d(return someValue) // Exit and return someValue</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Here's a practical example — a function that validates input and returns early if something is wrong:</p>
+
+<div class="code-block">
+  <pre>%*(nset safeDivide={
+  // Return @u if dividing by zero
+  @c(if { !1(= 0) !} { @d(return) })
+  !0(/ !1)
+!}(fn))
+
+@c(log %*safeDivide(call 10 2))    // 5
+@c(log %*safeDivide(call 10 0))    // undefined (early return)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">5
+undefined</pre>
+
+<p>When <code>!1</code> (the divisor) is 0, the function returns immediately with <code>@u</code>. Otherwise, it continues and returns the division result.</p>
+
+<h3>Returning a specific value early</h3>
+
+<div class="code-block">
+  <pre>%*(nset classify={
+  @c(if { !0(< 0) !} { @d(return negative) })
+  @c(if { !0(= 0) !} { @d(return zero) })
+  positive
+!}(fn))
+
+@c(log %*classify(call -5))   // negative
+@c(log %*classify(call 0))    // zero
+@c(log %*classify(call 7))    // positive</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">negative
+zero
+positive</pre>
+
+<p>Each early return exits the function immediately with the specified value. The last line (<code>positive</code>) is only reached if neither early return was triggered.</p>
+
+<div class="tip">Early returns are especially useful for "guard clauses" — checks at the top of a function that handle edge cases before the main logic runs. This keeps the main logic clean and unindented.</div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.1 — Guard Clause</h4>
+  <p>Write a function that computes the square root of a number, but returns <code>@u</code> early if the number is negative (since square roots of negative numbers are not real):</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-1')">Show Answer</button>
+  <div class="answer" id="ans-5-1">
+    <div class="code-block">
+      <pre>%*(nset safeSqrt={
+  @c(if { !0(< 0) !} { @d(return) })
+  !0(sqrt)
+!}(fn))
+
+@c(log %*safeSqrt(call 25))    // 5
+@c(log %*safeSqrt(call -4))    // undefined</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 5.2 — Early Return with a Value</h4>
+  <p>Write a function that accepts three numbers and returns the first one that is negative, or <code>@u</code> if they're all non-negative.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-5-2')">Show Answer</button>
+  <div class="answer" id="ans-5-2">
+    <div class="code-block">
+      <pre>%*(nset firstNegative={
+  @c(if { !0(< 0) !} { @d(return !0) })
+  @c(if { !1(< 0) !} { @d(return !1) })
+  @c(if { !2(< 0) !} { @d(return !2) })
+!}(fn))
+
+@c(log %*firstNegative(call 3 -1 5))    // -1
+@c(log %*firstNegative(call 1 2 3))     // undefined</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="loops">6. Loops</h2>
+
+<div class="lesson">
+<p>Loops let you repeat an action multiple times without writing the same code over and over. Mesgjs provides loops through the <code>@loop</code> interface. You create a loop object with <code>@c(get @loop)</code>, then send it messages to run iterations.</p>
+
+<h3>Creating a loop object</h3>
+
+<div class="code-block">
+  <pre>#(nset loop=@c(get @loop))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>A loop object is a reusable tool. You can run it multiple times (though not simultaneously).</p>
+
+<h3>Fixed-count loops: <code>(run)</code></h3>
+
+<p>The <code>(run)</code> message runs a code block a fixed number of times:</p>
+
+<div class="code-block">
+  <pre>#(nset loop=@c(get @loop))
+
+#loop(run { @c(log Hello!) } times=3)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">Hello!
+Hello!
+Hello!</pre>
+
+<h3>Loop counters</h3>
+
+<p>Inside the loop body, you can ask the loop object for the current iteration number:</p>
+
+<table>
+  <tr><th>Message</th><th>Meaning</th></tr>
+  <tr><td><code>loop(num)</code></td><td>0-based iteration number (0 on first iteration)</td></tr>
+  <tr><td><code>loop(num1)</code></td><td>1-based iteration number (1 on first iteration)</td></tr>
+  <tr><td><code>loop(rem)</code></td><td>Iterations remaining <em>after</em> this one</td></tr>
+  <tr><td><code>loop(times)</code></td><td>Total planned iterations</td></tr>
+</table>
+
+<div class="code-block">
+  <pre>#(nset loop=@c(get @loop))
+
+#loop(run {
+  @c(log "Iteration" #loop(num1) "of" #loop(times))
+} times=4)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">Iteration 1 of 4
+Iteration 2 of 4
+Iteration 3 of 4
+Iteration 4 of 4</pre>
+
+<h3>Building a sum with a loop</h3>
+
+<div class="code-block">
+  <pre>// Sum 1 + 2 + 3 + ... + 10
+#(nset loop=@c(get @loop) total=0)
+
+#loop(run {
+  #(nset total=#total(+ #loop(num1)))
+} times=10)
+
+@c(log "Sum 1..10 =" #total)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>Sum 1..10 = 55</code></p>
+
+<h3>Conditional loops: <code>(while)</code></h3>
+
+<p>The <code>(while)</code> message runs a code block repeatedly as long as a condition remains true. The condition is a code block passed as the first argument (the <code>pre=</code> test), and the body is the second argument:</p>
+
+<div class="code-block">
+  <pre>#(nset loop=@c(get @loop) n=1)
+
+#loop(while
+  pre={ #n(<= 5) !}
+  { @c(log #n) #(nset n=#n(+ 1)) }
+)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">1
+2
+3
+4
+5</pre>
+
+<p>The <code>pre=</code> test block is evaluated before each iteration. When it returns false (or any falsy value), the loop stops.</p>
+
+<div class="note">The <code>pre=</code> test uses a value-returning block (<code>!}</code>) because its result — true or false — needs to be returned to the loop. The body block uses a standard block (<code>}</code>) since its return value isn't used by the loop.</div>
+
+<div class="note">Sometimes you want a loop to execute at least once before testing whether it should continue to execute. In that case, use <code>post=</code> as the name for your test block, and it will be checked after each loop iteration instead of before. By convention, the <code>post</code> test is placed after the body block, so that the visual arrangement matches the order in which the blocks are run.</div>
+
+<h3>Stopping a loop early: <code>(stop)</code></h3>
+
+<p>You can exit a loop before it finishes using <code>loop(stop)</code>:</p>
+
+<div class="code-block">
+  <pre>// Find the first number divisible by both 3 and 7
+#(nset loop=@c(get @loop) found=@u)
+
+#loop(run {
+  #(nset n=#loop(num1))
+  @c(if { @c(and { #n(/+ 3)(= 0) !} { #n(/+ 7)(= 0) !}) !} {
+    #(nset found=#n)
+    #loop(stop)
+  })
+} times=100)
+
+@c(log "First number divisible by 3 and 7:" #found)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>First number divisible by 3 and 7: 21</code></p>
+
+<h3>Collecting loop results</h3>
+
+<p>If you pass <code>collect=@t</code> to <code>(run)</code> or <code>(while)</code>, the loop collects all the body's return values into a list:</p>
+
+<div class="code-block">
+  <pre>#(nset loop=@c(get @loop))
+
+// Build a list of squares: [1, 4, 9, 16, 25]
+#(nset squares=#loop(run {
+  #loop(num1)(* #loop(num1))
+!} times=5 collect=@t))
+
+@c(log #squares(toString))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>[(1 4 9 16 25)]</code></p>
+
+<h3>Iterating over a list</h3>
+
+<p>While you <em>could</em> iterate over the <em>positional</em> values of a list using a <code>@loop</code> with manual index arithmetic, Mesgjs provides a purpose-built tool for this: the <code>@kvIter</code> (key-value iterator) interface. It is cleaner, handles both index and named keys automatically, and supports the same <code>collect=@t</code> option as <code>@loop</code>.</p>
+
+<p>You create an iterator with <code>@c(get @kvIter)</code>, and then call <code>(for source {...})</code> to run a code block for each item in the list.</p>
+
+<p>Inside the code block, the iterator object gives you three messages:</p>
+
+<table>
+  <tr><th>Message</th><th>Returns</th></tr>
+  <tr><td><code>iter(key)</code></td><td>The current key (a number for index entries, a string for named entries)</td></tr>
+  <tr><td><code>iter(value)</code></td><td>The current value</td></tr>
+  <tr><td><code>iter(isIndex)</code></td><td><code>@t</code> if the key is an index (non-negative integer), <code>@f</code> if it's a named key</td></tr>
+</table>
+
+<h3>Handling index entries (positional values) and named entries together</h3>
+
+<div class="code-block">
+  <pre>#(nset myList=[first middle=second last])
+#(nset iter=@c(get @kvIter))
+
+#iter(for #myList {
+  @c(log #iter(key) : #iter(value) 'index?' #iter(isIndex))
+})</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">0 : first index? false
+middle : second index? true
+1 : last index? false</pre>
+
+<p>As you can see, when you pass an unnamed code block, it is called for every list item (indexed/positional or named value).</p>
+
+<h3>Handling mixed lists with <code>index=</code> and <code>named=</code></h3>
+
+<p>Sometimes you only care about one type of value, or you care about both types but want to handle each type differently. You could use the <code>(isIndex)</code> message to handle this, but the <code>(for)</code> message offers an easier alternative, letting you provide separate handler blocks for each kind:</p>
+
+<div class="code-block">
+  <pre>#(nset mixed=[greeting=hello 42 label=world 7])
+#(nset iter=@c(get @kvIter))
+
+#iter(for #mixed
+  index={ @c(log index #iter(key) '=' #iter(value)) }
+  named={ @c(log named #iter(key) '=' #iter(value)) }
+)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">named greeting = hello
+index 0 = 42
+named label = world
+index 1 = 7</pre>
+
+<h3>Collecting results with <code>@kvIter</code></h3>
+
+<p>Just like <code>@loop</code>, you can pass <code>collect=@t</code> to gather all the iteration results into a list:</p>
+
+<div class="code-block">
+  <pre>#(nset numbers=[3 1 4 1 5] iter=@c(get @kvIter))
+
+// Build a list of doubled values
+#(nset doubled=#iter(for #numbers {
+  #iter(value)(* 2)
+!} collect=@t))
+
+@c(log #doubled(toString))</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>[(6 2 8 2 10)]</code></p>
+
+<h3>Stopping early and the <code>else=</code> block</h3>
+
+<p>You can stop iteration early with <code>iter(stop)</code>, and you can provide an <code>else=</code> block that runs (and whose value is returned) when the source list is empty:</p>
+
+<div class="code-block">
+  <pre>#(nset iter=@c(get @kvIter))
+
+// Find the first value greater than 3
+#(nset result=#iter(for [1 2 3 4 5] {
+  @c(if { #iter(value)(> 3) !} { #iter(stop result=#iter(value)) })
+!} else=@u))
+
+@c(log "First value > 3:" #result)</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output: <code>First value > 3: 4</code></p>
+
+<div class="tip">Use <code>@kvIter</code> when you need to work with the keys and values of a list, or when you want clean handling of mixed index/named lists. Use <code>@loop</code> when you need a fixed count (<code>(run times=n)</code>) or a condition-based loop (<code>(while)</code>) that isn't tied to a specific data source.</div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.1 — Count Down</h4>
+  <p>Use a loop to count down from 5 to 1, then log "Blast off!":</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-6-1')">Show Answer</button>
+  <div class="answer" id="ans-6-1">
+    <div class="code-block">
+      <pre>#(nset loop=@c(get @loop))
+
+#loop(run {
+  @c(log #loop(rem1))
+} times=5)
+
+@c(log "Blast off!")</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p><code>#loop(rem1)</code> is the number of iterations remaining at the start of the current one — so it counts 5, 4, 3, 2, 1.</p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.2 — Factorial with a Loop</h4>
+  <p>Write a function that computes the factorial of a number using a loop. (Factorial of n = 1 × 2 × 3 × ... × n; factorial of 0 = 1.)</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-6-2')">Show Answer</button>
+  <div class="answer" id="ans-6-2">
+    <div class="code-block">
+      <pre>%*(nset factorial={
+  #(nset result=1 loop=@c(get @loop))
+  #loop(run {
+    #(nset result=#result(* #loop(num1)))
+  } times=!0)
+  #result
+!}(fn))
+
+@c(log %*factorial(call 0))    // 1
+@c(log %*factorial(call 5))    // 120
+@c(log %*factorial(call 10))   // 3628800</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.3 — While Loop: Collatz Sequence</h4>
+  <p>The Collatz sequence starts from any positive integer. If the number is even, divide by 2; if odd, multiply by 3 and add 1. Repeat until you reach 1. Write a program that logs the Collatz sequence starting from 6:</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-6-3')">Show Answer</button>
+  <div class="answer" id="ans-6-3">
+    <div class="code-block">
+      <pre>#(nset loop=@c(get @loop) n=6)
+
+@c(log #n)
+#loop(while
+  pre={ #n(!= 1) !}
+  {
+    #(nset n=@c(if
+      { #n(/+ 2)(= 0) !} { #n(/ 2) !}
+      else={ #n(* 3)(+ 1) !}
+    ))
+    @c(log #n)
+  }
+)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Output: <code>6 3 10 5 16 8 4 2 1</code></p>
+  </div>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.4 — List Processing</h4>
+  <p>Given a list of numbers, write a program that logs only the even ones:</p>
+  <div class="code-block">
+    <pre>#(nset numbers=[1 2 3 4 5 6 7 8 9 10])
+#(nset loop=@c(get @loop))
+
+#loop(run {
+  #(nset n=#(at numbers #loop(num)))
+  @c(if { #n(/+ 2)(= 0) !} { @c(log #n) })
+} times=#numbers(size))</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What do you see? Try modifying it to log only the odd numbers instead.</p>
+</div>
+
+<div class="exercise">
+  <h4>Exercise 6.5 — Iterating with <code>@kvIter</code></h4>
+  <p>Use <code>@kvIter</code> to iterate over a mixed list and log each entry, labelling it as either an index entry or a named entry:</p>
+  <div class="code-block">
+    <pre>#(nset data=[title="Hello World" 42 author=Alice 7])
+#(nset iter=@c(get @kvIter))
+
+#iter(for #data
+  index={ @c(log "index[" #iter(key) "]=" #iter(value)) }
+  named={ @c(log "named[" #iter(key) "]=" #iter(value)) }
+)</pre>
+    <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+  </div>
+  <p>What output do you expect? Try it, then modify it to collect only the index values into a new list using <code>collect=@t</code> and <code>index=</code>.</p>
+  <button class="show-answer" onclick="toggleAnswer('ans-6-5')">Show Answer</button>
+  <div class="answer" id="ans-6-5">
+    <p>Expected output:</p>
+    <pre class="output">named[title]=Hello World
+index[0]=42
+named[author]=Alice
+index[1]=7</pre>
+    <p>To collect only the index values:</p>
+    <div class="code-block">
+      <pre>#(nset data=[title="Hello World" 42 author=Alice 7])
+#(nset iter=@c(get @kvIter))
+
+#(nset indexValues=#iter(for #data
+  index={ #iter(value) !}
+  collect=@t
+))
+
+@c(log #indexValues(toString))</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Output: <code>[(42 7)]</code></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="summary">7. Summary</h2>
+
+<div class="lesson">
+<p>Excellent work! Here's a recap of everything you've learned in Part 3:</p>
+
+<table>
+  <tr><th>Concept</th><th>Example</th><th>What it does</th></tr>
+  <tr><td>Message parameters</td><td><code>!0</code>, <code>!name</code></td><td>First positional param; named param</td></tr>
+  <tr><td>Object properties</td><td><code>%(nset x=1)</code>, <code>%x</code></td><td>Persistent storage for the current object</td></tr>
+  <tr><td>Global storage</td><td><code>%*(nset f=...)</code>, <code>%*f</code></td><td>Shared across the entire program</td></tr>
+  <tr><td>Safe access</td><td><code>#?name</code></td><td>Returns <code>@u</code> if key doesn't exist</td></tr>
+  <tr><td>Default value</td><td><code>#(at x else=0)</code></td><td>Returns 0 if <code>x</code> doesn't exist</td></tr>
+  <tr><td>Create a function</td><td><code>{ !0(* 2) !}(fn)</code></td><td>Creates a function from a code block</td></tr>
+  <tr><td>Call a function</td><td><code>%*double(call 5)</code></td><td>Calls the function with parameter 5</td></tr>
+  <tr><td>Conditional</td><td><code>@c(if { test !} action else=default)</code></td><td>Runs action if test is true</td></tr>
+  <tr><td>Case</td><td><code>@c(case val 1 one 2 two else=other)</code></td><td>Matches val against cases</td></tr>
+  <tr><td>Early return</td><td><code>@d(return value)</code></td><td>Exits current function/message with value</td></tr>
+  <tr><td>Fixed loop</td><td><code>loop(run { ... } times=5)</code></td><td>Runs the block 5 times</td></tr>
+  <tr><td>While loop</td><td><code>loop(while pre={ test !} { body })</code></td><td>Runs body while test is true</td></tr>
+  <tr><td>Stop loop</td><td><code>loop(stop)</code></td><td>Exits the loop immediately</td></tr>
+  <tr><td>Collect results</td><td><code>loop(run { val !} times=n collect=@t)</code></td><td>Returns a list of all block results</td></tr>
+  <tr><td>List iterator</td><td><code>@c(get @kvIter)</code></td><td>Creates a key-value iterator for a list</td></tr>
+  <tr><td>Iterate forward</td><td><code>iter(for myList { iter(key) iter(value) })</code></td><td>Visits every list item in order</td></tr>
+  <tr><td>Iterate by key type</td><td><code>iter(for myList index={...} named={...})</code></td><td>Separate blocks for index vs. named entries</td></tr>
+</table>
+
+<h3>Key things to remember</h3>
+<ul>
+  <li>Functions are created with <code>{ ... }(fn)</code> and called with <code>(call params)</code></li>
+  <li>Inside a function, <code>!</code> holds the call parameters; <code>%</code> holds persistent state; <code>#</code> is fresh scratch storage</li>
+  <li><code>#?name</code> and <code>!(at key else=default)</code> are your tools for safe, default-value access</li>
+  <li><code>@c(if)</code> takes test/action pairs; <code>@c(case)</code> matches a value against alternatives</li>
+  <li><code>@d(return value)</code> exits the current function or message immediately</li>
+  <li>Loops require a loop object: <code>@c(get @loop)</code></li>
+  <li><code>loop(num)</code> is 0-based; <code>loop(num1)</code> is 1-based — use <code>num</code> for list indexing, <code>num1</code> for display</li>
+  <li>To iterate (loop) over a list's items, use <code>@kvIter</code>: create with <code>@c(get @kvIter)</code>, then call <code>iter(for source { ... })</code>; inside the block, <code>iter(key)</code> and <code>iter(value)</code> give you the current item key and value</li>
+</ul>
+</div>
+
+<div class="exercise">
+  <h4>Final Exercise — Putting It All Together</h4>
+  <p>Write a Mesgjs program that:</p>
+  <ol>
+    <li>Defines a function <code>fizzbuzz</code> that takes a number and returns:
+      <ul>
+        <li><code>"FizzBuzz"</code> if divisible by both 3 and 5</li>
+        <li><code>"Fizz"</code> if divisible by 3 only</li>
+        <li><code>"Buzz"</code> if divisible by 5 only</li>
+        <li>The number itself otherwise</li>
+      </ul>
+    </li>
+    <li>Uses a loop to call <code>fizzbuzz</code> for numbers 1 through 20 and logs each result</li>
+  </ol>
+  <button class="show-answer" onclick="toggleAnswer('ans-final')">Show One Possible Answer</button>
+  <div class="answer" id="ans-final">
+    <div class="code-block">
+      <pre>%*(nset fizzbuzz={
+  @c(if
+    { @c(and { !0(/+ 3)(= 0) !} { !0(/+ 5)(= 0) !}) !} FizzBuzz
+    { !0(/+ 3)(= 0) !} Fizz
+    { !0(/+ 5)(= 0) !} Buzz
+    else=!0
+  )
+!}(fn))
+
+#(nset loop=@c(get @loop))
+#loop(run {
+  @c(log %*fizzbuzz(call #loop(num1)))
+} times=20)</pre>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+    </div>
+    <p>Output: <code>1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz 11 Fizz 13 14 FizzBuzz 16 17 Fizz 19 Buzz</code></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="part4-preview">Preview: What's in Part 4</h2>
+
+<p>In Part 4, you'll learn about:</p>
+<ul>
+  <li><strong>Creating your own interfaces and objects</strong> — defining custom types with their own message handlers</li>
+  <li><strong>The dispatch object <code>@d</code></strong> — examining the current message context</li>
+  <li><strong>Redispatching</strong> — forwarding messages to other handlers with <code>@d(redis)</code></li>
+  <li><strong>The <code>@default</code> handler</strong> — catching unrecognized messages</li>
+  <li><strong>List-op-style messages</strong> — a powerful pattern for flexible message handling</li>
+</ul>
+
+<div class="nav">
+  <span><a href="Mesgjs-For-Beginners-Part2.html">← Part 2: Lists, Code Blocks, and Comments</a></span>
+  <span><a href="Mesgjs-For-Beginners-Part4.html">Part 4: Interfaces and Objects →</a></span>
+</div>
+
+<script>
+function toggleAnswer(id) {
+  const el = document.getElementById(id);
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+  } else {
+    el.style.display = 'block';
+  }
+}
+
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    // Fallback for environments without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig = btn.textContent;
+    btn.textContent = '✅';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
