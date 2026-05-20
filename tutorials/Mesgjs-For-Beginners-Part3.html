@@ -356,6 +356,34 @@ Count: 2
 Count: 3</pre>
 
 <p>On the first call, <code>%count</code> doesn't exist yet, so <code>%(at count else=0)</code> returns <code>0</code> (instead of generating an error). Adding 1 gives <code>1</code>, which is saved back to <code>%count</code>. On subsequent calls, <code>%count</code> already exists, so its current value is used.</p>
+
+<h3>Setting <code>%</code> at creation time with <code>(fn)</code> parameters</h3>
+
+<p>The <code>else=</code> pattern above initializes <code>%</code> the first time the function runs. But you can also set <code>%</code> values <em>when the function is created</em>, by passing parameters to <code>(fn)</code>. Those parameters become the function's initial persistent state — already set before the function is ever called.</p>
+
+<p>Here's a code block that multiplies its input by a factor stored in <code>%</code>:</p>
+
+<div class="code-block">
+  <pre>// Save the code block itself (not a function yet)
+#(nset multiplyBlock={ !0(* %factor) !})
+
+// Create two separate functions from the same code block,
+// each with a different starting value for %factor
+#(nset timesTwo=#multiplyBlock(fn factor=2))
+#(nset timesTen=#multiplyBlock(fn factor=10))
+
+@c(log #timesTwo(call 6))    // 12
+@c(log #timesTen(call 6))    // 60</pre>
+  <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
+</div>
+
+<p>Output:</p>
+<pre class="output">12
+60</pre>
+
+<p><code>#multiplyBlock(fn factor=2)</code> creates a function whose <code>%factor</code> is already set to <code>2</code>. Sending <code>(fn factor=10)</code> to the same code block creates a completely independent function with its own <code>%factor</code> of <code>10</code>. The two functions share the same code but have separate persistent state.</p>
+
+<div class="tip">This is the idiomatic Mesgjs pattern for giving a function access to a value that is known at creation time. It is generally preferred over storing such values in <code>%*</code> (global storage) or <code>%/</code> (module storage), since it keeps each function self-contained.</div>
 </div>
 
 <div class="exercise">
@@ -1093,6 +1121,7 @@ index[1]=7</pre>
   <tr><td>Safe access</td><td><code>#?name</code></td><td>Returns <code>@u</code> if key doesn't exist</td></tr>
   <tr><td>Default value</td><td><code>#(at x else=0)</code></td><td>Returns 0 if <code>x</code> doesn't exist</td></tr>
   <tr><td>Create a function</td><td><code>{ !0(* 2) !}(fn)</code></td><td>Creates a function from a code block</td></tr>
+  <tr><td>Pre-initialize function state</td><td><code>block(fn x=1 y=2)</code></td><td>Creates a function with <code>%x</code> and <code>%y</code> already set</td></tr>
   <tr><td>Call a function</td><td><code>%*double(call 5)</code></td><td>Calls the function with parameter 5</td></tr>
   <tr><td>Conditional</td><td><code>@c(if { test !} action else=default)</code></td><td>Runs action if test is true</td></tr>
   <tr><td>Case</td><td><code>@c(case val 1 one 2 two else=other)</code></td><td>Matches val against cases</td></tr>
