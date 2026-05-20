@@ -1,0 +1,11 @@
+// FizzBuzz Program
+// Value % 15 = 0 -> FizzBuzz; value % 3 = 0 -> Fizz; value % 5 = 0 -> Buzz; value -> value
+// 1; 2; Fizz; 4; Buzz; Fizz; 7; 8; Fizz; Buzz; 11; Fizz; 13; 14; FizzBuzz; ...
+%*(nset fizzbuzz={
+    #(nset loop=@c(get @loop))
+    #loop(run times=!0 {
+        #(nset num=#loop(num1))
+        @c(log @c(if 0(= #num(/+ 15)) FizzBuzz {0(= #num(/+ 3))!} Fizz {0(= #num(/+ 5))!} Buzz #num))
+    })
+}(fn))
+// %*fizzbuzz(call 100) for fizzbuzz 1-100
