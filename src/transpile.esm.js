@@ -234,6 +234,11 @@ export function transpileTree (tree, opts = {}) {
 			error(`Error: Unknown namespace ${node.space} at ${tls(node)}`, true);
 		}
 		if (!node.name) output(space)
+		else if (node.name.type === '[') {
+			output(`na(${space},`);
+			generateList(node.name);
+			output(`${opt})`);
+		}
 		else if (node.name.type === 'num') outseg(`na(${space},${node.name.value}${opt})`, node, true);
 		else outseg(`na(${space},'${escapeJSString(node.name.text)}'${opt})`, node, true);
 	}

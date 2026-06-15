@@ -66,7 +66,17 @@ export function loggedType (v) {
 }
 
 // namespaceAt is the runtime shortcut na(...) (NANOS .at)
+const NOT_FOUND = Symbol();
 export function namespaceAt	 (namespace, key, opt) {
+	if (key instanceof NANOS) { // List-style key
+		const path = [...key.values()];
+		const value = namespace.at(path, { default: NOT_FOUND });
+
+		if (value !== NOT_FOUND) return value;
+		if (key.has('else')) return key.at('else');
+		if (opt) return;
+		throw new ReferenceError(`Required key [${path.join(' ')}] not found`);
+	}
 	if (namespace?.has && namespace.has(key)) return namespace.at(key);
 	if (!opt) throw new ReferenceError(`Required key "${key}" not found`);
 }

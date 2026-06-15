@@ -344,6 +344,10 @@ export function parse (tokens) {
 			++read;
 			return save(read0, { type: 'var', loc: ns.loc, space, name });
 		}
+		const list = parseList();
+		if (list) {
+			return save(read0, { type: 'var', loc: ns.loc, space, name: list });
+		}
 		if (reqName) --read;
 		return (reqName ? null : save(read0, { type: 'var', loc: ns.loc, space }));
 	}

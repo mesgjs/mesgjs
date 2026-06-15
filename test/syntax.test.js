@@ -578,4 +578,141 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		assertEquals(list.at('quoted'), 2, 'Named value with quoted name');
 		assertEquals(list.at('chain'), 'HELLO', 'Named value with chain as name');
 	});
+
+	await t.step('should handle storage namespace list-key syntax', async () => {
+		await loadMesgjsModuleSource(`
+			// Setup nested storage structures
+			%*(nset
+				nested=[outer=[inner=[value=42]]]
+				data=[x=10 y=20]
+			)
+			
+			// Test basic list-key access with %*[key subkey]
+			%*(nset
+				result1=%*[nested outer inner value]
+				result2=%*[data x]
+				result3=%*[data y]
+			)
+		`);
+
+		assertEquals($gss.at('result1'), 42, 'Nested list-key access %*[nested outer inner value]');
+		assertEquals($gss.at('result2'), 10, 'List-key access %*[data x]');
+		assertEquals($gss.at('result3'), 20, 'List-key access %*[data y]');
+	});
+
+	await t.step('should handle storage namespace list-key syntax with optional ?', async () => {
+		await loadMesgjsModuleSource(`
+			%*(nset existing=[level1=[level2=value]])
+			
+			// Test optional ? after namespace token
+			%*(nset
+				found=%*?[existing level1 level2]
+				missing=%*?[nonexistent key]
+				partialMissing=%*?[existing nonexistent subkey]
+			)
+		`);
+
+		assertEquals($gss.at('found'), 'value', 'Optional list-key with existing path %*?[existing level1 level2]');
+		assertEquals($gss.at('missing'), undefined, 'Optional list-key with missing path %*?[nonexistent key]');
+		assertEquals($gss.at('partialMissing'), undefined, 'Optional list-key with partial missing path %*?[existing nonexistent subkey]');
+	});
+
+	await t.step('should handle storage namespace list-key syntax with else=', async () => {
+		await loadMesgjsModuleSource(`
+			%*(nset data=[a=[b=100]])
+			
+			// Test else= in key list
+			%*(nset
+				withElse1=%*[data a b else=default1]
+				withElse2=%*[data missing else=default2]
+				withElse3=%*[data a missing else=default3]
+			)
+		`);
+
+		assertEquals($gss.at('withElse1'), 100, 'List-key with existing path ignores else=');
+		assertEquals($gss.at('withElse2'), 'default2', 'List-key with missing path uses else= default');
+		assertEquals($gss.at('withElse3'), 'default3', 'List-key with partial missing path uses else= default');
+	});
+
+	await t.step('should handle storage namespace list-key syntax with all storage types', async () => {
+		await loadMesgjsModuleSource(`
+			// Test with different storage namespaces
+			
+			// Global shared storage (%*)
+			%*(nset global=[nested=[value=global-value]])
+			%*(nset globalResult=%*[global nested value])
+			
+			// Module private storage (%/)
+			%/(nset module=[nested=[value=module-value]])
+			%*(nset moduleResult=%/[module nested value])
+			
+			// Scratch storage (#)
+			#(nset scratch=[nested=[value=scratch-value]])
+			%*(nset scratchResult=#[scratch nested value])
+			
+			// Create interface with protected storage (%)
+			@c(interface test-list-key)(set handlers=[
+				setup={ %(nset obj=[nested=[value=protected-value]]) }
+				getVal={ %[obj nested value] !}
+			])
+			#(nset testObj=@c(get test-list-key))
+			#testObj(setup)
+			%*(nset protectedResult=#testObj(getVal))
+			
+			// Test with exclusive storage (%%)
+			@c(interface test-list-key-ex)(set handlers=[
+				setup={ %%(nset obj=[nested=[value=exclusive-value]]) }
+				getVal={ %%[obj nested value] !}
+			])
+			#(nset testObjEx=@c(get test-list-key-ex))
+			#testObjEx(setup)
+			%*(nset exclusiveResult=#testObjEx(getVal))
+		`);
+
+		assertEquals($gss.at('globalResult'), 'global-value', 'List-key with global storage %*[...]');
+		assertEquals($gss.at('moduleResult'), 'module-value', 'List-key with module storage %/[...]');
+		assertEquals($gss.at('scratchResult'), 'scratch-value', 'List-key with scratch storage #[...]');
+		assertEquals($gss.at('protectedResult'), 'protected-value', 'List-key with protected storage %[...]');
+		assertEquals($gss.at('exclusiveResult'), 'exclusive-value', 'List-key with exclusive storage %%[...]');
+	});
+
+	await t.step('should handle storage namespace list-key syntax with parameters (!)', async () => {
+		await loadMesgjsModuleSource(`
+			// Test with parameter storage (!)
+			// Pass a nested list as parameter, then access it via list-key syntax
+			#(nset funcWithListKey={
+				![0 nested deep value]
+			!}(fn))
+			
+			%*(nset paramResult=#funcWithListKey(call [nested=[deep=[value=param-value]]]))
+		`);
+
+		assertEquals($gss.at('paramResult'), 'param-value', 'List-key with parameter storage ![...]');
+	});
+
+	await t.step('should handle storage namespace list-key syntax combining ? and else=', async () => {
+		await loadMesgjsModuleSource(`
+			%*(nset data=[a=1])
+			
+			// Combine optional ? with else= in key list
+			%*(nset
+				combo1=%*?[data a else=default1]
+				combo2=%*?[data missing else=default2]
+				combo3=%*?[nonexistent key else=default3]
+			)
+		`);
+
+		assertEquals($gss.at('combo1'), 1, 'List-key with ?[] and else= when path exists');
+		assertEquals($gss.at('combo2'), 'default2', 'List-key with ?[] and else= when path missing');
+		assertEquals($gss.at('combo3'), 'default3', 'List-key with ?[] and else= when root missing');
+	});
+
+	await t.step('should handle storage namespace list-key syntax with numeric keys', async () => {
+		await loadMesgjsModuleSource(`
+			%*(nset list=[sub=[10 20 30]])
+			%*(nset numericResult=%*[list sub 1])
+		`);
+
+		assertEquals($gss.at('numericResult'), 20, 'List-key with numeric index %*[list sub 1]');
+	});
 });

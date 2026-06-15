@@ -24,7 +24,8 @@
 | List literal      | `[x y z key=value]`                                       | List of positional (aka indexed) + named values.                                                                                          |
 | Message           | `object(message parameters...)`                           | Send message to object with parameters.                                                                                                   |
 | Message chain     | `object(message1)(message2)`                              | Send messages to successive results (i.e., send `message2` to the result returned by sending `message1` to `object`).                     |
-| Namespace-at      | `%x %%x #x !x // error if not set`<br>`%?x %%?x #?x !?x // @u if not set` | `%(at x), %%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u), etc. shortcuts`                                |
+| Namespace-at      | `%x %%x #x !x // error if not set`<br>`%?x %%?x #?x !?x // @u if not set` | `%(at x), %%(at x), #(at x), !(at x) shortcuts`<br>`%(at x else=@u)`, etc. shortcuts                                |
+| Namespace-at-list | `%[a b c]`, `%?[a b c]`,<br>`%[a b c else=z]`               | `%(at a b c)`, `%(at a b c else=@u)`,<br>`%(at a b c else=z)`, etc. shortcuts |
 | Code blocks       | `{ block } // non-returning`<br>`{ block !} // returning` | Code-block literals that create `@code` object instances when referenced.<br>"Non-returning" blocks (`}`) return `@u` (undefined) when `(run)`.<br>"Returning" blocks (`!}`) return the last value when `(run)`. |
 | Comments          | `// single-line`<br>`/* multi-line */`                    | Human-readable descriptions of code.                                                                                                      |
 

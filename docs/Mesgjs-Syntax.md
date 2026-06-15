@@ -24,7 +24,7 @@ mind, source syntax begins with symbol `<SOURCE>`.
 <statement>  = <jsEmbed> | <value> | <debug>
 <qtext>      = ( "'" text "'" ) | ( '"' text '"' )
 <value>      = <chain> | <literal> | <varReqName>
-<varName>    = <qtext> | <word> | integer
+<varName>    = <qtext> | <word> | integer | <list>
 <varOptName> = <namespace> <varName>?
 <varReqName> = <namespace> <varName>
 <word>       = opWord | regularWord // Types of "word-literals"

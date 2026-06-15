@@ -32,7 +32,7 @@ to figuring out what message to send to which object.
   "`this`" object, sharing a namespace with the object's private methods and
   prototyped properties and methods.\
   `this.x = 5;`
-- JavaScript also has `#` private fields (introduced in ES2022), which are private per-**class**. Each instance has its own value, but methods within the class can see any instance's value.\
+- JavaScript also has `#` private fields (introduced in ES2022), which are private per-**class**. Each instance has its own value, but methods within the class can see any instance's value.
   ```javascript
   class Base {
     #count = 0; // Visible only to Base methods

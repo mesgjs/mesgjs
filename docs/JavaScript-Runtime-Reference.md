@@ -180,6 +180,23 @@ takesAStaticListStructure(ps('[(value1 keyA=valueA value2 keyB=[value3 keyC=valu
 
 Retrieves a value from a namespace (typically a `NANOS` instance). If the key is not found and `optional` is not true, a `ReferenceError` is thrown. This function is commonly destructured from the module scope as `na`.
 
+When `key` is a `NANOS` instance, its positional values are used as a path of keys for deep access into nested structures. If the NANOS has a named parameter `else`, its value is used as the default return value when a key in the path is not found (instead of throwing a ReferenceError).
+
+Examples:
+```javascript
+// Single-key access
+na($gss, 'myKey');  // Returns $gss.at('myKey')
+
+// Multi-level access via NANOS positional values
+na($gss, ls([, 'nested', , 'deep', , 'value']));  // Returns $gss.at(['nested', 'deep', 'value'])
+
+// With optional flag
+na($gss, ls([, 'missing', , 'key']), 1);  // Returns undefined instead of throwing
+
+// With else named parameter for default value
+na($gss, ls([, 'missing', 'else', 'defaultVal']));  // Returns 'defaultVal' if path not found
+```
+
 ### `setRO(object, key, value, enumerable = true)` or `setRO(object, { key: value, ... }, enumerable = true)`
 
 A utility to create read-only properties on JavaScript objects.
