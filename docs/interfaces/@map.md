@@ -18,13 +18,18 @@ This is the interface for Mesgjs objects that wrap JavaScript `Map` instances.
 * `(delete key)`
   * Synopsis: Removes the specified element from the Map object by key. Returns `@t` if an element was removed, or `@f` otherwise.
 * `(entries)`
-  * Synopsis: Returns a new `@list` object that contains an array of `[key, value]` for each element in the Map object, in insertion order.  
+  * Synopsis: Returns a new `@list` object that contains an array of `[key, value]` for each element in the Map object, in insertion order.
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying JS `Map` object (boxed or unboxed).
 * `(has key)`
   * Synopsis: Returns `@t` if an element with the specified key exists in the Map object; otherwise `@f`.
 * `(keyIter)`
   * Synopsis: Returns a JavaScript iterator that yields the keys for each element in the Map object in insertion order (for use by @kvIter).
 * `(keys)`
   * Synopsis: Returns a new `@list` that contains the keys for each element in the Map object in insertion order.
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Map` object.
 * `(nset key=value...)`
   * Synopsis: Sets one or more key/value pairs in the Map object using named parameters. Returns the Map object.
 * `(set key to=value)`\

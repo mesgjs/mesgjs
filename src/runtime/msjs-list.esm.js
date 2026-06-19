@@ -10,13 +10,16 @@ import { unifiedList, uniAt } from './unified-list.esm.js';
 function expand (mp) {
 	return mp.values().map((v) => {
 		if (typeof v !== 'function') return v;
+
 		const jsv = v.jsv;
+
 		return (jsv instanceof NANOS || jsv instanceof Map || jsv instanceof Set) ? jsv : v;
 	});
 }
 
 function opInit (d) {
 	const { octx, mp } = d, list = mp.at(0);
+
 	setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
@@ -24,11 +27,18 @@ function opInit (d) {
 // (at key...? path=[key...]? else=default? raw=@f)
 function opAt (d) {
 	const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
+
 	return uniAt(d.js, [...path], { wrap: true, raw: mp.at('raw'),
 	  defaultFn: () => {
 		if (mp.has('else')) return runIfCode(mp.at('else'));
 		else throw new Error('Key path not found');
 	}});
+}
+
+function opEq (d) {
+	const { mp } = d, to = mp.at(0);
+
+	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
 }
 
 // @code implementation for (getter)
@@ -43,6 +53,7 @@ function doGet () {
 function opGetter (d) {
 	const { js: list, mp } = d;
 	const key = mp.at(0), hasElse = mp.has('else'), elseVal = mp.at('else');
+
 	return d.b({ cd: doGet.bind({ list, key, hasElse, elseVal }) });
 }
 
@@ -58,6 +69,7 @@ function opNext (d) {
 // (nset key=value ...)
 function opNset (d) {
 	const { mp, js } = d;
+
 	for (const e of mp.namedEntries()) js.set(e[0], e[1]);
 }
 
@@ -65,6 +77,7 @@ function opNset (d) {
 // Get/set/remove reactive interface object
 function opRIO (d) {
 	const { js, mp } = d;
+
 	if (mp.has(0)) {
 		let rio = mp.at(0);
 		if (rio === true) rio = getInstance('@reactive')('rio');
@@ -77,12 +90,16 @@ function opRIO (d) {
 // "Reactive transform" - make fully reactive, recursively
 function opRxt (d) {
 	const { js } = d;
+
 	if (!js.rio) js.rio = getInstance('@reactive')('rio');
+
 	const rio = js.rio;
+
 	js.setOpts({ autoReactive: true });
 	for (const key of js.keys()) {
 		const value = js.at(key, { raw: true });
 		const isR = rio.isReactive(value), nrv = isR ? value.rv : value;
+
 		// Convert non-reactive values to reactive ones
 		if (!isR) js.set(key, value);
 		// Recursively apply reactive transform to nested NANOS
@@ -93,6 +110,7 @@ function opRxt (d) {
 // @function implementation for (setter)
 function doSet (d) {
 	const mp = d.mp, insert = mp.at('insert'), raw = mp.at('raw');
+
 	this.list.set(this.key, d.mp.at(0), { insert, raw });
 }
 
@@ -100,6 +118,7 @@ function doSet (d) {
 // Returns setter @function block: (call value insert=@f raw=@f?)
 function opSetter (d) {
 	const { js: list, mp } = d, key = mp.at(0);
+
 	return d.b({ cd: doSet.bind({ list, key }) })('fn');
 }
 
@@ -115,8 +134,10 @@ function opSet (d) {
 	const insert = mp.at('insert'), raw = mp.at('raw');
 	const path = [...psrc].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
 	let cur = d.js;
+
 	for (let i = 0; i < limit; ++i) {
 		const k = path[i];
+
 		if (!(cur.at(k) instanceof NANOS)) cur.set(k, cur.similar());
 		cur = cur.at(k);
 	}
@@ -136,6 +157,7 @@ function opSetOpts (d) {
 // (slice start? end? raw?=@f)
 function opSlice (d) {
 	const { mp } = d;
+
 	return d.js.slice(mp.at(0), mp.at(1, d.js.next, { raw: d.mp.get('raw') }));
 }
 
@@ -144,6 +166,7 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
+			'@eq': opEq,
 			'@jsv': (d) => d.js,
 			'@': opAt,
 			'==': opNset,
@@ -161,6 +184,7 @@ export function install (name) {
 			delete: (d) => d.js.delete(d.mp.at(0)),
 			depend: (d) => d.js.depend(),
 			entries: (d) => new NANOS([...d.js.entries()]),
+			eq: opEq,
 			// filter: use @kvIter
 			// find: use @kvIter
 			// findLast: use @kvIter
@@ -182,6 +206,7 @@ export function install (name) {
 			lockKeys: (d) => d.js.lockKeys(),
 			namedEntries: (d) => new NANOS([...d.js.namedEntries()]),
 			namedKeys: (d) => new NANOS([...d.js.namedKeys()]),
+			ne: (d) => !opEq(d),
 			next: opNext,
 			nset: opNset,
 			options: (d) => new NANOS(d.js.options),

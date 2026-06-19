@@ -24,9 +24,12 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Does nothing if reactive mode has not been enabled (see `(rio)`).  
   * Reactive consumers will be notified whenever otherwise non-reactive values (including the key list) change.  
 * `(entries compact)`
-  * Synopsis: Returns a list of `[ key value ]` lists representing the items in the list.  
+  * Synopsis: Returns a list of `[ key value ]` lists representing the items in the list.
   * `[ [ key1 value1 ] [ key2 value2 ] ... [ keyN valueN ] ]`
-  * If compact is `@t`, index keys are numeric instead of strings. The default is `@f`.  
+  * If compact is `@t`, index keys are numeric instead of strings. The default is `@f`.
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying `NANOS` object (boxed or unboxed).
 * `(getter key else=elseBlock)`
   * Synopsis: Returns a `(run)`\-able "getter" code block for key.  
   * RIC values: `elseBlock`  
@@ -66,10 +69,12 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Synopsis: Like `(entries)`, except that it only returns entries with named keys.  
 * `(namedKeys)`
   * Synopsis: Like `(keys)`, except that it only returns named keys (no index keys).  
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying `NANOS` object.
 * `(next index)`
-  * Synopsis: Sets the next index if the optional index is supplied, otherwise returns the current next index..  
-  * In the setting mode, it returns the list object for chaining.  
-  * Existing index items with an index greater than or equal to the new index will be removed from the list.  
+  * Synopsis: Sets the next index if the optional index is supplied, otherwise returns the current next index..
+  * In the setting mode, it returns the list object for chaining.
+  * Existing index items with an index greater than or equal to the new index will be removed from the list.
 * `(nset key1=value1 ... keyN=valueN)`\
 `(== key1=value1 ... keyN=valueN)`
   * Synopsis: "Named" set/multiple set. Equivalent to `(set key to=value)` repeated for each key/value pair.  
@@ -79,9 +84,11 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
     `#(nset a=1) #(nset b=#a(mul 2)) // OK - #a is set before the second (nset) message`
   * Keep in mind that positional values ("without keys") have implied, consecutive index keys, and these will be set too\!  
     `(nset x=5 well hello) // means nset(x=5 0=well 1=hello)`
+* `(options)`
+  * Synopsis: Gets the underlying NANOS options. See the [NANOS documentation](https://github.com/mesgjs/nanos) for details.
 * `(pairs compact)`
-  * Synopsis: Similar to `(entries)`, but flattened into a single list of key/value pairs.  
-  * `[ key1 value1 key2 value2 ... keyN valueN ]`  
+  * Synopsis: Similar to `(entries)`, but flattened into a single list of key/value pairs.
+  * `[ key1 value1 key2 value2 ... keyN valueN ]`
 * `(pop)`\
 `(>)`
   * Synopsis: Removes and returns the value at index `(next) - 1`.
@@ -143,6 +150,8 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Nested lists are created as necessary along the key path.  
     **IMPORTANT WARNING:**  
     **Beware of the potential to create deeply-nested lists and/or overwrite existing values\!**  
+* `(setOpts name=value...)`
+  * Synopsis: Sets the underlying NANOS options. See the [NANOS documentation](https://github.com/mesgjs/nanos) for details. Returns the list instance for chaining.
 * `(setter key)`
   * Synopsis: Returns a `(call)`\-able "setter" function for key  
   * Equivalent to `{ %0(set %1 to=!0) }(fn` _`receiver key`_`)`

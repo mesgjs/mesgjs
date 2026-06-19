@@ -19,6 +19,9 @@ This interface mirrors much of the functionality of the JavaScript `Array.protot
   * An `(at)` key/index path will traverse `Array` (`@jsArray`), `Map` (`@map`), `NANOS` (`@list`), plain `Object` (`@jsObject`), and `Set` (`@set`) instances.
 * `(concat list)`
   * Synopsis: Returns a new array containing the elements of the current array joined with the elements of `list`. Mirrors `Array.prototype.concat()`.
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying JS `Array` object (boxed or unboxed).
 * `(entries)`
   * Synopsis: Returns a new JS array containing the key/value pairs for each index in the array. Similar to `Array.prototype.entries()`, but sparse.
 * `(flat depth=1)`
@@ -29,6 +32,8 @@ This interface mirrors much of the functionality of the JavaScript `Array.protot
   * Synopsis: A low-level function that returns the JavaScript key-iterator function used by the `@kvIter` interface.
 * `(length)` / `(size)`
   * Synopsis: Returns the number of elements in the array.
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Array` object.
 * `(pop)`
   * Synopsis: Removes and returns the last element of the array. Modifies the array in place. Mirrors `Array.prototype.pop()`.
 * `(push value...)`

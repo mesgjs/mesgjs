@@ -23,10 +23,15 @@ This interface mirrors some of the functionality of the JavaScript `Object`.
   * An `(at)` key path will traverse `Array` (`@jsArray`), `Map` (`@map`), `NANOS` (`@list`), plain `Object` (`@jsObject`), and `Set` (`@set`) instances.
 * `(entries)`
   * Synopsis: Returns a new JS array of a given object's own enumerable string-keyed property `[key, value]` pairs. Mirrors `Object.entries()`.
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying JS `Object` (boxed or unboxed).
 * `(keys)`
   * Synopsis: Returns a new JS array of a given object's own enumerable property names. Mirrors `Object.keys()`.
 * `(keyIter)`
   * Synopsis: A low-level function that returns the JavaScript key-iterator function used by the `@kvIter` interface.
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Object`.
 * `(nset key1=value1 ...)`\
 `(== key1=value1 ...)`
   * Synopsis: Sets one or more named properties on the object in a single message. Throws a `TypeError` if the object is read-only (externally-supplied).

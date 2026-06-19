@@ -57,6 +57,7 @@ No operations use RIC (run-if-code) values unless otherwise specified.
   * Synopsis: Returns Euler's number, multiplied by the receiver.
   * `0(e) /* 0 */ 1(e) /* ~2.7182 */`
 * `(eq value)`\
+`(@eq value)`\
 `(= value)`
   * Synopsis: Returns `@t` (true) if the receiver is equal to value, or `@f` (false) otherwise.
 * `(exp)`

@@ -10,8 +10,15 @@ const retNull = () => null;
 const retUndef = () => undefined;
 const isNull = (d) => {
 	const value = d.mp.at(0);
-	return value === null || value?.msjsType === '@null';
+
+	return value === null || (typeof value === 'function' && value.msjsType === '@null');
 };
+const isNullOrUndef = (d) => {
+	const value = d.mp.at(0);
+
+	return value === null || value === undefined ||
+	(typeof value === 'function' && (value.msjsType === '@null' || value.msjsType === '@undefined'));
+}
 
 export function install () {
 	getInterface('@null').set({
@@ -21,10 +28,15 @@ export function install () {
 				setRO(d.octx, 'js', null);
 				setRO(d.rr, { jsv: null, valueOf: retNull });
 			},
+			'@eq': isNull,
 			'@jsv': retNull,
-			eq: d => isNull(d),
+			'=': isNull,
+			'!=': (d) => !isNull(d),
+			def: (d) => !isNullOrUndef(d), // Defined (not null or undefined)
+			eq: isNull,
 			has: retUndef,
-			ne: d => !isNull(d),
+			ne: (d) => !isNull(d),
+			nou: isNullOrUndef, // (N)ull (O)r (U)ndefined
 			toString: () => '@n',
 			valueOf: retNull,
 		},

@@ -10,21 +10,32 @@ import { NANOS } from '@nanos';
 
 function opInit (d) {
 	const { octx, mp } = d, map = mp.at(0);
+
 	setRO(octx, 'js', (map instanceof Map) ? map : new Map());
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 function opAt (d) {
 	const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
+
 	return uniAt(d.js, [...path], { wrap: true, defaultFn: () => {
 	if (mp.has('else')) return runIfCode(mp.at('else'));
 	else throw new Error('Key path not found');
 	}});
 }
 
+// (eq to)
+// Returns @t if "to" refers to the identical JS Map object
+function opEq (d) {
+	const to = d.mp.at(0);
+
+	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
+}
+
 // (nset key=value...)
 function opNset (d) {
 	const { js, mp } = d;
+
 	for (const [key, value] of mp.namedEntries()) {
 		js.set(key, value);
 	}
@@ -43,23 +54,26 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
-			'@jsv': d => d.js,
+			'@eq': opEq,
+			'@jsv': (d) => d.js,
 			'@': opAt,
 			'=': opSet,
 			at: opAt,
-			clear: d => (d.js.clear(), d.js),
-			delete: d => d.js.delete(d.mp.at(0)),
-			entries: d => [...d.js.entries()],
+			clear: (d) => (d.js.clear(), d.js),
+			delete: (d) => d.js.delete(d.mp.at(0)),
+			entries: (d) => [...d.js.entries()],
+			eq: opEq,
 			// forEach - use @kvIter
 			get: opAt,
-			has: d => d.js.has(d.mp.at(0)),
-			keyIter: d => d.js.keys(),
-			keys: d => [...d.js.keys()],
+			has: (d) => d.js.has(d.mp.at(0)),
+			keyIter: (d) => d.js.keys(),
+			keys: (d) => [...d.js.keys()],
+			ne: (d) => !opEq(d),
 			nset: opNset,
 			set: opSet,
-			size: d => d.js.size,
-			toList: d => new NANOS(d.js),
-			values: d => [...d.js.values()],
+			size: (d) => d.js.size,
+			toList: (d) => new NANOS(d.js),
+			values: (d) => [...d.js.values()],
 		},
 	});
 }

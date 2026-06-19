@@ -1,0 +1,206 @@
+// A very basic AVL tree
+@c(interface avlTree)(set
+	handlers=[
+		@init={ %(nset root=@u size=0) }
+
+		// (delete node|value)
+		// Delete the specified node or value
+		// Returns whether the node/value was deleted (@t / @f)
+		delete={
+			@c(if
+				@c(type !0)(!= avlNode) {
+					#(nset node=@d(rr)(search !0))
+					@c(if @c(not #node) { @d(return @f) })
+				}
+				else={ #(nset node=!0) }
+			)
+			#(nset parent=#node(parent) left=#node(left) right=#node(right))
+			#(nset state=@c(if #left L '')(+ @c(if #right R '')))
+			@c(case #state
+				L { // Left child only - promote
+					@c(if #parent { #parent(replace #node #left) }
+					else={ %(nset root=#node) })
+					#left(update parent=#parent)
+				}
+				R { // Right child only - promote
+					@c(if #parent { #parent(replace #node #right) }
+					else={ %(nset root=#node) })
+					#right(update parent=#parent)
+				}
+				LR { // Both left and right children - promote next *value*
+					#(nset next=@d(rr)(nodeAfter #node))
+					#node(update value=#next(value))
+					@d(rr)(delete #next) // Note: size/balance updated here
+					@d(return @t) // Note: early return
+				}
+				else={ // Leaf node - just prune
+					@c(if #parent { #parent(replace #node @u) }
+					else={ %(nset root=@u) }) // Root node
+				}
+			)
+			%(nset size=%size(- 1))
+			@d(rr)(rebalance #parent)
+			@t
+		!}
+
+		// (has value)
+		// Returns if the tree has the value (@t / @f)
+		has={
+			@c(if @d(rr)(search !0) @t else=@f)
+		!}
+
+		// (height)
+		// Returns the height of the tree
+		height={ %root([height else=0]) !}
+
+		// (insert value)
+		// Returns whether the value is inserted (@t / @f)
+		insert={
+			#(nset value=!0)
+			@c(case %size
+				0 { %(nset root=@c(get avlNode init=[#value @u]) size=1) @d(return @t) } // Only value
+				1 { #(nset near=%root) }
+				else={ #(nset near=@d(rr)(near #value)) }
+			)
+			#(nset nearValue=#near(value))
+			@c(if #value(eq #nearValue) { @d(return @f) }) // Value already exists
+
+			// Create new node for value, insert, and rebalance
+			#(nset newNode=@c(get avlNode init=[#value #near]))
+			@c(if
+				#value(lt #nearValue) { #near(update left=#newNode) }
+				else={ #near(update right=#newNode) }
+			)
+			%(nset size=%size(+ 1))
+			@d(rr)(rebalance #near)
+			@t
+		!}
+
+		// (near value)
+		// Returns the node for value (if present) or its insertion point
+		near={
+			#(nset value=!0 node=%root loop=@c(get @loop))
+			#loop(while pre={ #node !}
+			{
+				@c(if
+					@c(and #value(lt #node(value)) #node(left)) { #(nset node=#node(left)) }
+					{ @c(and #value(gt #node(value)) #node(right)) !} { #(nset node=#node(right)) }
+					else={ @d(return #node) }
+				)
+			})
+			#node
+		!}
+
+		// (nodeAfter node)
+		// Returns the left-most right-child descendent
+		nodeAfter={
+			#(nset node=!0(right) loop=@c(get @loop))
+			#loop(while pre={ #node(left) !} { #(nset node=#node(left)) })
+			#node
+		!}
+
+		// (rebalance node)
+		// Rebalance as necessary from node to root
+		rebalance={
+			#(nset node=!0 loop=@c(get @loop))
+			#loop(while pre={ #node !} {
+				#(nset tilt=#node(tilt) parent=#node(parent))
+				@c(if
+					#tilt(< -1) { @d(rr)(rotateRight #node) } // Left-heavy; rotate right
+					{ #tilt(> 1) !} { @d(rr)(rotateLeft #node) } // Right-heavy; rotate left
+					else={ #node(update height=@t) } // Just recalc height at this level
+				)
+				#(nset node=#parent)
+			})
+		}
+
+		// (rotateLeft node)
+		// Shift sub-tree height from right to left
+		// Parent n2 right child n4 left child n3 --> parent n4 left child n2 right child n3
+		// [[n1:2L] N2:node [[n3:4L] n4:2R [n5:4R]]] --> [[[n1:2L] n2:4L [n3:2R]] N4 [n5:4R]]
+		rotateLeft={
+			#(nset n2=!0) #(nset parent=#n2(parent) n4=#n2(right)) #(nset n3=#n4(left))
+			@c(if
+				#parent { #parent(replace #n2 #n4) }
+				else={ %(nset root=#n4) }
+			)
+			#n4(update parent=#parent left=#n2)
+			#n2(update parent=#n4 right=#n3)
+			#n3([update else=@u] parent=#n2)
+		}
+
+		// (rotateRight node)
+		// Shift sub-tree height from left to right
+		// Parent n4 left child n2 right child n3 --> parent n2 right child n4 left child n3
+		// [[[n1:2L] n2:4L [n3:2R]] N4:node [n5:4R]] --> [[n1:2L] N2 [[n3:4L] n4:2R [n5:4R]]]
+		rotateRight={
+			#(nset n4=!0) #(nset parent=#n4(parent) n2=#n4(left)) #(nset n3=#n2(right))
+			@c(if
+				#parent { #parent(replace #n4 #n2) }
+				else={ %(nset root=#n2) }
+			)
+			#n2(update parent=#parent right=#n4)
+			#n4(update parent=#n2 left=#n3)
+			#n3([update else=@u] parent=#n4)
+		}
+
+		// (search value)
+		// Returns the node for value (or @u)
+		search={
+			#(nset best=@d(rr)(near !0))
+			@c(if @c(and #best { !0(eq #best(value)) !}) #best)
+		!}
+
+		// (valueTree)
+		// Returns the values as a tree structure
+		valueTree={ @c(if %?root { %root(valueTree) !} else=[]) !}
+	]
+)
+
+// A node in an AVL tree
+@c(interface avlNode)(set
+	handlers=[
+		@init={ %(nset value=!0 parent=!1 left=@u right=@u height=1) }
+
+		height={
+			@c(if @u(!= %?height) { %height !}
+			else={ %(nset height=@d(rr)(leftHeight)(max @d(rr)(rightHeight))(+ 1)) %height !})
+		!}
+
+		left={ %left !}
+		leftHeight={ %left([height else=0]) !}
+		parent={ %parent !}
+
+		// (replace before after)
+		// Replace left or right child before with after
+		replace={
+			#(nset before=!0 after=!1)
+			@c(if
+				@c(same %left #before) { %(nset left=#after height=@u) }
+				{ @c(same %right #before) !} { %(nset right=#after height=@u) }
+			)
+		}
+
+		right={ %right !}
+		rightHeight={ %right([height else=0]) !}
+		tilt={ @d(rr)(rightHeight)(- @d(rr)(leftHeight)) !}
+
+		update={
+			@c(if !(has parent) { %(nset parent=!parent height=@u) })
+			@c(if !(has left) { %(nset left=!left height=@u) })
+			@c(if !(has right) { %(nset right=!right height=@u) })
+			@c(if !(has value) { %(nset value=!value) })
+			@c(if !?height { %(nset height=@u) })
+		}
+
+		value={ %value !}
+
+		valueTree={
+			#(nset tree=[])
+			@c(if %left { #tree(push %left(valueTree)) })
+			#tree(push %value)
+			@c(if %right { #tree(push %right(valueTree)) })
+			#tree
+		!}
+	]
+)

@@ -95,7 +95,7 @@ function opWhile (d) {
 						try { if (mid && !await mid('run')) break; } catch (e) { react(e); }
 						try { await xtra('run'); } catch (e) { react(e); }
 					}
-					try { if (post && !awaitpost('run')) break; } catch (e) { react(e); }
+					try { if (post && !await post('run')) break; } catch (e) { react(e); }
 				} catch (e) { if (onCatch(e)) break; }
 			}
 			return result;
@@ -130,18 +130,20 @@ export function install (name) {
 	getInterface(name).set({
 		lock: true, pristine: true,
 		handlers: {
-			'@init': d => setRO(d.octx, 'js', {}),
-			active: d => !!d.js.active,
+			'@init': (d) => setRO(d.octx, 'js', {}),
+			active: (d) => !!d.js.active,
 			arun: opRun,
 			awhile: opWhile,
-			num: d => d.js.iteration,
-			num1: d => d.js.iteration + 1,
-			next: d => throwFlow(d, 'next', name),
-			rem: d => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
-			rem1: d => d.js.times ? (d.js.times - d.js.iteration) : undefined,
+			eq: (d) => d.rr === d.mp.at(0),
+			ne: (d) => d.rr !== d.mp.at(0),
+			num: (d) => d.js.iteration,
+			num1: (d) => d.js.iteration + 1,
+			next: (d) => throwFlow(d, 'next', name),
+			rem: (d) => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
+			rem1: (d) => d.js.times ? (d.js.times - d.js.iteration) : undefined,
 			run: opRun,
-			stop: d => throwFlow(d, 'stop', name),
-			times: d => d.js.times,
+			stop: (d) => throwFlow(d, 'stop', name),
+			times: (d) => d.js.times,
 			while: opWhile,
 		},
 		cacheHints: {

@@ -22,9 +22,11 @@ RIC (run-if-code) values are only used where explicitly indicated.
 * `(endsWith string)`
   * Synopsis: Returns `@t` (true) if the receiver ends with `string`, or `@f` (false) otherwise.
 * `(eq string...)`\
+`(@eq string)`\
 `(= string...)`
   * Synopsis: Returns `@t` (true) if the receiver equals any of the provided strings, or `@f` (false) if none match.
   * All comparison values except the first are RIC (run-if-code) values.
+  * `(@eq)` accepts only a single comparison value (no RIC).
   * Example: `#answer(toLower)(= y yes yup yeah)` returns `@t` if `#answer` (lowercased) is "y", "yes", "yup", or "yeah".
 * `(escRE)`
   * Synopsis: Returns a new string consisting of the receiver string escaped to use as a literal value in a regular expression.
@@ -149,6 +151,9 @@ values except where otherwise indicated.
   * Synopsis: Instance initializer. The source may be either a string (used to generate a new JS `RegExp` instance in conjunction with the optional flags) or an existing JS `RegExp` instance.
 * `(@jsv)`
   * Synopsis: Returns the underlying JavaScript `RegExp` instance.
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying JS `RegExp` object (boxed or unboxed).
 * `(exec string)`
   * Synopsis: Executes the regex against string.
 * `(flags)`
@@ -172,6 +177,8 @@ values except where otherwise indicated.
     `(matchAll string each={[` _`regex`_`(match) ]} collect=@t)`
 * `(next result=value)`
   * Synopsis: Continues with the next match in `matchAll`, optionally setting or accumulating results.
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `RegExp` object.
 * `(num)`
   * Synopsis: Returns the 0-based match iteration number during `(matchAll)`.
   * Returns `-1` in the else block.

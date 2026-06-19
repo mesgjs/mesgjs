@@ -8,32 +8,39 @@ import { getInterface, setRO, typeAccepts } from './runtime.esm.js';
 
 function perform (d, opf, def = 0) {
 	const mp = d.mp; let js = d.js;
+
 	for (const v of mp.values()) js = opf(js, toNum(v, def));
 	return js;
 }
 
 function toNum (v, def) {
 	const st = v?.msjsType;
+
 	if (st && typeAccepts(st, 'toNumber')) v = v('toNumber');
+
 	const t = typeof v;
+
 	if (t === 'number' || t === 'bigint') return v;
 	return def;
 }
 
 function opAdd (d) {
 	const mp = d.mp; let js = d.js;
+
 	for (const v of mp.values()) js += toNum(v, 0);
 	return js;
 }
 
 function opInit (d) {
 	const { octx, mp } = d, num = mp.at(0), type = typeof num;
+
 	setRO(octx, 'js', (type === 'number' || type === 'bigint') ? num : parseFloat(num));
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 function opHypot (d) {
 	const { js, mp } = d;
+
 	if (mp.has('of')) return Math.hypot(...mp.at('of').values());
 	return Math.hypot(js, ...mp.values());
 }
@@ -41,6 +48,7 @@ function opHypot (d) {
 // Is number in the interval defined by the ge, gt, le, lt keys?
 function opIval (d) {
 	const { js, mp } = d;
+
 	return (((mp.has('ge') && js < mp.at('ge')) ||
 	  (mp.has('gt') && js <= mp.at('gt')) ||
 	  (mp.has('le') && js > mp.at('le')) ||
@@ -50,6 +58,7 @@ function opIval (d) {
 // (log) (default base=10) or (log base) or (log base=base)
 function opLog (d) {
 	const { js, mp } = d;
+
 	if (mp.has('base')) return Math.log(js) / Math.log(mp.at('base'));
 	if (mp.has(0)) return Math.log(js) / Math.log(mp.at(0));
 	return Math.log10(js);
@@ -57,24 +66,28 @@ function opLog (d) {
 
 function opMax (d) {
 	const { js, mp } = d;
+
 	if (mp.has('of')) return Math.max(...mp.at('of').values());
 	return Math.max(js, ...mp.values());
 }
 
 function opMin (d) {
 	const { js, mp } = d;
+
 	if (mp.has('of')) return Math.min(...mp.at('of').values());
 	return Math.min(js, ...mp.values());
 }
 
 function opMul (d) {
 	const mp = d.mp; let js = d.js;
+
 	for (const v of mp.values()) js *= toNum(v, 1);
 	return js;
 }
 
 function opSub (d) {
 	const mp = d.mp; let js = d.js;
+
 	for (const v of mp.values()) js -= toNum(v, 0);
 	return js;
 }
@@ -84,6 +97,7 @@ export function install () {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
+			'@eq': d => d.js === toNum(d.mp.at(0)),
 			'@jsv': d => d.js,
 			'+': opAdd,
 			'&': d => perform(d, (a, b) => a & b, -1), // and

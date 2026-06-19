@@ -10,7 +10,8 @@ const retTrue = () => true;
 const retFalse = () => false;
 const isBool = (d, expect, type) => {
 	const value = d.mp.at(0);
-	return value === expect || value?.msjsType === type;
+
+	return value === expect || (typeof value === 'function' && value.msjsType === type);
 };
 
 export function install () {
@@ -25,6 +26,7 @@ export function install () {
 				setRO(d.octx, 'js', false);
 				setRO(d.rr, { jsv: false, valueOf: retFalse });
 			},
+			'@eq': d => isBool(d, false, '@false'),
 			'@jsv': retFalse,
 			eq: d => isBool(d, false, '@false'),
 			ne: d => !isBool(d, false, '@false'),
@@ -40,6 +42,7 @@ export function install () {
 				setRO(d.octx, 'js', true);
 				setRO(d.rr, { jsv: true, valueOf: retTrue });
 			},
+			'@eq': d => isBool(d, true, '@true'),
 			'@jsv': retTrue,
 			eq: d => isBool(d, true, '@true'),
 			ne: d => !isBool(d, true, '@true'),

@@ -12,6 +12,7 @@ import { NANOS, parseQJSON, parseSLID } from '@nanos';
 function opAnd (d) {
 	const { mp } = d;
 	let result = true;
+
 	for (const v of mp.values()) {
 		result = runIfCode(v);
 		if (!result) return result;
@@ -28,16 +29,47 @@ function opAwait (d) {
 		for (const v of mp.values()) save(await runIfCode(v));
 	};
 	const whenDone = getInstance('@promise');
+
 	runBlocks().then(() => whenDone.resolve(result));
 	return whenDone;
 }
 
-// (case val cmp1 res1 ... cmpN resN else=default)
+// (case cmp?=@eq refVal cmp1 res1 ... cmpN resN else=default)
+// Compare reference value refVal to comparison values cmp1 ... cmpN.
+// Execute the corresponding result block res1 ... resN on the first successful match,
+// or the else block if nothing matches.
+// Comparison and result blocks are RIC values.
 function opCase (d) {
-	const { mp } = d, val = mp.at(0), type = val?.msjsType, stop = mp.next - 1;
-	const op = typeAccepts(type, 'caseEq') ? 'caseEq' : typeAccepts(type, 'eq') ? 'eq' : undefined, eq = op ? (to => val(op, to)) : (to => val === to);
+	const mp = d.mp, cmp = mp.at('cmp', '@eq'), stop = mp.next - 1;
+	const rawRef = mp.at(0), msjsRef = $toMsjs(rawRef), ref = msjsRef ?? rawRef, type = msjsRef?.msjsType;
+	let eq;
+
+	// Determine comparison strategy
+	if (typeof cmp === 'function' && cmp.msjsType === '@function') { // cmp is a Mesgjs @function
+		eq = (value) => cmp('call', [value, ref]); // Compare using `fn(call value ref)`
+	} else if (cmp === '@eq') { // Use "@eq" protocol if available, otherwise use "same" protocol
+		if (type && typeAccepts(type, '@eq')) eq = (value) => msjsRef('@eq', [value]);
+		else eq = (value) => rawRef === value;
+	} else if (cmp === '@same') { // Use "@same" protocol (value1 === value2)
+		eq = (value) => rawRef === value;
+	} else {
+		eq = (value) => msjsRef(cmp, [value]); // Standard or list-op message (likely with else)
+	}
+
 	for (let i = 1; i < stop; i += 2) if (eq(runIfCode(mp.at(i)))) return runIfCode(mp.at(i + 1));
 	return runIfCode(mp.at('else'));
+}
+
+// (eq value1 value2)
+// Returns @t if value1 is equal to value2
+// Uses value1(@eq value2) if available or JS value1 === value2 otherwise
+function opEq (d) {
+	const mp = d.mp;
+	const v1 = mp.at(0), msjsV1 = $toMsjs(v1), type = msjsV1?.msjsType;
+	const v2 = m2.at(1);
+
+	if (type && typeAccepts(type, '@eq')) return msjsV1('@eq', [v2]);
+	return v1 === v2;
 }
 
 // (get type init=params)
@@ -49,6 +81,7 @@ function opGet (d) {
 // (if cond1 then1 cond2 then2 ... else=value)
 function opIf (d) {
 	const { mp } = d, end = mp.next - 1;
+
 	for (let i = 0; i < end; i += 2) if (runIfCode(mp.at(i))) return runIfCode(mp.at(i + 1));
 	/*
 	 * Return the else value if provided; otherwise return the final
@@ -66,6 +99,7 @@ function opIf (d) {
 function opOr (d) {
 	const { mp } = d;
 	let result = false;
+
 	for (const v of mp.values()) {
 		result = runIfCode(v);
 		if (result) return result;
@@ -78,6 +112,7 @@ function opRun (d) {
 	const { mp } = d, collect = mp.at('collect');
 	let result = collect ? new NANOS() : undefined;
 	const save = v => { if (collect) result.push(v); else result = v; };
+
 	if (mp.at('repeat')) for (const v of mp.values()) save(runWhileCode(v));
 	else for (const v of mp.values()) save(runIfCode(v));
 	return result;
@@ -86,6 +121,7 @@ function opRun (d) {
 // (throw error)
 function opThrow (d) {
 	const { mp } = d, err = mp.at(0);
+
 	throw ((err instanceof Error) ? err : new Error(err));
 }
 
@@ -93,6 +129,7 @@ function opThrow (d) {
 function opXor (d) {
 	const { mp } = d;
 	let result = false;
+
 	for (const v of mp.values()) {
 		const curRes = runIfCode(v);
 		if (curRes) {
@@ -107,37 +144,45 @@ export function install (name) {
 	getInterface(name).set({
 		final: true, lock: true, pristine: true, singleton: true,
 		handlers: {
-			_: d => d.mp.at(0),			// underscore ("basically parentheses")
+			_: (d) => d.mp.at(0),			// underscore ("basically parentheses")
 			'&': opAnd,
 			':': opCase,
 			'+': opGet,
 			'?': opIf,
-			'~': d => !runIfCode(d.mp.at(0)),	// not
+			'~': (d) => !runIfCode(d.mp.at(0)),	// not
 			'|': opOr,
+			'=': opEq,
+			'==': (d) => d.mp.at(0) === d.mp.at(1), // same
+			'!=': (d) => !opEq(d),
+			'!==': (d) => d.mp.at(0) !== d.mp.at(1), // different
 			and: opAnd,
 			await: opAwait,
 			case: opCase,
-			debug: d => debugConfig(d.mp),
-			fcheck: d => fcheck(d.mp.at(0)),
-			fwait: d => fwait(...d.mp.values()),
-			fready: d => fready(d.mp.at('mid'), d.mp.at(0)),
+			debug: (d) => debugConfig(d.mp),
+			diff: (d) => d.mp.at(0) !== d.mp.at(1), // different
+			eq: opEq,
+			fcheck: (d) => fcheck(d.mp.at(0)),
+			fwait: (d) => fwait(...d.mp.values()),
+			fready: (d) => fready(d.mp.at('mid'), d.mp.at(0)),
 			get: opGet,					// Get instance
 			if: opIf,
-			interface: d => getInterface(d.mp.at(0)),
-			log: d => console.log(...d.mp.values()),
-			logErr: d => console.error(...d.mp.values()),
+			interface: (d) => getInterface(d.mp.at(0)),
+			log: (d) => console.log(...d.mp.values()),
+			logErr: (d) => console.error(...d.mp.values()),
 			logInterfaces,
-			logWarn: d => console.warn(...d.mp.values()),
-			modHasCap: d => modHasCap(d.mp.at(0), d.mp.at(1)),
-			not: d => !runIfCode(d.mp.at(0)),
+			logWarn: (d) => console.warn(...d.mp.values()),
+			modHasCap: (d) => modHasCap(d.mp.at(0), d.mp.at(1)),
+			ne: (d) => !opEq(d),
+			not: (d) => !runIfCode(d.mp.at(0)),
 			or: opOr,
-			qjson: d => parseQJSON(d.mp.at(0, '')),
+			qjson: (d) => parseQJSON(d.mp.at(0, '')),
 			run: opRun,
-			slid: d => parseSLID(d.mp.at(0, '')),
+			same: (d) => d.mp.at(0) === d.mp.at(1),
+			slid: (d) => parseSLID(d.mp.at(0, '')),
 			throw: opThrow,
-			type: d => globalThis.$toMsjs(d.mp.at(0))?.msjsType,
-			typeAccepts: d => typeAccepts(d.mp.at(0), d.mp.at(1)),
-			typeChains: d => typeChains(d.mp.at(0), d.mp.at(1)),
+			type: (d) => globalThis.$toMsjs(d.mp.at(0))?.msjsType,
+			typeAccepts: (d) => typeAccepts(d.mp.at(0), d.mp.at(1)),
+			typeChains: (d) => typeChains(d.mp.at(0), d.mp.at(1)),
 			xor: opXor,
 		},
 		cacheHints: {

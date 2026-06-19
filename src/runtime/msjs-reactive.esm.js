@@ -31,10 +31,12 @@ function jsfn (fn) {
 
 function opInit (d) {
 	const { mp } = d, p0 = mp.at(0);
+
 	// Wrap an existing reactive or create a new one
 	if (p0?.$reactive === reactive.type) setRO(d.octx, 'js', p0);
 	else {
 		const cmp = mp.at('cmp'), def = mp.at('def');
+
 		if (typeof cmp === 'function') mp.set('cmp', jsfn(cmp));
 		if (typeof def === 'function') mp.set('def', jsdef(def));
 		if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
@@ -47,13 +49,21 @@ function opInit (d) {
 // Perform a reactive batch operation using a @code block or plain JS function
 function opBatch (d) {
 	const task = d.mp.at(0);
+
 	if (typeof task !== 'function') return;
 	if (task.msjsType) return reactive.batch(() => runIfCode(task));
 	return reactive.batch(task);
 }
 
+function opEq (d) {
+	const to = d.mp.at(0);
+
+	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
+}
+
 function opSet (d) {
 	const { js, mp } = d;
+
 	for (const en of mp.entries()) {
 		switch (en[0]) {
 		case 'def':
@@ -72,6 +82,7 @@ function opSet (d) {
 
 function opUnbatch (d) {
 	const task = d.mp.at(0);
+
 	if (typeof task !== 'function') return;
 	if (task.msjsType) return reactive.unbatch(() => runIfCode(d.mp.at(0)));
 	return reactive.unbatch(task);
@@ -79,6 +90,7 @@ function opUnbatch (d) {
 
 function opUntr (d) {
 	const task = d.mp.at(0);
+
 	if (typeof task !== 'function') return;
 	if (task.msjsType) return reactive.untracked(() => runIfCode(d.mp.at(0)));
 	return reactive.untracked(task);
@@ -88,6 +100,7 @@ function opUntr (d) {
 const isReactive = (v) => !!reactive.typeOf(v);
 const onSet = (n, k, v) => { // On NANOS set
 	const curVal = n.atRaw(k), curIsR = isReactive(curVal), newIsR = isReactive(v);
+
 	if (curIsR) {
 		// Current value is reactive.
 		if (newIsR) curVal.def = v; // Tracking-chain of reactive values
@@ -125,12 +138,15 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
+			'@eq': opEq,
 			'@jsv': (d) => d.js,
 			batch: opBatch,
 			def: (d) => d.js.def,
 			eager: (d) => d.js.eager,
+			eq: opEq,
 			error: (d) => d.js.error,
 			fv: (d) => reactive.fv(d.js),
+			ne: (d) => !opEq(d),
 			rio: (d) => rio(d.js),
 			rv: (d) => d.js.rv,
 			set: opSet,

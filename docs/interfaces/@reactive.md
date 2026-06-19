@@ -19,13 +19,18 @@ Derived values are normally only recalculated if used in the definitions of othe
 * `(eager)`
   * Synopsis: Returns @t (true) if def(ined) values are set to be eagerly recalculated, otherwise returns @f (false).  
   * By default, def(ined) values are recalculated lazily, unless consumed by other reactive calculations.  
+* `(eq to)`\
+  `(@eq to)`
+  * Synopsis: Returns `@t` if `to` refers to the identical underlying reactive JavaScript object (boxed or unboxed).
 * `(error)`
-  * Synopsis: If a def(ined) value calculation generated an exception (or error), this operation will return it; otherwise it returns @u (undefined)  
+  * Synopsis: If a def(ined) value calculation generated an exception (or error), this operation will return it; otherwise it returns @u (undefined)
 * `(fv)`
   * Synopsis: Traverses any chained reactive values and returns the final, non-reactive, value.  
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying reactive JavaScript object.
 * `(rio)`
-  * Synopsis: Returns a RIO (reactive interface object) based on the current reactive.  
-  * A RIO is used to provide limited reactive support to other objects (e g., @list) in an implementation-independent manner.  
+  * Synopsis: Returns a RIO (reactive interface object) based on the current reactive.
+  * A RIO is used to provide limited reactive support to other objects (e g., @list) in an implementation-independent manner.
 * `(rv)`
   * Synopsis: Reads and returns the current value (either static, or calculated from the def(inition)).  
 * `(set)`

@@ -7,13 +7,17 @@
 import { getInstance, getInterface, runIfCode, setRO, typeAccepts } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
+// (eq value ...)
+// Returns @t if target is equal to *any* value
 function opEq (d) {
 	const { mp, js } = d;
 	let first = true;
+
 	for (const v of mp.values()) {
-		const fv = first ? v : runIfCode(v);
+		const to = first ? v : runIfCode(v);
+
 		first = false;
-		if (js === fv) return true;
+		if (js === ((typeof to === 'function' && to.msjsType) ? to.jsv : to)) return true;
 	}
 	return false;
 }
@@ -27,8 +31,10 @@ function opInit (d) {
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
 	const { mp, js } = d, sep = mp.at('with') ?? '', parts = [ js ];
+
 	for (const v of mp.values()) {
 		const so = globalThis.$toMsjs(v);
+
 		if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
 	}
 	return parts.join(sep);
@@ -38,8 +44,10 @@ function opJoin (d) {
 // ,(joining a b c) // a,b,c
 function opJoining (d) {
 	const { mp, js } = d, parts = [];
+
 	for (const v of mp.values()) {
 		const so = globalThis.$toMsjs(v);
+
 		if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
 	}
 	return parts.join(js);
@@ -48,11 +56,13 @@ function opJoining (d) {
 function opReplace (d, all = false) {
 	const rawPat = d.mp.at(0, ''), pat = (rawPat?.msjsType === '@regex')? rawPat.jsv : rawPat;
 	const rawRep = d.mp.at(1, ''), rep = (rawRep?.msjsType === '@function') ? replWrapper.bind({ msjsfn: rawRep }) : rawRep;
+
 	return (all ? d.js.replaceAll(pat, rep) : d.js.replace(pat, rep));
 }
 
 function opSplit (d) {
 	const rawSep = d.mp.at(0, ''), sep = (rawSep?.msjsType === '@regex') ? rawSep.jsv : rawSep;
+
 	return new NANOS(d.js.split(sep, d.mp.at(1)));
 }
 
@@ -65,6 +75,7 @@ function replWrapper (...args) {
 	const match = args.shift(), [ groups ] = args.slice(-1), hasG = typeof groups === 'object';
 	const [ offset, string ] = args.splice(hasG ? -3 : -2);
 	const mp = new NANOS(args, { match, offset, string }, hasG ? { groups: new NANOS(groups) } : []);
+
 	return this.msjsfn('call', mp);
 }
 
@@ -73,6 +84,7 @@ export function install () {
 		final: true, lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
+			'@eq': opEq,
 			'@jsv': d => d.js,
 			'=': opEq, // eq
 			'>=': d => d.js >= d.mp.at(0), // ge

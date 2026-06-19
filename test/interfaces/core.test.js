@@ -47,14 +47,6 @@ Deno.test("@core Interface Logic and Flow Control", async (t) => {
 		assertEquals($c("if", [0, "A", 1, "B"]), "B");
 	});
 
-	await t.step("(case) should find and return the correct result", () => {
-		assertEquals($c("case", ["b", "a", 1, "b", 2, "c", 3]), 2);
-		const params = new NANOS("a", 1, "b", 2, { else: 99 });
-		assertEquals($c("case", params), 99);
-		const num = globalThis.$toMsjs(5);
-		assertEquals($c("case", [num, 4, 'four', 5, 'five']), 'five');
-	});
-
 	await t.step("aliases should work like their primary operations", () => {
 		// & -> and
 		assertEquals($c("&", [$t, $t]), true);
@@ -67,8 +59,6 @@ Deno.test("@core Interface Logic and Flow Control", async (t) => {
 		assertEquals($c("~", $f), true);
 		// ? -> if
 		assertEquals($c("?", [$t, "A"]), "A");
-		// : -> case
-		assertEquals($c(":", ["b", "b", 2]), 2);
 		// + -> get
 		assertEquals($c("+", "@string").msjsType, "@string");
 	});

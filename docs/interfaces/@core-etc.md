@@ -15,14 +15,18 @@
   * Synopsis: Sequentially executes asynchronous code blocks.
   * RIC values: all
   * `collect`: If true, returns an `@promise` that resolves to a list of all return values. Otherwise, returns an `@promise` that resolves to the last value (default `@u`).
-* `(case value cmp1 res1 cmp2 res2 ... else=value)`\
-`(: value cmp1 res1 cmp2 res2 ... else=value)`
+* `(case cmp?=@eq refVal cmp1 res1 cmp2 res2 ... else=value)`\
+`(: cmp?=@eq refVal cmp1 res1 cmp2 res2 ... else=value)`
   * Synopsis: Returns a result value based on a reference value matching one of several comparison values.
-  * RIC values: all except the first value
-  * Compares the first value to the first value of each subsequent pair (cmp1, cmp2, etc) until an equal value is found.
+  * RIC values: all except `cmp` and the first positional value
+  * Compares `refVal` to each comparison value (cmp1, cmp2, etc) until an equal value is found.
   * The value immediately following the equal value is returned (res1 if cmp1 was equal, and so on).
-  * If none of the values compare equal, the else value or `@u` is returned.
-  * Equality is based on an object responding to `(caseEq value)` and returning true, responding to `(eq value)` and returning true, or being JavaScript \===.
+  * If none of the values compare equal, the `else=` value or `@u` is returned.
+  * The optional `cmp=` parameter controls the comparison strategy:
+    * `@eq` (default): Uses `refVal(@eq cmpN)` if the `@eq` protocol is available, otherwise falls back to JS `===`.
+    * `@same`: Uses JS `===` (object identity).
+    * A `@function` value: Calls `fn(call cmpN refVal)` for each comparison.
+    * Any other value: Sends `refVal(cmp cmpN)` (where `cmp` is a message name or list-op message).
 * `(debug dispatch=@f dispatchSource=@f dispatchType=@f)`
   `(debug stack=0 stackSource=@f stackType=@f)`
   * Synopsis: Optionally sets, and then returns, the runtime debugging configuration.
@@ -34,6 +38,15 @@
   * stackSource enables inclusion of JS file/line/column in stack traces
   * stackType enables inclusion of parameter types in stack traces.
   * Returns a list with the current settings.
+* `(diff value1 value2)`\
+`(!== value1 value2)`
+  * Synopsis: Returns `@t` if `value1` and `value2` are not the same object (JS `!==`).
+  * Cf. `(ne)` which tests for value inequality.
+* `(eq value1 value2)`\
+`(= value1 value2)`
+  * Synopsis: Returns `@t` if `value1` and `value2` are equal.
+  * Uses `value1(@eq value2)` if the `@eq` protocol is available, otherwise falls back to JS `===`.
+  * Cf. `(same)` which tests for object identity.
 * `(fcheck feature)`
   * Synopsis: Returns `@t` (true) if `feature` is ready, `@f` (false) if it is not ready yet, or `@u` (undefined) if the feature is unknown or has been rejected due to a module loading failure.
 * `(fready mid=@mid feature)`
@@ -66,6 +79,11 @@
   * Synopsis: Log values to the console as a warning.
 * `(modHasCap modpath capability)`
   * Synopsis: Returns true if the module with the specified `modpath` exists in the module metadata and includes the specified `capability` in its list of `modcaps`.
+* `(ne value1 value2)`\
+`(!= value1 value2)`
+  * Synopsis: Returns `@t` if `value1` and `value2` are not equal.
+  * Uses `value1(@eq value2)` if the `@eq` protocol is available, otherwise falls back to JS `===`.
+  * Cf. `(diff)` which tests for object non-identity.
 * `(not value)`\
 `(~ value)`
   * Synopsis: Returns the logical "not" of its parameter.
@@ -85,6 +103,10 @@
   * RIC values: all
   * `collect`: If true, returns a list of all return values. Otherwise, returns the last value (default `@u`).
   * `repeat`: If true, continues to run code blocks until they no longer return a runnable code block.
+* `(same value1 value2)`\
+`(== value1 value2)`
+  * Synopsis: Returns `@t` if `value1` and `value2` are the same object (JS `===`).
+  * Cf. `(eq)` which tests for value equality.
 * `(slid string)`
   * Synopsis: Creates (possibly-nested) lists from SLID-format string.
 * `(throw value)`
@@ -117,31 +139,37 @@ This interface is always configured as the first external runtime core extension
 ## `@false` (final, singleton `@f`)
 
 * Chains `@boolean`
-* `(eq value)` - Returns `@t` if `value` is equal to `@f`
-* `(ne value)` - Returns `@t` if `value` is not equal to `@f`
+* `(@eq value)` / `(eq value)` \- Returns `@t` if `value` is equal to `@f`
+* `(ne value)` \- Returns `@t` if `value` is not equal to `@f`
 * `(toString)` \- Returns text string '@f'
 * `(valueOf)` \- Returns value `@f`
 
 ## `@null` (final, singleton `@n`)
 
-* `(eq value)` - Returns `@t` if `value` is equal to `@n`
+* `(def value)` \- Returns `@t` if `value` is neither `@n` nor `@u` (i.e., is defined)
+* `(@eq value)` / `(eq value)`\
+  `(= value)` \- Returns `@t` if `value` is equal to `@n`
 * `(has)` \- Returns value `@u`
-* `(ne value)` - Returns `@t` if `value` is not equal to `@n`
+* `(ne value)`\
+  `(!= value)` \- Returns `@t` if `value` is not equal to `@n`
+* `(nou value)` \- Returns `@t` if `value` is `@n` or `@u` (null or undefined)
 * `(toString)` \- Returns text string '@n'
 * `(valueOf)` \- Returns value `@n`
 
 ## `@true` (final, singleton `@t`)
 
 * Chains `@boolean`
-* `(eq value)` - Returns `@t` if `value` is equal to `@t`
-* `(ne value)` - Returns `@t` if `value` is not equal to `@t`
+* `(@eq value)` / `(eq value)` \- Returns `@t` if `value` is equal to `@t`
+* `(ne value)` \- Returns `@t` if `value` is not equal to `@t`
 * `(toString)` \- Returns text string '@t'
 * `(valueOf)` \- Returns value `@t`
 
 ## `@undefined` (final, singleton `@u`)
 
-* `(eq value)` - Returns `@t` if `value` is equal to `@u`
+* `(@eq value)` / `(eq value)`\
+  `(= value)` \- Returns `@t` if `value` is equal to `@u`
 * `(has)` \- Returns value `@u`
-* `(ne value)` - Returns `@t` if `value` is not equal to `@u`
+* `(ne value)`\
+  `(!= value)` \- Returns `@t` if `value` is not equal to `@u`
 * `(toString)` \- Returns text string '@u'
 * `(valueOf)` \- Returns value `@u`

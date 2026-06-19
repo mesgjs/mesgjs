@@ -204,6 +204,23 @@ Module-signing of messages works for both anonymous messages (e.g. from
 JavaScript) and attributed messages (between two runtime-created Mesgjs
 objects).
 
+## `@eq` Equality Protocol, `@jsv` Message
+
+The `@eq` message operation is a reserved, `@`-prefixed protocol name used by `@c` (the runtime `@core` singleton) to perform value equality comparisons in a standard, conflict-free way.
+
+Objects that wrap JavaScript native values (such as `@number`, `@string`, `@true`, `@false`, `@jsArray`, `@map`, `@set`, and `@jsObject`) implement `(@eq value)` so that boxed and unboxed values are treated as equivalent. For example, a boxed `@number` instance and a raw JS number with the same numeric value will compare as equal.
+
+The `@eq` protocol is used by:
+- `@c(eq value1 value2)` / `@c(= value1 value2)` — value equality test
+- `@c(ne value1 value2)` / `@c(!= value1 value2)` — value inequality test
+- `@c(case ...)` / `@c(: ...)` — when using the default `@eq` comparison strategy
+
+Objects that do not implement `@eq` will be compared using JS `===` (object identity) as a fallback.
+
+The `@eq` protocol is virtually always implemented identically to the object's native `(eq)` message, but uses the reserved `@`-prefix name to reflect its "defined and expected behavior".
+
+The `@jsv` companion message is used for returning corresponding JavaScript-level values (e.g. `5` for `@number`-boxed 5).
+
 ## See Also
 
 - [Message Parameter Normalization](Message-Parameter-Normalization.md) - How JavaScript values are converted to message parameters

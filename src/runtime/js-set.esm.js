@@ -10,6 +10,7 @@ import { NANOS } from '@nanos';
 function opInit (d) {
 	const { octx, mp } = d, set = mp.at(0), from = mp.at('from');
 	const initial = (typeof from?.values === 'function') ? [...from.values()] : [];
+
 	setRO(octx, 'js', (set instanceof Set) ? set : new Set(initial));
 	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
@@ -18,10 +19,19 @@ function opInit (d) {
 // Add (positional) values to the set
 function opAdd (d) {
 	const { js, mp } = d;
+
 	for (const v of mp.values()) {
 		js.add(v);
 	}
 	return js;
+}
+
+// (eq to)
+// Returns @t if "to" refers to the identical JS Set
+function opEq (d) {
+	const to = d.mp.at(0);
+
+	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
 }
 
 // List of (keys or) values
@@ -32,6 +42,7 @@ export function install (name) {
 		lock: true, pristine: true,
 		handlers: {
 			'@init': opInit,
+			'@eq': opEq,
 			'@jsv': (d) => d.js,
 			'+': opAdd,
 			'-': (d) => d.js.delete(d.mp.at(0)),
@@ -40,6 +51,7 @@ export function install (name) {
 			delete: (d) => d.js.delete(d.mp.at(0)),
 			// difference
 			entries: (d) => [...d.js.entries()],
+			eq: opEq,
 			// forEach - use @kvIter
 			has: (d) => d.js.has(d.mp.at(0)),
 			// intersection
@@ -48,6 +60,7 @@ export function install (name) {
 			// isSupersetOf
 			keyIter: (d) => d.js.keys(),
 			keys: kv,
+			ne: (d) => !opEq(d),
 			size: (d) => d.js.size,
 			toList: (d) => new NANOS(d.js),
 			// union

@@ -129,17 +129,19 @@ export function install (name) {
 	getInterface(name).set({
 		lock: true, pristine: true,
 		handlers: {
-			'@init': d => setRO(d.octx, 'js', {}),
-			active: d => !!d.js.active,
+			'@init': (d) => setRO(d.octx, 'js', {}),
+			active: (d) => !!d.js.active,
 			afor: opFor,
 			arev: opRev,
+			eq: (d) => d.rr === d.mp.at(0),
 			for: opFor,
-			isIndex: d => d.js.isIndex,
-			key: d => d.js.key,
-			next: d => throwFlow(d, 'next', name),
+			isIndex: (d) => d.js.isIndex,
+			key: (d) => d.js.key,
+			ne: (d) => d.rr !== d.mp.at(0),
+			next: (d) => throwFlow(d, 'next', name),
 			rev: opRev,
-			stop: d => throwFlow(d, 'stop', name),
-			value: d => d.js.value,
+			stop: (d) => throwFlow(d, 'stop', name),
+			value: (d) => d.js.value,
 		},
 	});
 }

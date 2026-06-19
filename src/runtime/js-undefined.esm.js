@@ -9,7 +9,8 @@ import { getInterface, setRO } from './runtime.esm.js';
 const retUndef = () => undefined;
 const isUndef = (d) => {
 	const value = d.mp.at(0);
-	return value === undefined || value?.msjsType === '@undefined';
+
+	return value === undefined || (typeof value === 'function' && value.msjsType === '@undefined');
 };
 
 export function install () {
@@ -20,10 +21,13 @@ export function install () {
 				setRO(d.octx, 'js', undefined);
 				setRO(d.rr, { jsv: undefined, valueOf: retUndef });
 			},
+			'@eq': isUndef,
 			'@jsv': retUndef,
-			eq: d => d.isUndef(),
+			'=': isUndef,
+			'!=': (d) => !isUndef(d),
+			eq: isUndef,
 			has: retUndef,
-			ne: d => !d.isUndef(),
+			ne: (d) => !isUndef(d),
 			toString: () => '@u',
 			valueOf: retUndef,
 		},
