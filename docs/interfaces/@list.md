@@ -23,10 +23,11 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Synopsis: Generates a reactive dependency on changes to the list.  
   * Does nothing if reactive mode has not been enabled (see `(rio)`).  
   * Reactive consumers will be notified whenever otherwise non-reactive values (including the key list) change.  
-* `(entries compact)`
+* `(entries num=@f raw=@f)`
   * Synopsis: Returns a list of `[ key value ]` lists representing the items in the list.
   * `[ [ key1 value1 ] [ key2 value2 ] ... [ keyN valueN ] ]`
-  * If compact is `@t`, index keys are numeric instead of strings. The default is `@f`.
+  * If `num` (or its alias `compact`) is `@t`, index keys are numeric instead of strings. The default is `@f`.
+  * If `raw` is `@t`, raw (potentially reactive) values are returned. The default is `@f`.
 * `(eq to)`\
   `(@eq to)`
   * Synopsis: Returns `@t` if `to` refers to the identical underlying `NANOS` object (boxed or unboxed).
@@ -39,26 +40,31 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
   * Synopsis: Returns `@t` if the list includes the specified key, or `@f` otherwise.  
 * `(includes value)`
   * Synopsis: Returns `@t` if the list includes the specified value, or `@f` otherwise.  
-* `(indexEntries compact)`
-  * Synopsis: Like `(entries)`, except that it only returns entries with index (positional) keys.  
-  * If compact is `@t`, keys are numeric instead of strings. The default is `@f`.  
-* `(indexKeys)`
-  * Synopsis: Like `(keys)`, except that it only returns index (positional) keys.  
+* `(indexEntries num=@f raw=@f)`
+  * Synopsis: Like `(entries)`, except that it only returns entries with index (positional) keys.
+  * If `num` (or its alias `compact`) is `@t`, keys are numeric instead of strings. The default is `@f`.
+  * If `raw` is `@t`, raw (potentially reactive) values are returned. The default is `@f`.
+* `(indexKeys num=@f)`
+  * Synopsis: Like `(keys)`, except that it only returns index (positional) keys.
+  * If `num` is `@t`, keys are numeric instead of strings. The default is `@f`.
 * `(isLocked key)`
   * Synopsis: Returns whether a specific key or the entire key-set is locked.  
   * If the optional key is supplied, returns `@t` if the **value** associated with key is locked, or `@f` otherwise.  
   * If the optional key is undefined or not supplied, returns `@t` if the entire **key-set** is locked, or `@f` otherwise.  
 * `(isRedacted key)`
   * Synopsis: Returns `@t` if the key/value for the specified key are marked redacted, or `@f` otherwise.  
-* `(keyOf value)`
-  * Synopsis: Returns the first key in the list having value value, or `@u` if the value is not found.  
+* `(keyOf value num=@f)`
+  * Synopsis: Returns the first key in the list having value value, or `@u` if the value is not found.
+  * If `num` is `@t`, returns a numeric key for indexed entries instead of a string. The default is `@f`.
 * `(keyIter)`
   * Synopsis: Returns a JS key-iterator function used by the `@kvIter` interface.  
-* `(keys)`
-  * Synopsis: Returns a list of all the keys (index and named) in order.  
-  * See `(set)` for additional details.  
-* `(lastKeyOf value)`
-  * Synopsis: Returns the last key in the list having value value, or `@u` if the value is not found.  
+* `(keys num=@f)`
+  * Synopsis: Returns a list of all the keys (index and named) in order.
+  * If `num` is `@t`, index keys are numeric instead of strings. The default is `@f`.
+  * See `(set)` for additional details.
+* `(lastKeyOf value num=@f)`
+  * Synopsis: Returns the last key in the list having value value, or `@u` if the value is not found.
+  * If `num` is `@t`, returns a numeric key for indexed entries instead of a string. The default is `@f`.
 * `(lock key...)`
   * Synopsis: Locks the **values** of the specified key(s). It does not prevent the addition or removal of other keys.  
 * `(lockAll andNew)`
@@ -86,9 +92,10 @@ This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@g
     `(nset x=5 well hello) // means nset(x=5 0=well 1=hello)`
 * `(options)`
   * Synopsis: Gets the underlying NANOS options. See the [NANOS documentation](https://github.com/mesgjs/nanos) for details.
-* `(pairs compact)`
+* `(pairs num=@f)`
   * Synopsis: Similar to `(entries)`, but flattened into a single list of key/value pairs.
   * `[ key1 value1 key2 value2 ... keyN valueN ]`
+  * If `num` (or its alias `compact`) is `@t`, index keys are numeric instead of strings. The default is `@f`.
 * `(pop)`\
 `(>)`
   * Synopsis: Removes and returns the value at index `(next) - 1`.

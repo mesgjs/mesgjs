@@ -164,4 +164,121 @@ Deno.test("@list Interface", async (t) => {
 		assertEquals(list("at", ls([,1])), "b", "Original should be unchanged");
 		assertEquals(sliced.at(0), "modified", "Slice should be modified");
 	});
+
+	// Tests for num option
+	await t.step("(entries) with num=@t should return numeric index keys", () => {
+		const list = newList(ls([,"a",,"b", "name", "value"]));
+		const entries = list("entries", ls(["num", true]));
+		// Check that index keys are numeric
+		assertEquals(entries.at(0).at(0), 0, "First entry key should be numeric 0");
+		assertEquals(entries.at(1).at(0), 1, "Second entry key should be numeric 1");
+		// Named keys should remain strings
+		assertEquals(entries.at(2).at(0), "name", "Named key should remain string");
+	});
+
+	await t.step("(entries) with num=@f should return string index keys", () => {
+		const list = newList(ls([,"a",,"b"]));
+		const entries = list("entries", ls(["num", false]));
+		assertEquals(entries.at(0).at(0), "0", "First entry key should be string '0'");
+		assertEquals(entries.at(1).at(0), "1", "Second entry key should be string '1'");
+	});
+
+	await t.step("(indexEntries) with num=@t should return numeric keys", () => {
+		const list = newList(ls([,"a",,"b", "name", "value"]));
+		const entries = list("indexEntries", ls(["num", true]));
+		assertEquals(entries.size, 2, "Should only have index entries");
+		assertEquals(entries.at(0).at(0), 0, "First key should be numeric 0");
+		assertEquals(entries.at(1).at(0), 1, "Second key should be numeric 1");
+	});
+
+	await t.step("(indexEntries) with num=@f should return string keys", () => {
+		const list = newList(ls([,"a",,"b"]));
+		const entries = list("indexEntries", ls(["num", false]));
+		assertEquals(entries.at(0).at(0), "0", "First key should be string '0'");
+		assertEquals(entries.at(1).at(0), "1", "Second key should be string '1'");
+	});
+
+	await t.step("(indexKeys) with num=@t should return numeric keys", () => {
+		const list = newList(ls([,"a",,"b", "name", "value"]));
+		const keys = list("indexKeys", ls([,true]));
+		assertEquals(keys.size, 2, "Should have 2 index keys");
+		assertEquals(keys.at(0), 0, "First key should be numeric 0");
+		assertEquals(keys.at(1), 1, "Second key should be numeric 1");
+	});
+
+	await t.step("(indexKeys) with num=@f should return string keys", () => {
+		const list = newList(ls([,"a",,"b"]));
+		const keys = list("indexKeys", ls([,false]));
+		assertEquals(keys.at(0), "0", "First key should be string '0'");
+		assertEquals(keys.at(1), "1", "Second key should be string '1'");
+	});
+
+	await t.step("(keys) with num=@t should return numeric index keys", () => {
+		const list = newList(ls([,"a",,"b", "name", "value"]));
+		const keys = list("keys", ls(["num", true]));
+		assertEquals(keys.size, 3, "Should have 3 keys total");
+		assertEquals(keys.at(0), 0, "First key should be numeric 0");
+		assertEquals(keys.at(1), 1, "Second key should be numeric 1");
+		assertEquals(keys.at(2), "name", "Named key should remain string");
+	});
+
+	await t.step("(keys) with num=@f should return string index keys", () => {
+		const list = newList(ls([,"a",,"b"]));
+		const keys = list("keys", ls(["num", false]));
+		assertEquals(keys.at(0), "0", "First key should be string '0'");
+		assertEquals(keys.at(1), "1", "Second key should be string '1'");
+	});
+
+	await t.step("(keyOf) with num=@t should return numeric key for index", () => {
+		const list = newList(ls([,"a",,"b",,"c"]));
+		const key = list("keyOf", ls([,"b", "num", true]));
+		assertEquals(key, 1, "Should return numeric 1");
+	});
+
+	await t.step("(keyOf) with num=@f should return string key for index", () => {
+		const list = newList(ls([,"a",,"b",,"c"]));
+		const key = list("keyOf", ls([,"b", "num", false]));
+		assertEquals(key, "1", "Should return string '1'");
+	});
+
+	await t.step("(keyOf) should return string key for named entry regardless of num", () => {
+		const list = newList(ls(["name", "value"]));
+		const key1 = list("keyOf", ls([,"value", "num", true]));
+		const key2 = list("keyOf", ls([,"value", "num", false]));
+		assertEquals(key1, "name", "Should return string 'name' with num=@t");
+		assertEquals(key2, "name", "Should return string 'name' with num=@f");
+	});
+
+	await t.step("(lastKeyOf) with num=@t should return numeric key for index", () => {
+		const list = newList(ls([,"a",,"b",,"a"]));
+		const key = list("lastKeyOf", ls([,"a", "num", true]));
+		assertEquals(key, 2, "Should return numeric 2 (last occurrence)");
+	});
+
+	await t.step("(lastKeyOf) with num=@f should return string key for index", () => {
+		const list = newList(ls([,"a",,"b",,"a"]));
+		const key = list("lastKeyOf", ls([,"a", "num", false]));
+		assertEquals(key, "2", "Should return string '2' (last occurrence)");
+	});
+
+	await t.step("(pairs) with num=@t should return numeric index keys", () => {
+		const list = newList(ls([,"a",,"b", "name", "value"]));
+		const pairs = list("pairs", ls(["num", true]));
+		// Pairs are flattened: [key1, value1, key2, value2, ...]
+		assertEquals(pairs.at(0), 0, "First key should be numeric 0");
+		assertEquals(pairs.at(1), "a", "First value should be 'a'");
+		assertEquals(pairs.at(2), 1, "Second key should be numeric 1");
+		assertEquals(pairs.at(3), "b", "Second value should be 'b'");
+		assertEquals(pairs.at(4), "name", "Named key should remain string");
+		assertEquals(pairs.at(5), "value", "Named value should be 'value'");
+	});
+
+	await t.step("(pairs) with num=@f should return string index keys", () => {
+		const list = newList(ls([,"a",,"b"]));
+		const pairs = list("pairs", ls(["num", false]));
+		assertEquals(pairs.at(0), "0", "First key should be string '0'");
+		assertEquals(pairs.at(1), "a", "First value should be 'a'");
+		assertEquals(pairs.at(2), "1", "Second key should be string '1'");
+		assertEquals(pairs.at(3), "b", "Second value should be 'b'");
+	});
 });
