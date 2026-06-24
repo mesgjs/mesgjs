@@ -32,7 +32,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r3={
 				@d(return)
-				default-value !}(fn)(call))
+				default-value
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r3'), undefined, "Expected undefined from function (returning block) with return()");
 	});
@@ -41,7 +42,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r4={
 				@d(return test-value)
-				default-value !}(fn)(call))
+				default-value
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r4'), 'test-value', "Expected 'test-value' from function (returning block)");
 	});
@@ -50,7 +52,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r5={
 				@d(return 42)
-				99 !}(fn)(call))
+				99
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r5'), 42, "Expected 42 from return");
 	});
@@ -59,7 +62,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r6={
 				@d(return @t)
-				@f !}(fn)(call))
+				@f
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r6'), true, "Expected true from return");
 	});
@@ -68,7 +72,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r7={
 				@d(return @f)
-				@t !}(fn)(call))
+				@t
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r7'), false, "Expected false from return");
 	});
@@ -77,7 +82,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r8={
 				@d(return @n)
-				not-null !}(fn)(call))
+				not-null
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r8'), null, "Expected null from return");
 	});
@@ -86,7 +92,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r9={
 				@d(return 0)
-				99 !}(fn)(call))
+				99
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r9'), 0, "Expected 0 from return");
 	});
@@ -95,7 +102,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r10={
 				@d(return "")
-				not-empty !}(fn)(call))
+				not-empty
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r10'), '', "Expected empty string from return");
 	});
@@ -104,7 +112,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r11={
 				@d(return [a b c])
-				[x y z] !}(fn)(call))
+				[x y z]
+			!}(fn)(call))
 		`);
 		const result = $gss.at('r11');
 		assert(result instanceof globalThis.NANOS, "Expected NANOS instance");
@@ -132,9 +141,9 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 				@c(if !0 {
 					@d(return early)
 					default-early !}
-					@f {}
 				)
-				normal-return !}(fn))
+				normal-return
+			!}(fn))
 			%*(nset r13a=#fn(call @t))
 			%*(nset r13b=#fn(call @f))
 		`);
@@ -147,7 +156,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 			@c(interface test-return-handler14)(set handlers=[
 				test={
 					@d(return handler-value)
-					default-value !}
+					default-value
+				!}
 			])
 			%*(nset inst14=@c(get test-return-handler14))
 			%*(nset r14=%*inst14(test))
@@ -160,7 +170,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 			@c(interface test-return-super15)(set handlers=[
 				test={
 					@d(return super-value)
-					default-super !}
+					default-super
+				!}
 			])
 			@c(interface test-return-sub15)(set
 				chain=[test-return-super15]
@@ -170,10 +181,12 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 						@c(if #superResult(eq super-value)
 							{
 								@d(return sub-got-super)
-								default-sub !}
+								default-sub
+							!}
 							{
 								@d(return unexpected)
-								default-unexpected !}
+								default-unexpected
+							!}
 						)
 					}
 				]
@@ -190,10 +203,12 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 				@c(if !0(eq early)
 					{
 						@d(return early-exit)
-						default-early !}
+						default-early
+					!}
 					{
 						@d(return normal-exit)
-						default-normal !}
+						default-normal
+					!}
 				)
 			}(fn))
 			%*(nset r16a=#fn(call early))
@@ -213,10 +228,12 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 				@c(if #innerResult(eq inner-value)
 					{
 						@d(return outer-got-inner)
-						default-outer !}
+						default-outer
+					!}
 					{
 						@d(return unexpected)
-						default-unexpected !}
+						default-unexpected
+					!}
 				)
 			}(fn innerFn=#innerFn)(call))
 		`);
@@ -229,16 +246,20 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 				@c(case !0
 					a {
 						@d(return result-a)
-						default-a !}
+						default-a
+					!}
 					b {
 						@d(return result-b)
-						default-b !}
+						default-b
+					!}
 					c {
 						@d(return result-c)
-						default-c !}
+						default-c
+					!}
 					else={
 						@d(return result-default)
-						default-default !}
+						default-default
+					!}
 				)
 			}(fn))
 			%*(nset r18a=#fn(call a))
@@ -256,7 +277,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 		await loadMesgjsModuleSource(`
 			%*(nset r19={
 				@d(return 2(add 3))
-				99 !}(fn)(call))
+				99
+			!}(fn)(call))
 		`);
 		assertEquals($gss.at('r19'), 5, "Expected 5 from expression return");
 	});

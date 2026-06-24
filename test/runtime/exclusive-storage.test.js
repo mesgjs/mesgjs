@@ -73,7 +73,7 @@ Deno.test('Exclusive storage - isolation between interfaces', async () => {
 	});
 
 	const obj = getInstance('test-exclusive-derived');
-	
+
 	// Set value in base handler
 	obj('setBase');
 	const baseValue = obj('getBase');
@@ -185,15 +185,15 @@ Deno.test('Exclusive storage - WeakMap cleanup', async () => {
 	// Create and discard an instance
 	let obj = getInstance('test-exclusive-weakmap');
 	obj('setVal', [42]);
-	
+
 	// Clear reference
 	obj = null;
-	
+
 	// Force GC if available (Deno specific)
 	if (globalThis.gc) {
 		globalThis.gc();
 	}
-	
+
 	// Create new instance - should not have old data
 	const newObj = getInstance('test-exclusive-weakmap');
 	// This test just verifies no errors occur; actual GC verification is difficult
@@ -211,7 +211,7 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 				setBase={ %%(nset value=base-value) }
 				getBase={ %%value !}
 			])
-			
+
 			// Create derived interface that chains base
 			@c(interface test-exclusive-mesgjs-derived)(set
 				chain=[test-exclusive-mesgjs-base]
@@ -220,19 +220,19 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 					getDerived={ %%value !}
 				]
 			)
-			
+
 			// Create instance and test
 			#(nset obj=@c(get test-exclusive-mesgjs-derived))
 			#obj(setBase)
 			#obj(setDerived)
-			
+
 			// Store results in global storage for verification
 			@gss(nset
 				baseValue=#obj(getBase)
 				derivedValue=#obj(getDerived)
 			)
 		`);
-		
+
 		assertEquals($gss.at('baseValue'), 'base-value', 'Base handler should see its own exclusive value');
 		assertEquals($gss.at('derivedValue'), 'derived-value', 'Derived handler should see its own exclusive value');
 	});
@@ -246,14 +246,14 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 					%%?value
 				!}
 			])
-			
+
 			#(nset obj=@c(get test-exclusive-optional-mesgjs))
 			@gss(nset
 				optionalMissing=#obj(getOptional)
 				optionalPresent=#obj(setAndGet)
 			)
 		`);
-		
+
 		assertEquals($gss.at('optionalMissing'), undefined, '%%? should return undefined for missing key');
 		assertEquals($gss.at('optionalPresent'), 42, '%%? should return value when present');
 	});
@@ -266,7 +266,7 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 				getProtected={ %key !}
 				getExclusive={ %%key !}
 			])
-			
+
 			@c(interface test-storage-compare-mesgjs-derived)(set
 				chain=[test-storage-compare-mesgjs-base]
 				handlers=[
@@ -276,23 +276,23 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 					getExclusiveDerived={ %%key !}
 				]
 			)
-			
+
 			#(nset obj=@c(get test-storage-compare-mesgjs-derived))
-			
+
 			// Set protected storage from base
 			#obj(setProtected)
 			@gss(nset
 				protectedFromBase=#obj(getProtected)
 				protectedFromDerived=#obj(getProtectedDerived)
 			)
-			
+
 			// Override protected storage from derived
 			#obj(setProtectedDerived)
 			@gss(nset
 				protectedFromBaseAfter=#obj(getProtected)
 				protectedFromDerivedAfter=#obj(getProtectedDerived)
 			)
-			
+
 			// Set exclusive storage from both
 			#obj(setExclusive)
 			#obj(setExclusiveDerived)
@@ -301,13 +301,13 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 				exclusiveFromDerived=#obj(getExclusiveDerived)
 			)
 		`);
-		
+
 		// Protected storage is shared
 		assertEquals($gss.at('protectedFromBase'), 'protected-base', 'Base sees protected value');
 		assertEquals($gss.at('protectedFromDerived'), 'protected-base', 'Derived sees same protected value');
 		assertEquals($gss.at('protectedFromBaseAfter'), 'protected-derived', 'Base sees updated protected value');
 		assertEquals($gss.at('protectedFromDerivedAfter'), 'protected-derived', 'Derived sees updated protected value');
-		
+
 		// Exclusive storage is isolated
 		assertEquals($gss.at('exclusiveFromBase'), 'exclusive-base', 'Base sees its own exclusive value');
 		assertEquals($gss.at('exclusiveFromDerived'), 'exclusive-derived', 'Derived sees its own exclusive value');
@@ -319,13 +319,13 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 				testShortcuts={
 					// Set using full message
 					%%(nset x=10 y=20)
-					
+
 					// Read using shortcuts
 					#(nset sum=%%x(add %%y))
-					
+
 					// Optional read
 					#(nset missing=%%?z)
-					
+
 					@gss(nset
 						xValue=%%x
 						yValue=%%y
@@ -334,11 +334,11 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 					)
 				}
 			])
-			
+
 			#(nset obj=@c(get test-exclusive-shortcuts))
 			#obj(testShortcuts)
 		`);
-		
+
 		assertEquals($gss.at('xValue'), 10, '%%x shortcut should work');
 		assertEquals($gss.at('yValue'), 20, '%%y shortcut should work');
 		assertEquals($gss.at('sumValue'), 30, 'Arithmetic with %% shortcuts should work');
@@ -354,7 +354,7 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 						%%(nset count=%%(at count else=0)(add 1))
 						%%count
 					!}(fn))
-					
+
 					// Call it multiple times
 					@gss(nset
 						count1=#counter(call)
@@ -363,11 +363,11 @@ Deno.test('Exclusive storage - Mesgjs syntax tests', async (t) => {
 					)
 				}
 			])
-			
+
 			#(nset obj=@c(get test-exclusive-function))
 			#obj(makeCounter)
 		`);
-		
+
 		assertEquals($gss.at('count1'), 1, 'First call should return 1');
 		assertEquals($gss.at('count2'), 2, 'Second call should return 2');
 		assertEquals($gss.at('count3'), 3, 'Third call should return 3');

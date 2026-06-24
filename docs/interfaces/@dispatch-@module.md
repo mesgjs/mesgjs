@@ -7,6 +7,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 ## Mesgjs Message Operations
 
 * `(dop)` \- the current dispatch's requested operation   
+* `(hop)` \- the currently-dispatched handler operation
 * `(ht)` \- the currently-dispatched handler's interface type  
 * `(js)` \- returns the JS-level state object, if set \[not sure if this is useful in Mesgjs\]  
 * `(log)` \- logs the dispatch object to the JS console  
@@ -27,6 +28,7 @@ This interface is "bilingual", supporting both JavaScript object properties and 
 
 * `.b` \- code-template binding function (returns a `(run)`-able code-block bound to the current dispatch)
 * `.dop` \- current dispatch's requested operation
+* `.hop` \- the currently-dispatched handler operation
 * `.ht` \- the currently-dispatched handler's interface type
 * `.js` \- mirrors `octx.js` (JS-level state), if present
 * `.mop` \- the original message's requested operation

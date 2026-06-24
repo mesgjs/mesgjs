@@ -187,10 +187,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Non-returning block
 			%*(nset nonReturning={ 17 }(run))
-			
+
 			// Returning block
 			%*(nset returning={ 42 !}(run))
-			
+
 			// Block as value (not executed)
 			#(nset block={ code })
 			%*(nset blockType=@c(type #block))
@@ -205,10 +205,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Simple message
 			%*(nset simple=5(add 3))
-			
+
 			// Message with multiple parameters
 			%*(nset multi=hello(join ' ' world))
-			
+
 			// Message with named parameters
 			%*(nset named=[a=1 b=2](at a))
 		`);
@@ -222,7 +222,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Chain multiple messages
 			%*(nset chain=10(add 5)(mul 2))
-			
+
 			// Chain on storage
 			#(nset value=5)
 			%*(nset fromStorage=#value(add 10)(mul 2))
@@ -236,14 +236,14 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// List-op with positional operation
 			%*(nset positional=[a b c]([at] 1))
-			
+
 			// List-op with op=op (operation as named parameter)
 			%*(nset opEqOp=[x=1 y=2]([op=at] x))
-			
+
 			// List-op with params=[replacement params]
 			#(nset myList=[1 2 3])
 			%*(nset withParams=#myList([at params=[0]]))
-			
+
 			// List-op with else={missing-method fallback}
 			%*(nset withElse=[a b c]([nonexistent else={ fallback !}]))
 		`);
@@ -258,11 +258,11 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Set scratch values
 			#(nset x=100 y=200)
-			
+
 			// Read scratch values
 			%*(nset scratchX=#x)
 			%*(nset scratchY=#y)
-			
+
 			// Use in expressions
 			%*(nset scratchSum=#x(add #y))
 		`);
@@ -275,7 +275,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	await t.step('should handle storage operators - optional scratch (#?)', async () => {
 		await loadMesgjsModuleSource(`
 			#(nset exists=42)
-			
+
 			%*(nset
 				missing=#?nonexistent
 				present=#?exists
@@ -292,7 +292,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			#(nset func={
 				!0(add !1)
 			!}(fn))
-			
+
 			%*(nset result=#func(call 10 20))
 		`);
 
@@ -305,7 +305,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			#(nset func={
 				!?missing
 			!}(fn))
-			
+
 			%*(nset result=#func(call))
 		`);
 
@@ -319,7 +319,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 				setVal={ %(nset value=!0) }
 				getVal={ %value !}
 			])
-			
+
 			#(nset obj=@c(get test-protected))
 			#obj(setVal 42)
 			%*(nset result=#obj(getVal))
@@ -333,7 +333,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			@c(interface test-protected-opt)(set handlers=[
 				getOptional={ %?nonexistent !}
 			])
-			
+
 			#(nset obj=@c(get test-protected-opt))
 			%*(nset result=#obj(getOptional))
 		`);
@@ -348,7 +348,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 				setVal={ %%(nset value=!0) }
 				getVal={ %%value !}
 			])
-			
+
 			#(nset obj=@c(get test-exclusive))
 			#obj(setVal 99)
 			%*(nset result=#obj(getVal))
@@ -362,7 +362,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			@c(interface test-exclusive-opt)(set handlers=[
 				getOptional={ %%?nonexistent !}
 			])
-			
+
 			#(nset obj=@c(get test-exclusive-opt))
 			%*(nset result=#obj(getOptional))
 		`);
@@ -374,7 +374,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Set global shared value
 			%*(nset globalKey=global-value)
-			
+
 			// Read global shared value
 			%*(nset result=%*globalKey)
 		`);
@@ -398,7 +398,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		await loadMesgjsModuleSource(`
 			// Set module private value
 			%/(nset moduleKey=module-value)
-			
+
 			// Read module private value
 			%*(nset result=%/moduleKey)
 		`);
@@ -439,7 +439,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			// Single-line comment
 			%*(nset single=42)
 			// %*(nset single=24)
-			
+
 			/* Multi-line
 			   comment */
 			%*(nset multi=100)
@@ -466,9 +466,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			}
 			%*(nset debugValue=#value)
 		`, 'test-no-debug', { debugBlocks: false });
-		
+
 		assertEquals($gss.at('debugValue'), 'before', '@debug blocks can be stripped with debugBlocks: false');
-		
+
 		// Test with debugBlocks: true (default)
 		await loadMesgjsModuleSource(`
 			#(nset value2=before)
@@ -494,14 +494,14 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 
 	await t.step('should handle whitespace and empty statements', async () => {
 		await loadMesgjsModuleSource(`
-			
-			
+
+
 			#(nset value=whitespace-test)
-			
-			
+
+
 			%*(nset whitespaceTest=#value)
-			
-			
+
+
 		`);
 
 		assertEquals($gss.at('whitespaceTest'), 'whitespace-test', 'Whitespace is handled correctly');
@@ -514,7 +514,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 				item1=[x=1 y=2]
 				item2=[x=3 y=4]
 			])
-			
+
 			// Access nested named values
 			%*(nset
 				x1=#data(at item1)(at x)
@@ -548,11 +548,11 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			// Storage with explicit names
 			#(nset myVar=123)
 			%*(nset result=#myVar)
-			
+
 			// Storage with quoted names
 			#(nset 'quoted-name'=456)
 			%*(nset quotedResult=#'quoted-name')
-			
+
 			// Storage with positional values
 			#(set 0 to=789)
 			%*(nset numericResult=#0)
@@ -586,7 +586,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 				nested=[outer=[inner=[value=42]]]
 				data=[x=10 y=20]
 			)
-			
+
 			// Test basic list-key access with %*[key subkey]
 			%*(nset
 				result1=%*[nested outer inner value]
@@ -603,7 +603,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	await t.step('should handle storage namespace list-key syntax with optional ?', async () => {
 		await loadMesgjsModuleSource(`
 			%*(nset existing=[level1=[level2=value]])
-			
+
 			// Test optional ? after namespace token
 			%*(nset
 				found=%*?[existing level1 level2]
@@ -620,7 +620,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	await t.step('should handle storage namespace list-key syntax with else=', async () => {
 		await loadMesgjsModuleSource(`
 			%*(nset data=[a=[b=100]])
-			
+
 			// Test else= in key list
 			%*(nset
 				withElse1=%*[data a b else=default1]
@@ -637,19 +637,19 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	await t.step('should handle storage namespace list-key syntax with all storage types', async () => {
 		await loadMesgjsModuleSource(`
 			// Test with different storage namespaces
-			
+
 			// Global shared storage (%*)
 			%*(nset global=[nested=[value=global-value]])
 			%*(nset globalResult=%*[global nested value])
-			
+
 			// Module private storage (%/)
 			%/(nset module=[nested=[value=module-value]])
 			%*(nset moduleResult=%/[module nested value])
-			
+
 			// Scratch storage (#)
 			#(nset scratch=[nested=[value=scratch-value]])
 			%*(nset scratchResult=#[scratch nested value])
-			
+
 			// Create interface with protected storage (%)
 			@c(interface test-list-key)(set handlers=[
 				setup={ %(nset obj=[nested=[value=protected-value]]) }
@@ -658,7 +658,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			#(nset testObj=@c(get test-list-key))
 			#testObj(setup)
 			%*(nset protectedResult=#testObj(getVal))
-			
+
 			// Test with exclusive storage (%%)
 			@c(interface test-list-key-ex)(set handlers=[
 				setup={ %%(nset obj=[nested=[value=exclusive-value]]) }
@@ -683,7 +683,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			#(nset funcWithListKey={
 				![0 nested deep value]
 			!}(fn))
-			
+
 			%*(nset paramResult=#funcWithListKey(call [nested=[deep=[value=param-value]]]))
 		`);
 
@@ -693,7 +693,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	await t.step('should handle storage namespace list-key syntax combining ? and else=', async () => {
 		await loadMesgjsModuleSource(`
 			%*(nset data=[a=1])
-			
+
 			// Combine optional ? with else= in key list
 			%*(nset
 				combo1=%*?[data a else=default1]

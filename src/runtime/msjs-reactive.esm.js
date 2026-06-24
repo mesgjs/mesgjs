@@ -153,7 +153,7 @@ export function install (name) {
 			unbatch: opUnbatch,
 			unready: (d) => d.js.unready(),
 			untr: opUntr,
-			wait: (d) => reactive.wait(),
+			wait: () => reactive.wait(),
 		},
 	});
 }

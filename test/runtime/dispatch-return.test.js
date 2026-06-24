@@ -181,7 +181,7 @@ Deno.test("@d(return) operation", async (t) => {
 		const result1 = inst('test');
 		assertEquals(result1, 'first-return');
 		assertEquals(callCount, 1, "Handler should only be called once");
-		
+
 		const result2 = inst('test');
 		assertEquals(result2, 'first-return');
 		assertEquals(callCount, 2, "Handler should be called again on second message");
@@ -309,12 +309,12 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		
+
 		sideEffect = false;
 		const result1 = inst('test', new NANOS(['early']));
 		assertEquals(result1, 'early-exit');
 		assertEquals(sideEffect, false, "Side effect should not occur after early return");
-		
+
 		sideEffect = false;
 		const result2 = inst('test', new NANOS(['normal']));
 		assertEquals(result2, 'normal-return');
