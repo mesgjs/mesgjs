@@ -124,10 +124,10 @@ export function sendAnonMessage (rr, op, mp) {
 export function senderFLC () {
 	const stack = (new Error().stack || '').split('\n');
 
-	// Discard stack frames through the object's msjsR$ receiver (public i/f fn)
-	while (stack.length) if (/msjsR\$/.test(stack.shift())) break;
-	// Also discard sender's msjsS$ frames for attributed messages
-	while (/msjsS\$/.test(stack[0])) stack.shift();
+	// Discard stack frames through the msjsR$RecvMsg or msjsS$SendMsg frame.
+	// There shouldn't be any others, but we'll check and remove them if there are.
+	while (stack.length) if (/msjs[RS]\$/.test(stack.shift())) break;
+	while (stack.length && /msjs[RS]\$/.test(stack[0])) stack.shift();
 
 	const srFrame = stack[0] || '';
 	const match = srFrame.match(/[@(](.*):(\d+):(\d+)/) ||
@@ -242,10 +242,14 @@ export const {
 		let down = stack.length;
 
 		for (let up = 0; --down >= 0; ) {
-			const curFrm = stack[down], disp = curFrm.disp;
-			const dispOp = (typeof disp.op === 'symbol') ? 'J.Symbol' : disp.op;
+			const curFrm = stack[down], disp = curFrm.dispThis;
+			const rawOp = disp.octx.mop;
+			const st = disp.srThis?.rt ?? '@u';
+			const rt = disp.rrThis.rt;
+			const mp = disp.octx.mp;
+			const dispOp = (typeof rawOp === 'symbol') ? 'J.Symbol' : rawOp;
 
-			frames.push(`${disp.st} => ${disp.rt}(${dispOp}${fmtDispParams(debugSettings.stackTypes, disp.mp)})${fmtDispSrc(debugSettings.stackSource,curFrm)}`);
+			frames.push(`${st} => ${rt}(${dispOp}${fmtDispParams(debugSettings.stackTypes, mp)})${fmtDispSrc(debugSettings.stackSource,curFrm)}`);
 			if (++up === stop) break;
 		}
 		if (down >= 0) frames.push('[...]');	// Config stopped us early
@@ -938,7 +942,7 @@ export const {
 				console.log(`[Mesgjs dispatch ${dispNo}] ${dispSt} => ${d.rt}${d.ht === d.rt ? '' : ('/' + d.ht)}(${dispOp}${fmtDispParams(debugSettings.dispatchTypes, d.mp)})${fmtDispSrc(debugSettings.dispatchSource)}`);
 			}
 			if (debugSettings.stack) {
-				stack.push({ d, ...(debugSettings.stackSource && senderFLC() || {}) });
+				stack.push({ dispThis, ...(debugSettings.stackSource && senderFLC() || {}) });
 				dispThis.dbgStk = true;
 			}
 			break;
