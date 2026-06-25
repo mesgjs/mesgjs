@@ -1,0 +1,19 @@
+%*(nset quickSort={
+	#(nset input=!0)
+	// Input of length 0 or 1 is already sorted
+	@c(if #input(next)(< 2) { @d(return #input) })
+	#(nset pivotIndex=#input(size)(/ 2)(floor))
+	#(nset pivot=#input(at #pivotIndex) iter=@c(get @kvIter))
+	#(nset left=[] eq=[] right=[])
+	#iter(for #input {
+		#(nset value=#iter(value))
+		@c(if
+			#value(< #pivot) { #left(push #value) }
+			{ #value(> #pivot) !} { #right(push #value) }
+			else={ #eq(push #value) }
+		)
+	})
+	[](pushx %*quickSort(call #left) #eq %*quickSort(call #right))
+!}(fn))
+// @c(log %*quickSort(call [8 6 7 5 3 0 9])(toSLID))
+// [(0 3 5 6 7 8 9)]

@@ -16,8 +16,8 @@ sieve={
 			#(nset mul=#mul(add #outer(num1)))
 		})
 	})
-	#primes(keys) // The remaining keys are prime
+	#primes(keys num=@t) // The remaining keys are prime
 !}(fn)
 )
 // @c(log %*sieve(call 20)(toString))
-// [('2' '3' '5' '7' '11' '13' '17' '19')]
+// [(2 3 5 7 11 13 17 19)]

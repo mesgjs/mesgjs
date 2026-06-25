@@ -30,8 +30,8 @@ This interface mirrors much of the functionality of the JavaScript `Array.protot
   * Synopsis: Returns a new JS array containing the keys for each index in the array. Similar to `Array.prototype.keys()`, but sparse.
 * `(keyIter)`
   * Synopsis: A low-level function that returns the JavaScript key-iterator function used by the `@kvIter` interface.
-* `(length)` / `(size)`
-  * Synopsis: Returns the number of elements in the array.
+* `(length)` / `(next)` / `(size)`
+  * Synopsis: Returns the *non-sparse* number of elements in the array (there may be fewer elements actually defined).
 * `(ne to)`
   * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Array` object.
 * `(pop)`
@@ -49,6 +49,8 @@ This interface mirrors much of the functionality of the JavaScript `Array.protot
   * Synopsis: Sets the length of the array.
 * `(shift)`
   * Synopsis: Removes and returns the first element of the array. Modifies the array in place. Mirrors `Array.prototype.shift()`.
+* `(size)`
+  * Synopsis: Returns the size (number of non-empty elements and enumerable properties) in the array (JS `Object.keys(...).length`).
 * `(slice start end)`
   * Synopsis: Returns a shallow copy of a portion of an array into a new array object. Mirrors `Array.prototype.slice()`.
 * `(sort compareFn)`

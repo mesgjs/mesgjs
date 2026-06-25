@@ -61,6 +61,7 @@ export function install (name) {
 			keyIter: (d) => Object.keys(d.js).values(),
 			length: (d) => d.js.length,
 			ne: (d) => !opEq(d),
+			next: (d) => d.js.length, // For @list compatibility
 			pop: (d) => d.js.pop(),
 			push: (d) => d.js.push(...d.mp.values()),
 			reverse: (d) => d.js.reverse(),
@@ -68,7 +69,7 @@ export function install (name) {
 			setKey: (d) => (d.js[d.mp.at(0)] = d.mp.at('to', d.mp.at(1)), d.js),
 			setLength: (d) => { d.js.length = parseInt(d.mp.at(0), 10); },
 			shift: (d) => d.js.shift(),
-			size: (d) => d.js.length,
+			size: (d) => Object.keys(d.js).length,
 			slice: (d) => d.js.slice(d.mp.at(0), d.mp.at(1)),
 			sort: (d) => d.js.sort(d.mp.at(0)),
 			toList: (d) => new NANOS(d.js),
