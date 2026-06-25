@@ -288,20 +288,18 @@ export const {
 
 		if (op instanceof NANOS) op = op.storage;
 		if (typeof op === 'object') {	// List-op message
-			const hp = (prop) => hasOwn(op, prop);
-
-			if (hp('else')) [hasElse, elseExpr] = [true, op.else];
-			if (hp('mid')) {
+			if (hasOwn(op, 'else')) [hasElse, elseExpr] = [true, op.else];
+			if (hasOwn(op, 'mid')) {
 				const moduleName = modMidToName.get(op.mid);
 
 				if (moduleName) smi = moduleName;
 			}
-			if (hp('params')) mp = op.params;
-			if (hp('op')) op = op.op;
-			else if (hp('0')) op = op[0];
+			if (hasOwn(op, 'params')) mp = op.params;
+			if (hasOwn(op, 'op')) op = op.op;
+			else if (hasOwn(op, '0')) op = op[0];
 			else throw new SyntaxError('Missing operation in Mesgjs list-op message');
 		}
-		if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
+		if (!(mp instanceof NANOS)) mp = (mp != null) ? new NANOS(mp) : new NANOS();
 		return { sr, st, smi, rr, rt, op, mp, hasElse, elseExpr };
 	}
 
@@ -1203,7 +1201,6 @@ export const {
 			},
 		});
 
-		setRO(d, 'msjsType', type);
 		return dispThis;
 	}
 
