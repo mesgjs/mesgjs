@@ -299,7 +299,8 @@ export const {
 			else if (hasOwn(op, '0')) op = op[0];
 			else throw new SyntaxError('Missing operation in Mesgjs list-op message');
 		}
-		if (!(mp instanceof NANOS)) mp = (mp != null) ? new NANOS(mp) : new NANOS();
+		// Note: @code(run) (hot path) uses original dispatch - don't need mp
+		if (!rrThis.run && !(mp instanceof NANOS)) mp = (mp != null) ? new NANOS(mp) : new NANOS();
 		return { sr, st, smi, rr, rt, op, mp, hasElse, elseExpr };
 	}
 
@@ -749,6 +750,10 @@ export const {
 		}
 		finally {
 			trace?.(3, traceThis);
+			// Save dispatch for reuse if there are no associated bound @code blocks
+			if (dispThis && !dispThis._bc) {
+				dispThis.rrThis.dispThis = dispThis;
+			}
 		}
 	}
 
@@ -787,6 +792,8 @@ export const {
 		}
 		finally {
 			trace?.(3, traceThis);
+			// Save dispatch for reuse if there are no associated bound @code blocks
+			if (dispThis && !dispThis._bc) dispThis.rrThis.dispThis = dispThis;
 		}
 	}
 
@@ -1173,6 +1180,31 @@ export const {
 	// Return a new Msjs @dispatch object
 	// rrThis = original object this; srThis = sender this (if available)
 	function newMsjsDispatchThis (rrThis, octx, srThis) {
+		const reuse = rrThis.dispThis;
+
+		if (reuse) { // Reuse a previous @dispatch object for this receiver
+			const d = reuse.rr;
+
+			if (!rrThis.run) reuse.id = ++dispNo;
+			reuse.octx = octx;
+			reuse.srThis = srThis;
+			d.dop = octx.dop ?? octx.op;
+			d.hop = octx.hop ?? octx.op;
+			d.ht = octx.ht ?? rrThis.rt;
+			d.mop = octx.mop ?? octx.op;
+			d.mp = octx.mp;
+			// d.octx is the original object context (not ours)
+			// Can potentially be overriden per dispatch e.g. for @defacc
+			d.octx = octx.octx ?? rrThis.octx;
+			d.sr = srThis?.rr;
+			d.st = srThis?.rt;
+			d.smi = octx.smi;
+			delete d._ts;
+			delete d._xs;
+			rrThis.dispThis = null;
+			return reuse;
+		}
+
 		const type = '@dispatch';
 		const dispThis = { rr: null, rt: type, dispatch: dispatchDispatch, id: ++dispNo, rrThis, octx, srThis };
 		const d = dispThis.rr = Object.setPrototypeOf(msjsR$RecvMsg.bind(dispThis), dispProto);
