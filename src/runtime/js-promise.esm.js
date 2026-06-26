@@ -3,7 +3,7 @@
  * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
  *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 /*

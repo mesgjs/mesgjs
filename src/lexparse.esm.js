@@ -1,6 +1,6 @@
 /*
  * Mesgjs Lexical Analyzer And Parsing Functions
- * Copyright 2024-2025 Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2024-2026 Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 

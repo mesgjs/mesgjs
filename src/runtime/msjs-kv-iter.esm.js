@@ -1,7 +1,7 @@
 /*
  * Mesgjs @kvIter (key-value iteration) interface
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 import { getInterface, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';

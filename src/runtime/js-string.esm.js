@@ -1,7 +1,7 @@
 /*
  * Mesgjs @string interface - JS String wrapper
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 import { getInstance, getInterface, runIfCode, setRO, typeAccepts } from './runtime.esm.js';

@@ -1,7 +1,7 @@
 /*
  * Mesgjs @core Interface
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, modHasCap, runIfCode, runWhileCode, setModMeta, setRO, typeAccepts, typeChains } from './runtime.esm.js';

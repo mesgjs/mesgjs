@@ -1,7 +1,7 @@
 /*
  * Mesgjs Runtime Interface And Messaging Support
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  *
  * Wrapping objects (generating message gateways)
  * Sending and receiving messages

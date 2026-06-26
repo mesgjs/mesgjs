@@ -1,7 +1,7 @@
 /*
  * Mesgs @jsArray interface - wrapper for JS arrays
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 import { getInterface, setRO } from './runtime.esm.js';
