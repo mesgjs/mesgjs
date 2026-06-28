@@ -339,9 +339,9 @@ export const {
 	 * @param {boolean} isInit - Dispatching getInstance @init
 	 * @returns {{ dispThis, handler?, value?, trace? }}
 	 */
-	function dispatch (op0, mp0, srThis, { isInit } = {}) {
+	function dispatch (op0, mp0, srThis, isInit) {
 		const { st, op, mp, rt, smi, hasElse, elseExpr } = canMesgProps(this, op0, mp0, srThis);
-		const handler = getHandler(rt, op, { isInit });
+		const handler = getHandler(rt, op, false, isInit);
 
 		if (handler) {
 			// Handler found; generate @dispatch object to go with it
@@ -450,7 +450,7 @@ export const {
 	 * The op is the operation associated with the handler (which might be
 	 * `@default` if no specific handlers matched).
 	 */
-	function getHandler (type0, op, { isInit, next } = {}) {
+	function getHandler (type0, op, next, isInit) {
 		// Ignore (no-op) @init outside of getInstance
 		if (op === '@init' && !isInit) return { type: type0, op };
 
@@ -459,43 +459,45 @@ export const {
 
 		if (hit) return hit;
 
-		const searchChain = () => {
-			let dacHand, defHand;
+		let handler, dacHand, defHand;
 
-			for (const type of flatChain(type0)) {
-				if (next && type === type0) continue;
+		for (const type of flatChain(type0)) {
+			if (next && type === type0) continue;
 
-				const ix = interfaces[type], code = ix?.handlers[op];
+			const ix = interfaces[type], code = ix?.handlers[op];
 
-				if (code) return { code, type, op };
-				if (ix && !defHand) {
-					if (!dacHand) {
-						const op = '@defacc', code = ix.handlers[op];
+			if (code) {
+				handler = { code, type, op };
+				break;
+			}
 
-						if (code) dacHand = { code, type, op };
-					}
+			if (ix && !defHand) {
+				if (!dacHand) {
+					const op = '@defacc', code = ix.handlers[op];
 
-					const op = '@default', code = ix.handlers[op];
-
-					if (code) defHand = { code, type, op };
+					if (code) dacHand = { code, type, op };
 				}
+
+				const op = '@default', code = ix.handlers[op];
+
+				if (code) defHand = { code, type, op };
 			}
+		}
 
-			// No-op is always the default for instance @init
-			if (isInit) return { type: type0, op };
+		if (!handler) { // No specific handler - consider default options
+			if (isInit) handler = { type: type0, op }; // No-op is always the default for instance @init
+			else if (defHand) { // We found a @default handler
+				if (dacHand) {
+					// If @defacc is also present, it moderates what @default accepts
+					// (note: no tracing, no trampoline)
+					const dispThis = newMsjsDispatchThis(dacHandThis, { op: '@defacc', mp: { op, type: defHand.type }, octx: Object.create(null) });
+					const result = sendInternalMsg(dispThis, dacHand.code);
 
-			// @defacc can moderate what @default accepts
-			// (note: no tracing, no trampoline)
-			if (defHand && dacHand) {
-				const dispThis = newMsjsDispatchThis(dacHandThis, { op: '@defacc', mp: { op, type: defHand.type }, octx: Object.create(null) });
-				const result = sendInternalMsg(dispThis, dacHand.code);
-
-				if (!result) return;
+					if (result) handler = defHand; // @default approved
+				} else handler = defHand; // No @defacc - accept @default unconditionally
 			}
-			return defHand;
-		};
+		}
 
-		const handler = searchChain();
 		const cacheable =
 			((!cacheKey || !handler?.code || !interfaces[handler.type].locked) ? false :
 			((handler.code.cache !== undefined) ? handler.code.cache :
@@ -532,7 +534,7 @@ export const {
 		ix.locked = true;
 		if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
 
-		const { dispThis, handler, value } = dispatch.call(rrThis, '@init', mp, srThis, { isInit: true });
+		const { dispThis, handler, value } = dispatch.call(rrThis, '@init', mp, srThis, true);
 
 		sendInternalMsg({ dispThis, handler, value });
 		return rr;
@@ -1122,7 +1124,7 @@ export const {
 			const hop = octx.hop ?? octx.op, isInit = octx.isInit;
 			const rdop = mp.has('op') ? mp.at('op') : hop, rdmp = getRDMP(mp, octx.mp);
 			const next = (type === ht && rdop === hop) || (reqType === '@next');
-			const redis = getHandler(type, rdop, { isInit, next });
+			const redis = getHandler(type, rdop, next, isInit);
 
 			// Don't allow switch to default if not changing op
 			if (!redis || (!mp.has('op') && redis.op !== rdop)) return { value: runIfCode(dispElse) };

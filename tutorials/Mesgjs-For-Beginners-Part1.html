@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mesgjs For Beginners — Part 1</title>
+<title>Mesgjs For Beginners &ndash; Part 1</title>
 <link rel="stylesheet" href="stylesheet.css">
 </head>
 <body>
@@ -11,11 +11,11 @@
 <h1>Mesgjs For Beginners</h1>
 <p class="part-nav">Part 1 of 4 &nbsp;|&nbsp; <a href="#part2-preview">Preview: What's in Part 2 →</a></p>
 
-<p>Welcome to <strong>Mesgjs</strong> (pronounced "messages" — or "message J S" if that's clearer)!
+<p>Welcome to <strong>Mesgjs</strong> (pronounced "messages" &ndash; or "message J S" if that's clearer)!
 This tutorial is designed for people who are brand new to programming, or who are new to Mesgjs specifically.
 We'll go step by step, with plenty of examples you can try yourself.</p>
 
-<p>Don't worry if things feel unfamiliar at first — that's completely normal. By the end of Part 1, you'll be writing real Mesgjs programs!</p>
+<p>Don't worry if things feel unfamiliar at first &ndash; that's completely normal. By the end of Part 1, you'll be writing real Mesgjs programs!</p>
 
 <div class="toc">
   <h3>Contents</h3>
@@ -35,7 +35,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <h2 id="repl">1. Opening the REPL and Browser Console</h2>
 
 <div class="lesson">
-<p>The easiest way to try Mesgjs is the online <strong>REPL</strong>. A REPL is simply a page where you can type code and run it immediately — no installation needed.</p>
+<p>The easiest way to try Mesgjs is the online <strong>REPL</strong>. A REPL is simply a page where you can type code and run it immediately &ndash; no installation needed.</p>
 
 <p>Open the REPL in a new tab:<br>
 <a class="repl-link" href="https://www.mesgjs.org/repl.html" target="_blank">Open the Mesgjs REPL ↗</a></p>
@@ -52,19 +52,19 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
   <li>Or right-click anywhere on the page and choose <strong>Inspect</strong>, then click <strong>Console</strong></li>
 </ul>
 
-<p>Keep the console open while you work through this tutorial — that's where you'll see the results of your programs.</p>
+<p>Keep the console open while you work through this tutorial &ndash; that's where you'll see the results of your programs.</p>
 </div>
 
 <div class="tip">You can paste any of the code examples in this tutorial directly into the REPL and click <strong>Transpile</strong> to run them. Each example has a 📋 button to copy it to your clipboard.</div>
 
 <div class="exercise">
-  <h4>Exercise 1.1 — Open the REPL</h4>
+  <h4>Exercise 1.1 &ndash; Open the REPL</h4>
   <ol>
     <li>Open <a href="https://www.mesgjs.org/repl.html" target="_blank">https://www.mesgjs.org/repl.html</a> in a new tab.</li>
     <li>Open the browser developer console (see instructions above).</li>
     <li>The REPL already has a sample program in it. Click <strong>Transpile</strong> and look for output in the console.</li>
   </ol>
-  <p>You should see <code>Hello, world!</code> appear in the console. If you do — great, everything is working!</p>
+  <p>You should see <code>Hello, world!</code> appear in the console. If you do &ndash; great, everything is working!</p>
 </div>
 
 <!-- ============================================================ -->
@@ -98,9 +98,9 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>Where:</p>
 <ul>
-  <li><strong>receiver</strong> — the object you're sending the message to</li>
-  <li><strong>operation</strong> — the name of the action you want (always the first thing inside the parentheses)</li>
-  <li><strong>optional-extra-values</strong> — any additional information the operation needs</li>
+  <li><strong>receiver</strong> &ndash; the object you're sending the message to</li>
+  <li><strong>operation</strong> &ndash; the name of the action you want (always the first thing inside the parentheses)</li>
+  <li><strong>optional-extra-values</strong> &ndash; any additional information the operation needs</li>
 </ul>
 
 <p>That's really the heart of Mesgjs. Let's see it in action!</p>
@@ -120,28 +120,28 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <p>Breaking it down:</p>
 <table>
   <tr><th>Part</th><th>What it is</th></tr>
-  <tr><td><code>@c</code></td><td>The Mesgjs <strong>core</strong> object — a built-in toolbox of useful operations. Think of it as your Swiss Army knife.</td></tr>
+  <tr><td><code>@c</code></td><td>The Mesgjs <strong>core</strong> object &ndash; a built-in toolbox of useful operations. Think of it as your Swiss Army knife.</td></tr>
   <tr><td><code>(</code> and <code>)</code></td><td>These parentheses mean "send a message." They always come in matching pairs.</td></tr>
-  <tr><td><code>log</code></td><td>The operation (the action we're requesting) — this one asks <code>@c</code> to write something to the console</td></tr>
+  <tr><td><code>log</code></td><td>The operation (the action we're requesting) &ndash; this one asks <code>@c</code> to write something to the console</td></tr>
   <tr><td><code>"The answer is:"</code></td><td>A piece of text surrounded by double-quotes. Text like this is called a <strong>string</strong>. It can contain spaces and special characters.</td></tr>
   <tr><td><code>42</code></td><td>A <strong>number</strong></td></tr>
 </table>
 
 <p>What the program does: it sends the <code>log</code> message to <code>@c</code>, asking it to write both <code>"The answer is:"</code> and <code>42</code> to the browser console.</p>
 
-<div class="note">The <code>@</code> symbol at the start of <code>@c</code> is a special marker used by the Mesgjs language itself. You'll see a few other <code>@</code>-prefixed names as you learn more, like <code>@t</code> (meaning "true"), <code>@f</code> (meaning "false"), and <code>@u</code> (meaning "undefined" — nothing). You won't use <code>@</code> at the start of your own names.</div>
+<div class="note">The <code>@</code> symbol at the start of <code>@c</code> is a special marker used by the Mesgjs language itself. You'll see a few other <code>@</code>-prefixed names as you learn more, like <code>@t</code> (meaning "true"), <code>@f</code> (meaning "false"), and <code>@u</code> (meaning "undefined" &ndash; nothing). You won't use <code>@</code> at the start of your own names.</div>
 
 <h3>Three ways to write text</h3>
 <p>Mesgjs has three ways to write text values:</p>
 <ul>
-  <li><code>"double-quoted"</code> — text between double-quotes; can contain spaces; use <code>\"</code> to include a literal double-quote inside</li>
-  <li><code>'single-quoted'</code> — works the same way; use <code>\'</code> to include a literal single-quote inside</li>
-  <li><code>word</code> — a simple unquoted word with no spaces (like <code>log</code>, <code>hello</code>, <code>firstName</code>)</li>
+  <li><code>"double-quoted"</code> &ndash; text between double-quotes; can contain spaces; use <code>\"</code> to include a literal double-quote inside</li>
+  <li><code>'single-quoted'</code> &ndash; works the same way; use <code>\'</code> to include a literal single-quote inside</li>
+  <li><code>word</code> &ndash; a simple unquoted word with no spaces (like <code>log</code>, <code>hello</code>, <code>firstName</code>)</li>
 </ul>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 3.1 — Hello, World!</h4>
+  <h4>Exercise 3.1 &ndash; Hello, World!</h4>
   <p>Paste this into the REPL and click Transpile. Check the console for output.</p>
   <div class="code-block">
     <pre>@c(log "Hello, world!")</pre>
@@ -151,7 +151,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 3.2 — Multiple Values</h4>
+  <h4>Exercise 3.2 &ndash; Multiple Values</h4>
   <p>The <code>log</code> operation can display several values at once, separated by spaces. Try:</p>
   <div class="code-block">
     <pre>@c(log My name is Alice and I am 30 years old.)</pre>
@@ -161,14 +161,14 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 3.3 — Words vs. Quoted Strings</h4>
+  <h4>Exercise 3.3 &ndash; Words vs. Quoted Strings</h4>
   <p>Simple words (without spaces) and quoted strings are both text values. Try logging a word and a quoted string:</p>
   <div class="code-block">
     <pre>@c(log hello)
 @c(log "hello")</pre>
     <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
   </div>
-  <p>Both display <code>hello</code> — they're the same value, just written differently.</p>
+  <p>Both display <code>hello</code> &ndash; they're the same value, just written differently.</p>
   <p>The important rule: if your text needs to contain a <strong>space</strong>, you must use quotes. A bare word like <code>hello world</code> would be read as <em>two separate values</em> (<code>hello</code> and <code>world</code>), not one. Try:</p>
   <div class="code-block">
     <pre>@c(log "hello world")</pre>
@@ -181,7 +181,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <h2 id="math">4. Mathematical Operations in Mesgjs</h2>
 
 <div class="lesson">
-<p>In Mesgjs, you don't write calculations in traditional mathematical notation like <code>1 + 2</code> or <code>3 × 4</code>. Instead, you send messages to numbers asking them to do math. This might feel unusual at first, but it's very consistent — <em>everything</em> is a message!</p>
+<p>In Mesgjs, you don't write calculations in traditional mathematical notation like <code>1 + 2</code> or <code>3 × 4</code>. Instead, you send messages to numbers asking them to do math. This might feel unusual at first, but it's very consistent &ndash; <em>everything</em> is a message!</p>
 
 <p>Here are some of the basic math messages you can send to a number:</p>
 <table>
@@ -210,7 +210,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 4.1 — Basic Arithmetic</h4>
+  <h4>Exercise 4.1 &ndash; Basic Arithmetic</h4>
   <p>Try each of these in the REPL:</p>
   <div class="code-block">
     <pre>@c(log 5(add 3))
@@ -223,7 +223,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 4.2 — Multiple Values at Once</h4>
+  <h4>Exercise 4.2 &ndash; Multiple Values at Once</h4>
   <p>The <code>add</code> message can accept multiple values to add all at once. Try:</p>
   <div class="code-block">
     <pre>@c(log 10(add 20 30))</pre>
@@ -241,7 +241,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 4.3 — Joining Text</h4>
+  <h4>Exercise 4.3 &ndash; Joining Text</h4>
   <p>The <code>join</code> message on text values attaches more text to the end. Try:</p>
   <div class="code-block">
     <pre>@c(log Hello(join ", " world "!"))</pre>
@@ -254,13 +254,13 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <h2 id="combining">5. Ways to Combine Messages</h2>
 
 <div class="lesson">
-<p>Did you notice in the previous section how we had a message inside another message — like <code>6(mul 7)</code> sitting inside <code>@c(log ...)</code>? There are actually <strong>two different ways</strong> to combine messages, and understanding both will give you a lot of power.</p>
+<p>Did you notice in the previous section how we had a message inside another message &ndash; like <code>6(mul 7)</code> sitting inside <code>@c(log ...)</code>? There are actually <strong>two different ways</strong> to combine messages, and understanding both will give you a lot of power.</p>
 
 <h3>Nesting (inner result feeds outer)</h3>
 
 <p>You can put a message <em>inside</em> another message's values. This is called <strong>nesting</strong>. The inner message runs first, and its result is used by the outer message.</p>
 
-<p>Here's a simple example — calculating <code>2 + (3 × 5)</code>:</p>
+<p>Here's a simple example &ndash; calculating <code>2 + (3 × 5)</code>:</p>
 
 <div class="code-block">
   <pre>@c(log 2(add 3(mul 5)))</pre>
@@ -269,12 +269,12 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>Reading from the inside out:</p>
 <ol>
-  <li><code>3(mul 5)</code> — multiply 3 by 5, giving <code>15</code></li>
-  <li><code>2(add 15)</code> — add 15 to 2, giving <code>17</code></li>
-  <li><code>@c(log 17)</code> — display <code>17</code> in the console</li>
+  <li><code>3(mul 5)</code> &ndash; multiply 3 by 5, giving <code>15</code></li>
+  <li><code>2(add 15)</code> &ndash; add 15 to 2, giving <code>17</code></li>
+  <li><code>@c(log 17)</code> &ndash; display <code>17</code> in the console</li>
 </ol>
 
-<p>Here's another nesting example — calculating <code>9 - (2 × 3)</code>:</p>
+<p>Here's another nesting example &ndash; calculating <code>9 - (2 × 3)</code>:</p>
 
 <div class="code-block">
   <pre>@c(log 9(sub 2(mul 3)))</pre>
@@ -294,9 +294,9 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>Reading left to right, and inner to outer:</p>
 <ol>
-  <li><code>6(mul 7)</code> — multiply 6 by 7, giving <code>42</code></li>
-  <li><code>42(div 2)</code> — divide 42 by 2, giving <code>21</code></li>
-  <li><code>@c(log 21)</code> — display <code>21</code> in the console</li>
+  <li><code>6(mul 7)</code> &ndash; multiply 6 by 7, giving <code>42</code></li>
+  <li><code>42(div 2)</code> &ndash; divide 42 by 2, giving <code>21</code></li>
+  <li><code>@c(log 21)</code> &ndash; display <code>21</code> in the console</li>
 </ol>
 
 <p>This is <code>(6 × 7) ÷ 2</code>.</p>
@@ -315,7 +315,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
   <li>That result is logged to the console</li>
 </ol>
 
-<h3>Nesting vs. Chaining — the key difference</h3>
+<h3>Nesting vs. Chaining &ndash; the key difference</h3>
 <table>
   <tr><th>Technique</th><th>How it works</th><th>Example</th><th>Meaning</th></tr>
   <tr>
@@ -336,7 +336,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 5.1 — Calculate (9 − 2) × 3</h4>
+  <h4>Exercise 5.1 &ndash; Calculate (9 − 2) × 3</h4>
   <p>Use <code>sub</code> and <code>mul</code> messages in a <em>chain</em> to calculate <code>(9 - 2) × 3</code>:</p>
   <button class="show-answer" onclick="toggleAnswer('ans-5-1')">Show Answer</button>
   <div class="answer" id="ans-5-1">
@@ -349,7 +349,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 5.2 — Calculate 9 − (2 × 3)</h4>
+  <h4>Exercise 5.2 &ndash; Calculate 9 − (2 × 3)</h4>
   <p>Now calculate <code>9 - (2 × 3)</code> using <em>nesting</em> so the multiplication happens first.</p>
   <button class="show-answer" onclick="toggleAnswer('ans-5-2')">Show Answer</button>
   <div class="answer" id="ans-5-2">
@@ -362,17 +362,17 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 5.3 — Text Chain</h4>
+  <h4>Exercise 5.3 &ndash; Text Chain</h4>
   <p>Build a sentence by chaining <code>join</code> messages. Start with <code>hello</code>, join a space to it, then join <code>world</code>. Then, as a bonus, chain one more message to convert the whole result to uppercase using <code>(toUpper)</code>.</p>
-  <p>Try two different approaches — one that joins the space and <code>world</code> in separate steps, and one that joins them both in a single <code>join</code> message.</p>
+  <p>Try two different approaches &ndash; one that joins the space and <code>world</code> in separate steps, and one that joins them both in a single <code>join</code> message.</p>
   <button class="show-answer" onclick="toggleAnswer('ans-5-3')">Show Answer</button>
   <div class="answer" id="ans-5-3">
-    <p><strong>Approach 1 — separate joins, then uppercase:</strong></p>
+    <p><strong>Approach 1 &ndash; separate joins, then uppercase:</strong></p>
     <div class="code-block">
       <pre>@c(log hello(join " ")(join world)(toUpper))</pre>
       <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
     </div>
-    <p><strong>Approach 2 — join space and world together, then uppercase:</strong></p>
+    <p><strong>Approach 2 &ndash; join space and world together, then uppercase:</strong></p>
     <div class="code-block">
       <pre>@c(log hello(join " " world)(toUpper))</pre>
       <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
@@ -383,22 +383,22 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 5.4 — Average of Three Numbers</h4>
+  <h4>Exercise 5.4 &ndash; Average of Three Numbers</h4>
   <p>Calculate the average of 10, 20, and 30. (Hint: add them all up, then divide by 3.)</p>
-  <p>Remember: <code>add</code> can accept multiple values at once — for example, <code>10(add 20 30)</code> adds 20 and 30 to 10 in one step. Try both approaches!</p>
+  <p>Remember: <code>add</code> can accept multiple values at once &ndash; for example, <code>10(add 20 30)</code> adds 20 and 30 to 10 in one step. Try both approaches!</p>
   <button class="show-answer" onclick="toggleAnswer('ans-5-4')">Show Answer</button>
   <div class="answer" id="ans-5-4">
-    <p><strong>Approach 1 — chain of adds:</strong></p>
+    <p><strong>Approach 1 &ndash; chain of adds:</strong></p>
     <div class="code-block">
       <pre>@c(log 10(add 20)(add 30)(div 3))</pre>
       <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
     </div>
-    <p><strong>Approach 2 — add multiple values at once:</strong></p>
+    <p><strong>Approach 2 &ndash; add multiple values at once:</strong></p>
     <div class="code-block">
       <pre>@c(log 10(add 20 30)(div 3))</pre>
       <button class="copy-btn" onclick="copyCode(this)" title="Copy to clipboard">📋</button>
     </div>
-    <p>Both give the same result: 20. The second approach is more concise — <code>10(add 20 30)</code> adds all three numbers in one message, giving 60, then <code>60(div 3)</code> gives 20.</p>
+    <p>Both give the same result: 20. The second approach is more concise &ndash; <code>10(add 20 30)</code> adds all three numbers in one message, giving 60, then <code>60(div 3)</code> gives 20.</p>
   </div>
 </div>
 
@@ -406,7 +406,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <h2 id="named-values">6. Named Values in Messages</h2>
 
 <div class="lesson">
-<p>Some messages accept <strong>named values</strong> — extra information identified by a name rather than just by position. Named values use the <code>=</code> sign to pair a name with a value:</p>
+<p>Some messages accept <strong>named values</strong> &ndash; extra information identified by a name rather than just by position. Named values use the <code>=</code> sign to pair a name with a value:</p>
 
 <div class="code-block">
   <pre>@c(log first(join second third with=", "))</pre>
@@ -416,16 +416,16 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <p>What's happening:</p>
 <ul>
   <li><code>first</code>, <code>second</code>, <code>third</code> are simple word values (text without spaces)</li>
-  <li><code>with=", "</code> is a <strong>named value</strong> — the name <code>with</code> is paired with the value <code>", "</code></li>
+  <li><code>with=", "</code> is a <strong>named value</strong> &ndash; the name <code>with</code> is paired with the value <code>", "</code></li>
   <li>The <code>join</code> message uses the <code>with</code> value as a separator between all the pieces being joined</li>
   <li>The result is the text <code>"first, second, third"</code></li>
 </ul>
 
-<div class="note">When <code>=</code> appears between a name and a value (like <code>with=", "</code>), it creates a key/value association — it is <strong>not</strong> an assignment. Actual assignment happens through messages like <code>(nset)</code>, as you'll see in the next section. Note that <code>=</code> can also appear as a message operation (e.g., <code>5(= 5)</code> tests for equality), but that's a different use — as a message operation it's always the first thing inside the parentheses.</div>
+<div class="note">When <code>=</code> appears between a name and a value (like <code>with=", "</code>), it creates a key/value association &ndash; it is <strong>not</strong> an assignment. Actual assignment happens through messages like <code>(nset)</code>, as you'll see in the next section. Note that <code>=</code> can also appear as a message operation (e.g., <code>5(= 5)</code> tests for equality), but that's a different use &ndash; as a message operation it's always the first thing inside the parentheses.</div>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 6.1 — Join with a Separator</h4>
+  <h4>Exercise 6.1 &ndash; Join with a Separator</h4>
   <p>Try joining words with different separators:</p>
   <div class="code-block">
     <pre>@c(log one(join two three with=" - "))
@@ -436,7 +436,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 6.2 — Build a Sentence</h4>
+  <h4>Exercise 6.2 &ndash; Build a Sentence</h4>
   <p>Use <code>join</code> with a space separator to build a sentence from individual words:</p>
   <div class="code-block">
     <pre>@c(log The(join quick brown fox with=" "))</pre>
@@ -446,7 +446,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 6.3 — More Values, Same Separator</h4>
+  <h4>Exercise 6.3 &ndash; More Values, Same Separator</h4>
   <p>You can join as many values as you like. Try adding more:</p>
   <div class="code-block">
     <pre>@c(log a(join b c d e with="-"))</pre>
@@ -468,7 +468,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>Mesgjs provides several <strong>storage objects</strong> for saving and retrieving values. They have very short names because they're used so often.</p>
 
-<p>The <strong><code>#</code></strong> object is used for <strong>scratch storage</strong> — a temporary notepad for values you need during the current operation. Think of it like a whiteboard you can write on and erase.</p>
+<p>The <strong><code>#</code></strong> object is used for <strong>scratch storage</strong> &ndash; a temporary notepad for values you need during the current operation. Think of it like a whiteboard you can write on and erase.</p>
 
 <h3>Saving a value</h3>
 
@@ -517,7 +517,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>This displays: <code>My name is Alice Smith</code></p>
 
-<div class="note">The <code>//</code> at the start of a line begins a <strong>comment</strong> — text that Mesgjs ignores completely. Comments are just notes for the person reading the code. You'll learn more about comments in Part 2.</div>
+<div class="note">The <code>//</code> at the start of a line begins a <strong>comment</strong> &ndash; text that Mesgjs ignores completely. Comments are just notes for the person reading the code. You'll learn more about comments in Part 2.</div>
 
 <h3>A quick look at all the storage types</h3>
 <p>Mesgjs has several storage objects, each for a different purpose. You'll learn about all of them as you progress through the tutorials:</p>
@@ -532,7 +532,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.1 — Save and Retrieve</h4>
+  <h4>Exercise 7.1 &ndash; Save and Retrieve</h4>
   <p>Save your name and favorite number, then display them:</p>
   <div class="code-block">
     <pre>#(nset myName="Your Name" favoriteNumber=42)
@@ -543,7 +543,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.2 — Save a Calculation Result</h4>
+  <h4>Exercise 7.2 &ndash; Save a Calculation Result</h4>
   <p>You can save the result of a calculation and use it later:</p>
   <div class="code-block">
     <pre>#(nset result=6(mul 7))
@@ -563,7 +563,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.3 — Multiple Scratch Values</h4>
+  <h4>Exercise 7.3 &ndash; Multiple Scratch Values</h4>
   <p>Save a city and country, then use them in a sentence:</p>
   <div class="code-block">
     <pre>#(nset city=Chicago country="United States")
@@ -574,7 +574,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.4 — Reusing a Value</h4>
+  <h4>Exercise 7.4 &ndash; Reusing a Value</h4>
   <p>One big benefit of saving values is that you can reuse them without retyping or recalculating. Try:</p>
   <div class="code-block">
     <pre>#(nset base=12)
@@ -595,7 +595,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.5 — Shortcut vs. Full Form</h4>
+  <h4>Exercise 7.5 &ndash; Shortcut vs. Full Form</h4>
   <p>Both <code>#name</code> and <code>#(at name)</code> retrieve a value. Verify they're equivalent:</p>
   <div class="code-block">
     <pre>#(nset x=99)
@@ -607,7 +607,7 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 </div>
 
 <div class="exercise">
-  <h4>Exercise 7.6 — Building a Full Name</h4>
+  <h4>Exercise 7.6 &ndash; Building a Full Name</h4>
   <p>Save a first name and last name, then use <code>join</code> to combine them with a space in between:</p>
   <div class="code-block">
     <pre>#(nset first=Jane last=Doe)
@@ -648,16 +648,16 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 <h3>Key things to remember</h3>
 <ul>
   <li>Message syntax is always <code>receiver(operation  values)</code></li>
-  <li>The <code>=</code> sign is for <em>pairing</em> a name with a value — it is <strong>not</strong> assignment or comparison</li>
+  <li>The <code>=</code> sign is for <em>pairing</em> a name with a value &ndash; it is <strong>not</strong> assignment or comparison</li>
   <li><strong>Nesting</strong>: inner message runs first; its result is used by the outer message</li>
   <li><strong>Chaining</strong>: messages run left to right; each uses the result of the previous</li>
   <li><code>#name</code> is a shortcut for <code>#(at name)</code></li>
-  <li>Output goes to the browser console — keep it open!</li>
+  <li>Output goes to the browser console &ndash; keep it open!</li>
 </ul>
 </div>
 
 <div class="exercise">
-  <h4>Final Exercise — Putting It All Together</h4>
+  <h4>Final Exercise &ndash; Putting It All Together</h4>
   <p>Write a short Mesgjs program that:</p>
   <ol>
     <li>Saves your first name, last name, and birth year in scratch storage</li>
@@ -680,10 +680,10 @@ We'll go step by step, with plenty of examples you can try yourself.</p>
 
 <p>In Part 2, you'll learn about:</p>
 <ul>
-  <li><strong>Operator-style words</strong> — shorthand aliases like <code>*</code> for <code>mul</code> and <code>/</code> for <code>div</code></li>
-  <li><strong>Lists</strong> — Mesgjs's powerful collection type that can hold any mix of values</li>
-  <li><strong>Code blocks</strong> — reusable chunks of code you can store and run later</li>
-  <li><strong>Comments</strong> — how to leave notes in your code (both single-line and multi-line)</li>
+  <li><strong>Operator-style words</strong> &ndash; shorthand aliases like <code>*</code> for <code>mul</code> and <code>/</code> for <code>div</code></li>
+  <li><strong>Lists</strong> &ndash; Mesgjs's powerful collection type that can hold any mix of values</li>
+  <li><strong>Code blocks</strong> &ndash; reusable chunks of code you can store and run later</li>
+  <li><strong>Comments</strong> &ndash; how to leave notes in your code (both single-line and multi-line)</li>
 </ul>
 
 <div class="nav">

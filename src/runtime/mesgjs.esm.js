@@ -2,7 +2,7 @@
  * Mesgjs Entry-Point Module And Runtime Local Configuration
  *
  * Author: Brian Katzung <briank@kappacs.com>
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
 // @core and post-@core foundation-class installers
@@ -21,6 +21,7 @@ import { install as installReactive } from './msjs-reactive.esm.js';
 import { install as installRegex } from './js-regex.esm.js';
 import { install as installSet } from './js-set.esm.js';
 import { install as installString } from './js-string.esm.js';
+import { install as installTimestamp } from './msjs-timestamp.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './js-undefined.esm.js';
 
@@ -76,6 +77,7 @@ function installCoreExtensions () {
 	installRegex();
 	installSet('@set');
 	installString();
+	installTimestamp('@timestamp');
 	installTry('@try');
 	installUndefined();
 }
