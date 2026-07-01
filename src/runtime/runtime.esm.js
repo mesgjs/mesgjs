@@ -154,7 +154,8 @@ export const setRO = (o, ...a) => {
 	} else {
 		const [key, value, enumerable = true] = a;
 
-		[ sROProp.value, sROProp.enumerable ] = [ value, enumerable ];
+		sROProp.value = value;
+		sROProp.enumerable = enumerable;
 		Object.defineProperty(o, key, sROProp);
 	}
 	return o;
@@ -288,7 +289,10 @@ export const {
 
 		if (op instanceof NANOS) op = op.storage;
 		if (typeof op === 'object') {	// List-op message
-			if (hasOwn(op, 'else')) [hasElse, elseExpr] = [true, op.else];
+			if (hasOwn(op, 'else')) {
+				hasElse = true;
+				elseExpr = op.else;
+			}
 			if (hasOwn(op, 'mid')) {
 				const moduleName = modMidToName.get(op.mid);
 
@@ -1325,6 +1329,7 @@ export const {
 	//////////////////////////////////////////////////////////////////////
 	// @module Interface
 	//////////////////////////////////////////////////////////////////////
+
 	firstInit.push(() => {
 		getInterface('@module').set({ pristine: true, private: true, lock: true });
 	});

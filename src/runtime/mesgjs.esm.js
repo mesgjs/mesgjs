@@ -82,18 +82,31 @@ function installCoreExtensions () {
 	installUndefined();
 }
 
+let falseInst;
+let nullInst;
+let trueInst;
+let undefInst;
+
 // Promote a JS object to a Msjs object for messaging
 function toMsjs (jsv) {
 	if (jsv?.msjsType) return jsv;
+	if (!nullInst) {
+		falseInst = getInstance('@false');
+		nullInst = getInstance('@null');
+		trueInst = getInstance('@true');
+		undefInst = getInstance('@undefined');
+	}
+
 	let instance;
+
 	switch (typeof jsv) {
 	case 'boolean':
-		return getInstance(jsv ? '@true' : '@false');
+		return jsv ? trueInst : falseInst;
 	case 'bigint':
 	case 'number':
 		return getInstance('@number', [jsv]);
 	case 'object':
-		if (jsv === null) return getInstance('@null');
+		if (jsv === null) return nullInst;
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
 			if (jsv[convertSym]) instance = jsv[convertSym]();
@@ -105,11 +118,11 @@ function toMsjs (jsv) {
 			if (instance) instances.set(jsv, instance);
 		}
 		if (instance) return instance;
-		return getInstance('@undefined');
+		return undefInst;
 	case 'string':
 		return getInstance('@string', [jsv]);
 	default:
-		return getInstance('@undefined');
+		return undefInst;
 	}
 }
 
