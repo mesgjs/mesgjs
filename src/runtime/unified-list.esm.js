@@ -133,9 +133,7 @@ const emptyList = new ListProxy([]);
 
 export function unifiedList (value, promote) {
 	if (value instanceof NANOS || value instanceof ListProxy) return value;
-	if (isPlainObject(value) || Array.isArray(value) || value instanceof Map || value instanceof Set) return new ListProxy(value);
-	if (Array.isArray(value)) return new ListProxy(value);
-	if (typeof value === 'object' && value !== null) return new ListProxy(value);
+	if (isPlainObject(value) || value instanceof Array || value instanceof Map || value instanceof Set) return new ListProxy(value);
 	if (!promote) return value;
 	if (value === undefined) return emptyList;
 	return new ListProxy([ value ]);

@@ -1,79 +1,70 @@
 /*
- * Mesgjs @map - JS Map wrapper interface
+ * Mesgjs @map - JS Map receiver singleton
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from './runtime.esm.js';
+import { getInterface, MsjsObject, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
 import { NANOS } from '@nanos';
-
-function opInit (d) {
-	const { octx, mp } = d, map = mp.at(0);
-
-	setRO(octx, 'js', (map instanceof Map) ? map : new Map());
-	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
-}
 
 function opAt (d) {
 	const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
 
-	return uniAt(d.js, [...path], { wrap: true, defaultFn: () => {
+	return uniAt(d.orr, [...path], { wrap: true, defaultFn: () => {
 	if (mp.has('else')) return runIfCode(mp.at('else'));
 	else throw new Error('Key path not found');
 	}});
 }
 
-// (eq to)
-// Returns @t if "to" refers to the identical JS Map object
-function opEq (d) {
-	const to = d.mp.at(0);
-
-	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
+// (new from?=source)
+function opNew (d) {
+	if (!d.mp.has('from')) return new Map();
+	return new Map([...unifiedList(d.mp.at('from').entries())]);
 }
 
 // (nset key=value...)
 function opNset (d) {
-	const { js, mp } = d;
+	const { orr, mp } = d;
 
 	for (const [key, value] of mp.namedEntries()) {
-		js.set(key, value);
+		orr.set(key, value);
 	}
-	return js;
+	return orr;
 }
 
 // (set key value)
 // (set key to=value)
 function opSet (d) {
-	d.js.set(d.mp.at(0), d.mp.at('to', d.mp.at(1)));
-	return d.js;
+	d.orr.set(d.mp.at(0), d.mp.at('to', d.mp.at(1)));
+	return d.orr;
 }
 
 export function install (name) {
 	getInterface(name).set({
-		lock: true, pristine: true,
+		lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': opInit,
-			'@eq': opEq,
-			'@jsv': (d) => d.js,
+			'@eq': (d) => d.orr === d.mp.at(0),
+			'@jsv': (d) => (d.orr instanceof MsjsObject) ? new Map() : d.orr,
 			'@': opAt,
 			'=': opSet,
 			at: opAt,
-			clear: (d) => (d.js.clear(), d.js),
-			delete: (d) => d.js.delete(d.mp.at(0)),
-			entries: (d) => [...d.js.entries()],
-			eq: opEq,
+			clear: (d) => (d.orr.clear(), d.orr),
+			delete: (d) => d.orr.delete(d.mp.at(0)),
+			entries: (d) => [...d.orr.entries()],
+			eq: (d) => d.orr === d.mp.at(0),
 			// forEach - use @kvIter
 			get: opAt,
-			has: (d) => d.js.has(d.mp.at(0)),
-			keyIter: (d) => d.js.keys(),
-			keys: (d) => [...d.js.keys()],
-			ne: (d) => !opEq(d),
+			has: (d) => d.orr.has(d.mp.at(0)),
+			keyIter: (d) => d.orr.keys(),
+			keys: (d) => [...d.orr.keys()],
+			ne: (d) => d.orr !== d.mp.at(0),
+			new: opNew,
 			nset: opNset,
 			set: opSet,
-			size: (d) => d.js.size,
-			toList: (d) => new NANOS(d.js),
-			values: (d) => [...d.js.values()],
+			size: (d) => d.orr.size,
+			toList: (d) => new NANOS(d.orr),
+			values: (d) => [...d.orr.values()],
 		},
 	});
 }

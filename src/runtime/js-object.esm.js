@@ -1,5 +1,5 @@
 /*
- * Mesgs @jsObject interface - generic JS objects wrapper
+ * Mesgs @jsObject interface - generic JS object receiver singleton
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -17,38 +17,35 @@ class Verifiable extends NullProto {
 	}
 }
 
-function opInit (d) {
-	const { octx, mp } = d, obj = mp.at(0);
-
-	setRO(octx, 'js', (typeof obj === 'object' && obj !== null) ? obj : new Verifiable());
-	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
-}
-
 // object(at key ... else=default?)
 // object(at path=[key ...] else=default?)
 function opAt (d) {
 	const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
 
-	return uniAt(d.js, [...path], { wrap: true, defaultFn: () => {
+	return uniAt(d.orr, [...path], { wrap: true, defaultFn: () => {
 		if (mp.has('else')) return runIfCode(mp.at('else'));
 		else throw new Error('Key path not found');
 	}});
 }
 
-// (eq to)
-// Returns @t if "to" refers to the identical JS object
-function opEq (d) {
-	const to = d.mp.at(0);
+// (new from?=source)
+function opNew (d) {
+	const obj = new Verifiable();
 
-	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
+	if (d.mp.has('from')) {
+		for (const [key, value] of unifiedList(d.mp.at('from').entries())) {
+			obj[key] = value;
+		}
+	}
+	return obj;
 }
 
 // object(nset key1=value1 ...)
 function opNset (d) {
 	// Treat bring-your-own objects as read-only.
-	if (!Verifiable.isOurs(d.js)) throw new TypeError('External JS Objects are read-only in Mesgjs');
+	if (!Verifiable.isOurs(d.orr)) throw new TypeError('External JS Objects are read-only in Mesgjs');
 	for (const [key, value] of d.mp.namedEntries()) {
-		d.js[key] = value;
+		d.orr[key] = value;
 	}
 }
 
@@ -56,32 +53,32 @@ function opNset (d) {
 // object(set key to=value)
 function opSet (d) {
 	// Treat bring-your-own objects as read-only.
-	if (!Verifiable.isOurs(d.js)) throw new TypeError('External JS Objects are read-only in Mesgjs');
-	d.js[d.mp.at(0)] = d.mp.at('to', d.mp.at(1));
+	if (!Verifiable.isOurs(d.orr)) throw new TypeError('External JS Objects are read-only in Mesgjs');
+	d.orr[d.mp.at(0)] = d.mp.at('to', d.mp.at(1));
 }
 
 export function install (name) {
 	getInterface(name).set({
-		lock: true, pristine: true,
+		lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': opInit,
-			'@eq': opEq,
-			'@jsv': (d) => d.js,
+			'@eq': (d) => d.orr === d.mp.at(0),
+			'@jsv': (d) => (d.orr instanceof MsjsObect) ? new Verifiable() : d.orr,
 			'@': opAt,
 			'=': opSet,
 			'==': opNset,
 			at: opAt,
-			entries: (d) => Object.entries(d.js),
-			eq: opEq,
+			entries: (d) => Object.entries(d.orr),
+			eq: (d) => d.orr === d.mp.at(0),
 			get: opAt,
-			keys: (d) => Object.keys(d.js),
-			keyIter: (d) => Object.keys(d.js).values(),
-			ne: (d) => !opEq(d),
+			keys: (d) => Object.keys(d.orr),
+			keyIter: (d) => Object.keys(d.orr).values(),
+			ne: (d) => d.orr !== d.mp.at(0),
+			new: opNew,
 			nset: opNset,
 			set: opSet,
-			size: (d) => Object.keys(d.js).length,
-			toList: (d) => new NANOS(d.js),
-			values: (d) => Object.values(d.js),
+			size: (d) => Object.keys(d.orr).length,
+			toList: (d) => new NANOS(d.orr),
+			values: (d) => Object.values(d.orr),
 		},
 	});
 }

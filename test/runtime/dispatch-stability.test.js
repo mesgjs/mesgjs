@@ -29,11 +29,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifA.opA");
@@ -66,11 +66,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifB.opA ifA.opA");
@@ -105,11 +105,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifB.opA ifA.opA");
@@ -144,11 +144,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifB.opA ifA.opA");
@@ -187,11 +187,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
@@ -230,11 +230,11 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run1 = order.join(" ");
 
 		order.length = 0;
-		instB("opA");
+		$c.sm(instB, "opA");
 		run2 = order.join(" ");
 
 		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
@@ -251,7 +251,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {
@@ -289,7 +289,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {
@@ -333,7 +333,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {
@@ -377,7 +377,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {
@@ -421,7 +421,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {
@@ -469,7 +469,7 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 			handlers: {
 				"@init": (d) => {
 					d.rr.opA = function () {
-						this("opA");
+						$c.sm(this, "opA");
 					};
 				},
 				opA: (d) => {

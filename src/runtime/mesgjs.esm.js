@@ -25,7 +25,7 @@ import { install as installTimestamp } from './msjs-timestamp.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './js-undefined.esm.js';
 
-import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
+import { getInstance, initialize, MsjsObject, setModMeta, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 import { isPlainObject } from './unified-list.esm.js';
 
@@ -82,51 +82,100 @@ function installCoreExtensions () {
 	installUndefined();
 }
 
-let falseInst;
-let nullInst;
-let trueInst;
-let undefInst;
+let arrayBox;
+let falseBox;
+let mapBox;
+let nullBox;
+let numberBox;
+let objectBox;
+let regExpBox;
+let setBox;
+let stringBox;
+let trueBox;
+let undefBox;
 
-// Promote a JS object to a Msjs object for messaging
-function toMsjs (jsv) {
-	if (jsv?.msjsType) return jsv;
-	if (!nullInst) {
-		falseInst = getInstance('@false');
-		nullInst = getInstance('@null');
-		trueInst = getInstance('@true');
-		undefInst = getInstance('@undefined');
-	}
-
+/**
+ * Returns the Mesgjs receiver for a non-Mesgjs object.
+ * IMPORTANT:
+ *   This function is only meant for internal use by the messaging system. The
+ *   same exact (JS ===) receiver object may be used for a range of inputs, so
+ *   the return value by itself does not necessarily distinctly represent the input.
+ *   For example, one singleton receives messages for all numbers, and another
+ *   singleton receives messages for all strings. In such cases, distinctiveness is
+ *   part of dispatch state ("original receiver"), not a property of the receiver.
+ *   
+ * @param {*} jsv - JS value
+ * @returns {MsjsObj} - The Mesgjs receiver object
+ */
+function msjsReceiver (jsv) {
 	let instance;
 
+	if (!nullBox) { // Preload key types
+		falseBox = getInstance('@false');
+		nullBox = getInstance('@null');
+		numberBox = getInstance('@number');
+		stringBox = getInstance('@string');
+		trueBox = getInstance('@true');
+		undefBox = getInstance('@undefined');
+	}
 	switch (typeof jsv) {
 	case 'boolean':
-		return jsv ? trueInst : falseInst;
+		return jsv ? trueBox : falseBox;
 	case 'bigint':
 	case 'number':
-		return getInstance('@number', [jsv]);
+		return numberBox;
 	case 'object':
-		if (jsv === null) return nullInst;
+		if (jsv instanceof MsjsObject) return jsv;
+		if (jsv === null) return nullBox;
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
 			if (jsv[convertSym]) instance = jsv[convertSym]();
-			else if (jsv instanceof RegExp) instance = getInstance('@regex', [jsv]);
-			else if (Array.isArray(jsv)) instance = getInstance('@jsArray', [jsv]);
-			else if (jsv instanceof Map) instance = getInstance('@map', [jsv]);
-			else if (jsv instanceof Set) instance = getInstance('@set', [jsv]);
-			else if (isPlainObject(jsv)) instance = getInstance('@jsObject', [jsv]);
+			else if (jsv instanceof RegExp) {
+				regExpBox ||= getInstance('@regex');
+				instance = regExpBox;
+			}
+			else if (jsv instanceof Map) {
+				mapBox ||= getInstance('@map');
+				instance = mapBox;
+			}
+			else if (jsv instanceof Set) {
+				setBox ||= getInstance('@set');
+				instance = setBox;
+			}
+			else if (Array.isArray(jsv)) {
+				arrayBox ||= getInstance('@jsArray');
+				instance = arrayBox;
+			}
+			else if (isPlainObject(jsv)) {
+				objectBox ||= getInstance('@jsObject');
+				instance = objectBox;
+			}
 			if (instance) instances.set(jsv, instance);
 		}
-		if (instance) return instance;
-		return undefInst;
+		return instance;
 	case 'string':
-		return getInstance('@string', [jsv]);
-	default:
-		return undefInst;
+		return stringBox;
+	case 'undefined':
+		return undefBox;
 	}
+	// No compatible instance available
 }
 
-setRO(globalThis, '$toMsjs', toMsjs);
+// ($)toMsjs backwards-compatibility function
+// (deprecated - use $c.sm (sendAnonMessage) in new code)
+function toMsjs (rr) {
+	const rfn = (op, mp) => $c.sm(rr, op, mp);
+
+	rfn.msjsType = rr?.msjsType;
+	rfn.jsv = rr;
+	rfn.valueOf = () => rr;
+	return rfn;
+}
+
+setRO(globalThis, {
+	$msjsReceiver: msjsReceiver,
+	$toMsjs: toMsjs,
+});
 initialize(installCoreExtensions);
 
 // END

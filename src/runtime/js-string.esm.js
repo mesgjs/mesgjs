@@ -10,32 +10,30 @@ import { NANOS } from '@nanos';
 // (eq value ...)
 // Returns @t if target is equal to *any* value
 function opEq (d) {
-	const { mp, js } = d;
+	const { mp, orr } = d;
 	let first = true;
 
 	for (const v of mp.values()) {
 		const to = first ? v : runIfCode(v);
 
 		first = false;
-		if (js === ((typeof to === 'function' && to.msjsType) ? to.jsv : to)) return true;
+		if (orr === to) return true;
 	}
 	return false;
-}
-
-function opInit (d) {
-	setRO(d.octx, 'js', d.mp.at(0, '').toString());
-	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
 }
 
 // Join strings together with an optional separator
 // a(join b c with=-) // a-b-c
 function opJoin (d) {
-	const { mp, js } = d, sep = mp.at('with') ?? '', parts = [ js ];
+	const { mp, orr } = d, sep = mp.at('with') ?? '', parts = [ orr ];
 
 	for (const v of mp.values()) {
-		const so = globalThis.$toMsjs(v);
+		if (typeof v === 'string') parts.push(v);
+		else {
+			const part = $c.sm(v, { op: 'toString', else: null });
 
-		if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
+			if (typeof part === 'string') parts.push(part);
+		}
 	}
 	return parts.join(sep);
 }
@@ -43,27 +41,30 @@ function opJoin (d) {
 // Join strings together with the receiver as separator
 // ,(joining a b c) // a,b,c
 function opJoining (d) {
-	const { mp, js } = d, parts = [];
+	const { mp, orr } = d, parts = [];
 
 	for (const v of mp.values()) {
-		const so = globalThis.$toMsjs(v);
+		if (typeof v === 'string') parts.push(v);
+		else {
+			const part = $c.sm(v, { op: toString, else: null });
 
-		if (typeAccepts(so.msjsType, 'toString')) parts.push(so('toString'));
+			if (typeof part === 'string') parts.push(part);
+		}
 	}
-	return parts.join(js);
+	return parts.join(orr);
 }
 
 function opReplace (d, all = false) {
-	const rawPat = d.mp.at(0, ''), pat = (rawPat?.msjsType === '@regex')? rawPat.jsv : rawPat;
+	const pat = d.mp.at(0, '');
 	const rawRep = d.mp.at(1, ''), rep = (rawRep?.msjsType === '@function') ? replWrapper.bind({ msjsfn: rawRep }) : rawRep;
 
-	return (all ? d.js.replaceAll(pat, rep) : d.js.replace(pat, rep));
+	return (all ? d.orr.replaceAll(pat, rep) : d.orr.replace(pat, rep));
 }
 
 function opSplit (d) {
-	const rawSep = d.mp.at(0, ''), sep = (rawSep?.msjsType === '@regex') ? rawSep.jsv : rawSep;
+	const sep = d.mp.at(0, '');
 
-	return new NANOS(d.js.split(sep, d.mp.at(1)));
+	return new NANOS(d.orr.split(sep, d.mp.at(1)));
 }
 
 // JS-to-Msjs replacement-function wrapper
@@ -76,67 +77,63 @@ function replWrapper (...args) {
 	const [ offset, string ] = args.splice(hasG ? -3 : -2);
 	const mp = new NANOS(args, { match, offset, string }, hasG ? { groups: new NANOS(groups) } : []);
 
-	return this.msjsfn('call', mp);
+	return $c.sm(this.msjsfn, 'call', mp);
 }
 
 export function install () {
 	getInterface('@string').set({
-		final: true, lock: true, pristine: true,
+		final: true, lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': opInit,
 			'@eq': opEq,
-			'@jsv': d => d.js,
+			'@jsv': d => d.orr,
 			'=': opEq, // eq
-			'>=': d => d.js >= d.mp.at(0), // ge
-			'>': d => d.js > d.mp.at(0), // gt
+			'>=': d => d.orr >= d.mp.at(0), // ge
+			'>': d => d.orr > d.mp.at(0), // gt
 			'+': opJoin,
 			'-': opJoining,
-			'<=': d => d.js <= d.mp.at(0), // le
-			'<': d => d.js < d.mp.at(0), // lt
+			'<=': d => d.orr <= d.mp.at(0), // le
+			'<': d => d.orr < d.mp.at(0), // lt
 			'!=': d => !opEq(d), // ne
-			at: d => d.js.at(d.mp.at(0, 0)),
-			charAt: d => d.js.charAt(d.mp.at(0, 0)),
-			charCodeAt: d => d.js.charCodeAt(d.mp.at(0, 0)),
-			codePointAt: d => d.js.codePointAt(d.mp.at(0, 0)),
-			endsWith: d => d.js.endsWith(d.mp.at(0, ''), d.mp.at(1, d.js.length)),
+			at: d => d.orr.at(d.mp.at(0, 0)),
+			charAt: d => d.orr.charAt(d.mp.at(0, 0)),
+			charCodeAt: d => d.orr.charCodeAt(d.mp.at(0, 0)),
+			codePointAt: d => d.orr.codePointAt(d.mp.at(0, 0)),
+			endsWith: d => d.orr.endsWith(d.mp.at(0, ''), d.mp.at(1, d.orr.length)),
 			eq: opEq,
-			escRE: d => RegExp.escape(d.js),	// regex-escaped version
-			ge: d => d.js >= d.mp.at(0),
-			gt: d => d.js > d.mp.at(0),
-			includes: d => d.js.includes(d.mp.at(0, '')),
-			indexOf: d => d.js.indexOf(d.mp.at(0, ''), d.mp.at(1, 0)),
-			isWellFormed: d => d.js.isWellFormed(),
+			escRE: d => RegExp.escape(d.orr),	// regex-escaped version
+			ge: d => d.orr >= d.mp.at(0),
+			gt: d => d.orr > d.mp.at(0),
+			includes: d => d.orr.includes(d.mp.at(0, '')),
+			indexOf: d => d.orr.indexOf(d.mp.at(0, ''), d.mp.at(1, 0)),
+			isWellFormed: d => d.orr.isWellFormed(),
 			join: opJoin,
 			joining: opJoining,
-			lastIndexOf: d => d.js.lastIndexOf(d.mp.at(0, ''), d.mp.at(1, Infinity)),
-			le: d => d.js <= d.mp.at(0),
-			length: d => d.js.length,
-			lt: d => d.js < d.mp.at(0),
+			lastIndexOf: d => d.orr.lastIndexOf(d.mp.at(0, ''), d.mp.at(1, Infinity)),
+			le: d => d.orr <= d.mp.at(0),
+			length: d => d.orr.length,
+			lt: d => d.orr < d.mp.at(0),
 			ne: d => !opEq(d),
-			normalize: d => d.js.normalize(d.mp.at(0, 'NFC')),
-			padEnd: d => d.js.padEnd(d.mp.at(0, 0), d.mp.at(1, ' ')),
-			padStart: d => d.js.padStart(d.mp.at(0, 0), d.mp.at(1, ' ')),
-			re: d => getInstance('@regex', [ d.js, d.mp.at(0, '') ]),
-			repeat: d => d.js.repeat(d.mp.at(0, 0)),
+			normalize: d => d.orr.normalize(d.mp.at(0, 'NFC')),
+			padEnd: d => d.orr.padEnd(d.mp.at(0, 0), d.mp.at(1, ' ')),
+			padStart: d => d.orr.padStart(d.mp.at(0, 0), d.mp.at(1, ' ')),
+			re: d => getInstance('@regex', [ d.orr, d.mp.at(0, '') ]),
+			repeat: d => d.orr.repeat(d.mp.at(0, 0)),
 			replace: d => opReplace(d),
 			replaceAll: d => opReplace(d, true),
-			slice: d => d.js.slice(d.mp.at(0, 0), d.mp.at(1, d.js.length)),
+			slice: d => d.orr.slice(d.mp.at(0, 0), d.mp.at(1, d.orr.length)),
 			split: opSplit,
-			startsWith: d => d.js.startsWith(d.mp.at(0, ''), d.mp.at(1, 0)),
-			substring: d => d.js.substring(d.mp.at(0, 0), d.mp.at(1, d.js.length)),
-			toBigInt: d => BigInt(d.js),
-			toFloat: d => parseFloat(d.js),
-			toInt: d => parseInt(d.js, d.mp.at(0, 10)),
-			toLower: d => d.js.toLowerCase(),
-			toString: d => d.js,
-			toUpper: d => d.js.toUpperCase(),
-			trim: d => d.js.trim(),
-			trimEnd: d => d.js.trimEnd(),
-			trimStart: d => d.js.trimStart(),
-			valueOf: d => d.js,
-		},
-		cacheHints: {
-			'@init': 'pin',
+			startsWith: d => d.orr.startsWith(d.mp.at(0, ''), d.mp.at(1, 0)),
+			substring: d => d.orr.substring(d.mp.at(0, 0), d.mp.at(1, d.orr.length)),
+			toBigInt: d => BigInt(d.orr),
+			toFloat: d => parseFloat(d.orr),
+			toInt: d => parseInt(d.orr, d.mp.at(0, 10)),
+			toLower: d => d.orr.toLowerCase(),
+			toString: d => d.orr,
+			toUpper: d => d.orr.toUpperCase(),
+			trim: d => d.orr.trim(),
+			trimEnd: d => d.orr.trimEnd(),
+			trimStart: d => d.orr.trimStart(),
+			valueOf: d => d.orr,
 		},
 	});
 }

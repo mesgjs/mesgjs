@@ -23,8 +23,8 @@ Deno.test('Exclusive storage - basic access', async () => {
 	});
 
 	const obj = getInstance('test-exclusive-basic');
-	obj('setVal', [42]);
-	const result = obj('getVal');
+	$c.sm(obj, 'setVal', [42]);
+	const result = $c.sm(obj, 'getVal');
 	assertEquals(result, 42, 'Should retrieve value from exclusive storage');
 });
 
@@ -40,7 +40,7 @@ Deno.test('Exclusive storage - optional access with %%?', async () => {
 	});
 
 	const obj = getInstance('test-exclusive-optional');
-	const result = obj('getOptional');
+	const result = $c.sm(obj, 'getOptional');
 	assertEquals(result, undefined, 'Should return undefined for missing key');
 });
 
@@ -75,17 +75,17 @@ Deno.test('Exclusive storage - isolation between interfaces', async () => {
 	const obj = getInstance('test-exclusive-derived');
 
 	// Set value in base handler
-	obj('setBase');
-	const baseValue = obj('getBase');
+	$c.sm(obj, 'setBase');
+	const baseValue = $c.sm(obj, 'getBase');
 	assertEquals(baseValue, 'base-value', 'Base handler should see base value');
 
 	// Set value in derived handler
-	obj('setDerived');
-	const derivedValue = obj('getDerived');
+	$c.sm(obj, 'setDerived');
+	const derivedValue = $c.sm(obj, 'getDerived');
 	assertEquals(derivedValue, 'derived-value', 'Derived handler should see derived value');
 
 	// Verify base handler still sees its own value
-	const baseValueAfter = obj('getBase');
+	const baseValueAfter = $c.sm(obj, 'getBase');
 	assertEquals(baseValueAfter, 'base-value', 'Base handler should still see its own value');
 });
 
@@ -131,20 +131,20 @@ Deno.test('Exclusive storage - vs protected storage', async () => {
 	const obj = getInstance('test-storage-compare-derived');
 
 	// Set protected storage from base
-	obj('setProtected');
-	assertEquals(obj('getProtected'), 'protected-base', 'Base sees protected value');
-	assertEquals(obj('getProtectedDerived'), 'protected-base', 'Derived sees same protected value');
+	$c.sm(obj, 'setProtected');
+	assertEquals($c.sm(obj, 'getProtected'), 'protected-base', 'Base sees protected value');
+	assertEquals($c.sm(obj, 'getProtectedDerived'), 'protected-base', 'Derived sees same protected value');
 
 	// Override protected storage from derived
-	obj('setProtectedDerived');
-	assertEquals(obj('getProtected'), 'protected-derived', 'Base sees updated protected value');
-	assertEquals(obj('getProtectedDerived'), 'protected-derived', 'Derived sees updated protected value');
+	$c.sm(obj, 'setProtectedDerived');
+	assertEquals($c.sm(obj, 'getProtected'), 'protected-derived', 'Base sees updated protected value');
+	assertEquals($c.sm(obj, 'getProtectedDerived'), 'protected-derived', 'Derived sees updated protected value');
 
 	// Set exclusive storage from both
-	obj('setExclusive');
-	obj('setExclusiveDerived');
-	assertEquals(obj('getExclusive'), 'exclusive-base', 'Base sees its own exclusive value');
-	assertEquals(obj('getExclusiveDerived'), 'exclusive-derived', 'Derived sees its own exclusive value');
+	$c.sm(obj, 'setExclusive');
+	$c.sm(obj, 'setExclusiveDerived');
+	assertEquals($c.sm(obj, 'getExclusive'), 'exclusive-base', 'Base sees its own exclusive value');
+	assertEquals($c.sm(obj, 'getExclusiveDerived'), 'exclusive-derived', 'Derived sees its own exclusive value');
 });
 
 Deno.test('Exclusive storage - multiple instances', async () => {
@@ -164,11 +164,11 @@ Deno.test('Exclusive storage - multiple instances', async () => {
 	const obj1 = getInstance('test-exclusive-instances');
 	const obj2 = getInstance('test-exclusive-instances');
 
-	obj1('setVal', [100]);
-	obj2('setVal', [200]);
+	$c.sm(obj1, 'setVal', [100]);
+	$c.sm(obj2, 'setVal', [200]);
 
-	assertEquals(obj1('getVal'), 100, 'First instance should have its own value');
-	assertEquals(obj2('getVal'), 200, 'Second instance should have its own value');
+	assertEquals($c.sm(obj1, 'getVal'), 100, 'First instance should have its own value');
+	assertEquals($c.sm(obj2, 'getVal'), 200, 'Second instance should have its own value');
 });
 
 Deno.test('Exclusive storage - WeakMap cleanup', async () => {
@@ -184,7 +184,7 @@ Deno.test('Exclusive storage - WeakMap cleanup', async () => {
 
 	// Create and discard an instance
 	let obj = getInstance('test-exclusive-weakmap');
-	obj('setVal', [42]);
+	$c.sm(obj, 'setVal', [42]);
 
 	// Clear reference
 	obj = null;

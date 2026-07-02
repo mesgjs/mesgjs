@@ -38,7 +38,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = inst1("getD");
+		const d = $c.sm(inst1, "getD");
 		assertEquals(d[1], "getD");
 		assertEquals(d[0].rr, inst1);
 		assertEquals(msgd(d[0], "rr"), inst1);
@@ -60,7 +60,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const r = inst1('mesg');
+		const r = $c.sm(inst1, 'mesg');
 		assertEquals(r, undefined, "redis without super returns undefined");
 	})
 
@@ -79,13 +79,13 @@ Deno.test("Message Dispatching", async (t) => {
 		});
 
 		const inst = getInstance(subIf.ifName);
-		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
 		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
 		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
 		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
 		assertEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
 
-		const r2 = inst('subOnly');
+		const r2 = $c.sm(inst, 'subOnly');
 		assertEquals(r2, undefined, "redis with sub-only message returns undefined");
 	});
 
@@ -102,7 +102,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst = getInstance(subIf.ifName);
-		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
 		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
 		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
 		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
@@ -125,7 +125,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst = getInstance(subIf.ifName);
-		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
 		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
 		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
 		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
@@ -146,7 +146,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst = getInstance(subIf.ifName);
-		const r1 = inst('mesg', new NANOS('pos1', { key1: 'val1' }));
+		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
 		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
 		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
 		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
@@ -163,7 +163,7 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = inst1({ op: "noSuchMessage", else: [0, "else"] });
+		const d = $c.sm(inst1, { op: "noSuchMessage", else: [0, "else"] });
 		assertEquals(d[1], "default");
 		assertEquals(d[0].dop, "noSuchMessage");
 	});
@@ -187,18 +187,18 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst2 = getInstance(aif2.ifName);
-		let d = inst2("getD");
+		let d = $c.sm(inst2, "getD");
 		assertEquals(d[0].ht, aif1.ifName);
 		assertEquals(d[0].rr, inst2);
 		assertEquals(d[0].rt, aif2.ifName);
-		d = inst2("only2");
+		d = $c.sm(inst2, "only2");
 		assertEquals(d[1], "only2");
 		assertEquals(d[2], undefined);
-		d = inst2("both");
+		d = $c.sm(inst2, "both");
 		assertEquals(d[1], "both");
 		assertEquals(d[2][1], "both");
 		assertEquals(d[2][2], undefined);
-		d = inst2("noSuchMessage");
+		d = $c.sm(inst2, "noSuchMessage");
 		assertEquals(d[1], "default");
 		assertEquals(d[2][1], "default");
 	});
@@ -211,8 +211,8 @@ Deno.test("Message Dispatching", async (t) => {
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = inst1("getD");
-		assertThrows(() => d("op"), TypeError, "@dispatch messages must be attributed");
+		const d = $c.sm(inst1, "getD");
+		assertThrows(() => $c.sm(d, "op"), TypeError, "@d(op) on mismatched dispatch");
 	});
 });
 
@@ -220,7 +220,7 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 	await t.step("should not error on missing @init", () => {
 		const aif1 = getInterface(":?");
 		const inst1 = getInstance(aif1.ifName);
-		assertEquals(inst1('@init'), undefined);
+		assertEquals($c.sm(inst1, '@init'), undefined);
 		assertEquals(typeAccepts(aif1.ifName, '@init'), [aif1.ifName, 'specific']);
 	});
 
@@ -250,7 +250,7 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 		});
 		const inst1 = getInstance(aif1.ifName);
 		assertEquals(callCount, 1);
-		inst1('@init');
+		$c.sm(inst1, '@init');
 		assertEquals(callCount, 1, "The @init handler was called after getInstance");
 	});
 
@@ -336,7 +336,7 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			handlers: {
 				'@init': (d) => {
 					++initB;
-					resultB = d.mp.at(0)('@init');
+					resultB = $c.sm(d.mp.at(0), '@init');
 				}
 			}
 		});
