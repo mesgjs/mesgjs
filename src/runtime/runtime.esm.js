@@ -86,11 +86,11 @@ function appendStackTrace (e) {
 	let down = stack.length;
 
 	for (let up = 0; --down >= 0;) {
-		const curFrm = stack[down], disp = curFrm.dispThis;
-		const rawOp = disp.octx.mop;
-		const st = disp.srThis?.rt ?? '@u';
-		const rt = disp.rrThis.rt;
-		const mp = disp.octx.mp;
+		const curFrm = stack[down], disp = curFrm.disp;
+		const rawOp = disp.mop;
+		const st = disp.st ?? '@u';
+		const rt = disp.rt;
+		const mp = disp.mp;
 		const dispOp = (typeof rawOp === 'symbol') ? 'J.Symbol' : rawOp;
 
 		frames.push(`${st} => ${rt}(${dispOp}${fmtDispParams(debugSettings.stackTypes, mp)})${fmtDispSrc(debugSettings.stackSource, curFrm)}`);
@@ -1119,7 +1119,7 @@ export class MsjsObject {
 				console.log(`[Mesgjs dispatch ${id}] ${dispSt} => ${d.rt}${d.ht === d.rt ? '' : ('/' + d.ht)}(${dispOp}${fmtDispParams(debugSettings.dispatchTypes, d.mp)})${fmtDispSrc(debugSettings.dispatchSource)}`);
 			}
 			if (debugSettings.stack) {
-				stack.push({ dispThis, ...(debugSettings.stackSource && senderFLC() || {}) });
+				stack.push({ disp: this, ...(debugSettings.stackSource && senderFLC() || {}) });
 				this.#core2.stack = true;
 			}
 			break;
@@ -1129,7 +1129,7 @@ export class MsjsObject {
 		case 2: // Exception
 			if (value instanceof MsjsFlow) { // Normal @d(return), etc.
 				if (debugSettings.dispatch) {
-					if (this.capture) console.log(`[Mesgjs @d return ${this.#core2.id}]${fmtDispParams(debugSettings.dispatchTypes, [ dispThis.result ])}`);
+					if (this.capture) console.log(`[Mesgjs @d return ${this.#core2.id}]${fmtDispParams(debugSettings.dispatchTypes, [ this.result ])}`);
 					else console.log(`[Mesgjs flow ${this.#core2.id}]`);
 				}
 				break;
@@ -1237,13 +1237,15 @@ function remapModURL (src, meta) {
  * Return a message sender's source file/line/column
  * CONTINUE HERE - update for all messages via {MsjsObject,MsjsDispatch}.sm
  */
+const SM_PATTERN = /MsjsDispatch\.sm |MsjsObject\.sm /;
+
 export function senderFLC () {
 	const stack = (new Error().stack || '').split('\n');
 
 	// Discard stack frames through the msjsR$RecvMsg or msjsS$SendMsg frame.
 	// There shouldn't be any others, but we'll check and remove them if there are.
-	while (stack.length) if (/msjs[RS]\$/.test(stack.shift())) break;
-	while (stack.length && /msjs[RS]\$/.test(stack[0])) stack.shift();
+	while (stack.length) if (SM_PATTERN.test(stack.shift())) break;
+	while (stack.length && SM_PATTERN.test(stack[0])) stack.shift();
 
 	const srFrame = stack[0] || '';
 	const match = srFrame.match(/[@(](.*):(\d+):(\d+)/) ||

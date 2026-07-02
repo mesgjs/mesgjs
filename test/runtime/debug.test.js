@@ -35,7 +35,7 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 				stack: 1, // Keep stack trace minimal for this test
 			});
 
-			const result = instance("double", 5);
+			const result = $c.sm(instance, "double", 5);
 
 			assertEquals(result, 10);
 
@@ -58,10 +58,10 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 		}
 	});
 
-	await t.step("anonymous call: only msjsR$RecvMsg is active during handler (not msjsS$SendMsg)", () => {
-		// For an anonymous call (instance(op, mp)), the trampoline design means:
-		// - msjsR$RecvMsg calls dispatch(), gets the handler, then calls handler() directly
-		// - msjsS$SendMsg is NOT on the stack during handler execution
+	await t.step("anonymous call: only MsjsObject.sm is active during handler (not MsjsDispatch.sm)", () => {
+		// For an anonymous call ($c.sm(instance, op, mp)), the trampoline design means:
+		// - MsjsObject.sm gets the handler, then invokes the handler directly
+		// - MsjsDispatch.sm is NOT on the stack during handler execution
 		// We verify this by capturing the JS call stack from inside the handler.
 		let capturedStack = null;
 
@@ -75,20 +75,20 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 		});
 		const inst = getInstance(aif.ifName);
 
-		inst("captureStack");
+		$c.sm(inst, "captureStack");
 
 		assert(capturedStack !== null, "Handler was not called");
-		// msjsR$RecvMsg should be present (anonymous call path)
-		assertStringIncludes(capturedStack, "msjsR$");
-		// msjsS$SendMsg should NOT be present (trampoline: sender frame is gone)
-		assertEquals(capturedStack.includes("msjsS$"), false,
-			"msjsS$SendMsg should not be on the stack during an anonymous call handler");
+		// MsjsObject.sm should be present (anonymous call path)
+		assertStringIncludes(capturedStack, "MsjsObject.sm");
+		// MsjsDispatch.sm should NOT be present
+		assertEquals(capturedStack.includes("MsjsDispatch.sm"), false,
+			"MsjsDispatch should not be on the stack during an anonymous call handler");
 	});
 
-	await t.step("attributed call: only msjsS$SendMsg is active during handler (not msjsR$RecvMsg)", () => {
-		// For an attributed call (d.sm(d, op, mp)), the trampoline design means:
-		// - msjsS$SendMsg calls rr() to get rrThis (baton handshake), then calls dispatch(), then handler()
-		// - msjsR$RecvMsg is NOT on the stack during handler execution (it returned after the baton handshake)
+	await t.step("attributed call: only MsjsDispatch.sm is active during handler (not MsjsObject.sm)", () => {
+		// For an attributed call (d.sm(rr, op, mp)), the trampoline design means:
+		// - MsjsDispatch.sm gets the handler, then invokes the handler directly
+		// - MsjsObject.sm is NOT on the stack during handler execution
 		// We verify this by capturing the JS call stack from inside the handler.
 		let capturedStack = null;
 
@@ -104,14 +104,14 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 		const inst = getInstance(aif.ifName);
 
 		// Get a dispatch object so we can use d.sm for an attributed call
-		const d = inst("getD");
+		const d = $c.sm(inst, "getD");
 		d.sm(inst, "captureStack");
 
 		assert(capturedStack !== null, "Handler was not called");
 		// msjsS$SendMsg should be present (attributed call path)
-		assertStringIncludes(capturedStack, "msjsS$");
+		assertStringIncludes(capturedStack, "MsjsDispatch.sm");
 		// msjsR$RecvMsg should NOT be present (trampoline: receiver frame is gone after baton handshake)
-		assertEquals(capturedStack.includes("msjsR$"), false,
+		assertEquals(capturedStack.includes("MsjsObject.sm"), false,
 			"msjsR$RecvMsg should not be on the stack during an attributed call handler");
 	});
 
@@ -132,7 +132,7 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 			debugConfig({ stack: 1 });
 			let caughtError = null;
 			try {
-				inst("throwOp");
+				$c.sm(inst, "throwOp");
 			} catch (e) {
 				caughtError = e;
 			}
@@ -163,7 +163,7 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 			debugConfig({ stack: 1 });
 			let caughtError = null;
 			try {
-				inst("namedOp");
+				$c.sm(inst, "namedOp");
 			} catch (e) {
 				caughtError = e;
 			}
@@ -205,7 +205,7 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 		try {
 			debugConfig({ stack: 2 });
 			try {
-				senderInst("doSend");
+				$c.sm(senderInst, "doSend");
 			} catch (e) {
 				caughtError = e;
 			}
