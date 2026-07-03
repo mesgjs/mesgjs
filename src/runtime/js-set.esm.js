@@ -5,6 +5,7 @@
  */
 
 import { getInterface, setRO } from './runtime.esm.js';
+import { unifiedList, uniAt } from './unified-list.esm.js';
 import { NANOS } from '@nanos';
 
 // (add value...)
@@ -21,7 +22,7 @@ function opAdd (d) {
 // (new from?=source)
 function opNew (d) {
 	if (!d.mp.has('from')) return new Set();
-	return new Set([...unifiedList(mp.at('from').values())]);
+	return new Set([...unifiedList(d.mp.at('from').values())]);
 }
 
 // List of (keys or) values

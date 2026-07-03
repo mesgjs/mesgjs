@@ -4,7 +4,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, runIfCode, MsjsCode, setRO, throwFlow } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
 /*
@@ -14,38 +14,41 @@ import { NANOS } from '@nanos';
  * Async version - works the same way but returns a (JS) promise.
  */
 function opRun (d) {
-	const { mp, js } = d;
-	const raw = parseInt(mp.at('times', 1), 10), times = Number.isInteger(raw) ? raw : 1, collect = mp.at('collect');
+	const { mp, rr } = d;
+	const raw = parseInt(mp.at('times', 1), 10);
+	const times = Number.isInteger(raw) ? raw : 1;
+	const collect = mp.at('collect');
 	let result = collect ? new NANOS() : undefined;
 	const save = (res) => { if (collect) result.push(res); else result = res; };
 	const onCatch = (e) => {
-		if (!js.capture) throw e;
-		if (js.hasFlowRes) {
-			save(js.flowRes);
-			js.hasFlowRes = js.flowRes = false;
+		if (!rr.capture) throw e;
+		if (rr.hasFlowRes) {
+			save(rr.flowRes);
+			rr.hasFlowRes = rr.flowRes = false;
 		}
 		return e.message === 'stop';
 	};
-	js.times = times;
-	js.active = true;
+
+	rr.times = times;
+	rr.active = true;
 	try {
 		if (d.dop === 'arun') return (async () => {
 			for (let i = 0; i < times; ++i) {
-				js.capture = false;
-				js.iteration = i;
+				rr.capture = false;
+				rr.iteration = i;
 				try { save(await runIfCode(mp.at(0))); }
 				catch (e) { if (onCatch(e)) break; }
 			}
 			return result;
 		})();
 		for (let i = 0; i < times; ++i) {
-			js.capture = false;
-			js.iteration = i;
+			rr.capture = false;
+			rr.iteration = i;
 			try { save(runIfCode(mp.at(0))); }
 			catch (e) { if (onCatch(e)) break; }
 		}
 		return result;
-	} finally { js.active = false; }
+	} finally { rr.active = false; }
 }
 
 /*
@@ -57,7 +60,8 @@ function opRun (d) {
  * Async version - works the same way, but returns a (JS) promise.
  */
 function opWhile (d) {
-	const { mp, js } = d, ifc = v => (v?.msjsType === '@code') ? v : undefined;
+	const { mp, rr } = d;
+	const ifc = (v) => (v instanceof MsjsCode) ? v : undefined;
 	// Snapshot blocks at start (in theory, they could change during execution)
 	const main = mp.at(0), xtra = ifc(mp.at(1)), pre = ifc(mp.at('pre')), mid = xtra && ifc(mp.at('mid')), post = ifc(mp.at('post'));
 	// At least one of the pre or post code blocks must be present
@@ -66,55 +70,56 @@ function opWhile (d) {
 	let result = collect ? new NANOS() : undefined;
 	const save = (res) => { if (collect) result.push(res); else result = res; };
 	const react = (e) => {
-		if (!js.capture) throw e;
-		if (js.hasFlowRes) {
-			save(js.flowRes);
-			js.hasFlowRes = js.flowRes = false;
+		if (!rr.capture) throw e;
+		if (rr.hasFlowRes) {
+			save(rr.flowRes);
+			rr.hasFlowRes = rr.flowRes = false;
 		}
 		if (e.message === 'stop') throw e;
-		js.capture = false;
+		rr.capture = false;
 	};
 	const onCatch = (e) => {
-		js.active = false;
-		if (!js.capture) throw e;
+		rr.active = false;
+		if (!rr.capture) throw e;
 		if (e.message === 'stop') return true;
-		js.active = true;
+		rr.active = true;
 		return false;
 	};
-	js.times = undefined;
-	js.active = true;
+
+	rr.times = undefined;
+	rr.active = true;
 	try {
 		if (d.dop === 'awhile') return (async () => {
 			for (let i = 0; ; ++i) {
-				js.capture = false;
-				js.iteration = i;
+				rr.capture = false;
+				rr.iteration = i;
 				try {
-					try { if (pre && !await pre('run')) break; } catch (e) { react(e); }
+					try { if (pre && !await $c.sm(pre, 'run')) break; } catch (e) { react(e); }
 					try { save(await runIfCode(main)); } catch (e) { react(e); }
 					if (xtra) {
-						try { if (mid && !await mid('run')) break; } catch (e) { react(e); }
-						try { await xtra('run'); } catch (e) { react(e); }
+						try { if (mid && !await $c.sm(mid, 'run')) break; } catch (e) { react(e); }
+						try { await $c.sm(xtra, 'run'); } catch (e) { react(e); }
 					}
-					try { if (post && !await post('run')) break; } catch (e) { react(e); }
+					try { if (post && !await $c.sm(post, 'run')) break; } catch (e) { react(e); }
 				} catch (e) { if (onCatch(e)) break; }
 			}
 			return result;
 		})();
 		for (let i = 0; ; ++i) {
-			js.capture = false;
-			js.iteration = i;
+			rr.capture = false;
+			rr.iteration = i;
 			try {
-				try { if (pre && !pre('run')) break; } catch (e) { react(e); }
+				try { if (pre && !$c.sm(pre, 'run')) break; } catch (e) { react(e); }
 				try { save(runIfCode(main)); } catch (e) { react(e); }
 				if (xtra) {
-					try { if (mid && !mid('run')) break; } catch (e) { react(e); }
-					try { xtra('run'); } catch (e) { react(e); }
+					try { if (mid && !$c.sm(mid, 'run')) break; } catch (e) { react(e); }
+					try { $c.sm(xtra, 'run'); } catch (e) { react(e); }
 				}
-				try { if (post && !post('run')) break; } catch (e) { react(e); }
+				try { if (post && !$c.sm(post, 'run')) break; } catch (e) { react(e); }
 			} catch (e) { if (onCatch(e)) break; }
 		}
 		return result;
-	} finally { js.active = false; }
+	} finally { rr.active = false; }
 }
 
 /*
@@ -130,20 +135,19 @@ export function install (name) {
 	getInterface(name).set({
 		lock: true, pristine: true,
 		handlers: {
-			'@init': (d) => setRO(d.octx, 'js', {}),
-			active: (d) => !!d.js.active,
+			active: (d) => !!d.rr.active,
 			arun: opRun,
 			awhile: opWhile,
 			eq: (d) => d.rr === d.mp.at(0),
 			ne: (d) => d.rr !== d.mp.at(0),
-			num: (d) => d.js.iteration,
-			num1: (d) => d.js.iteration + 1,
+			num: (d) => d.rr.iteration,
+			num1: (d) => d.rr.iteration + 1,
 			next: (d) => throwFlow(d, 'next', name),
-			rem: (d) => d.js.times ? (d.js.times - d.js.iteration - 1) : undefined,
-			rem1: (d) => d.js.times ? (d.js.times - d.js.iteration) : undefined,
+			rem: (d) => d.rr.times ? (d.rr.times - d.rr.iteration - 1) : undefined,
+			rem1: (d) => d.rr.times ? (d.rr.times - d.rr.iteration) : undefined,
 			run: opRun,
 			stop: (d) => throwFlow(d, 'stop', name),
-			times: (d) => d.js.times,
+			times: (d) => d.rr.times,
 			while: opWhile,
 		},
 		cacheHints: {

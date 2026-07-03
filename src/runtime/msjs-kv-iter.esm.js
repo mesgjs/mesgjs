@@ -4,40 +4,41 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
+import { getInterface, MsjsObject, runIfCode, setRO, throwFlow, typeAccepts } from './runtime.esm.js';
 import { isIndex, NANOS } from '@nanos';
 import { unifiedList } from './unified-list.esm.js';
 
 function common (d, keys) {
-	const { mp, js } = d, collect = mp.at('collect'), get = js.src.get;
+	const { mp, rr } = d, collect = mp.at('collect'), get = rr.src.get;
 	let result = collect ? new NANOS() : undefined, count = 0;
 	const save = (r) => { if (collect) result.push(r); else result = r; };
 	const react = (e) => {
-		if (!js.capture) throw e;
-		if (js.hasFlowRes) {
-			save(js.flowRes);
-			js.hasFlowRes = js.flowRes = false;
+		if (!rr.capture) throw e;
+		if (rr.hasFlowRes) {
+			save(rr.flowRes);
+			rr.hasFlowRes = rr.flowRes = false;
 		}
 		if (e.message === 'stop') throw e;
-		js.capture = false;
+		rr.capture = false;
 	};
 	const onIndex = mp.at('index'), onNamed = mp.at('named'), split = onIndex || onNamed, onBoth = mp.at(1);
-	js.active = true;
+
+	rr.active = true;
 	try {
 		if (d.dop === 'afor' || d.dop === 'arev') return (async () => {
 			for (const k of keys) {
-				js.capture = false;
+				rr.capture = false;
 				++count;
 				if (isIndex(k)) {
-					js.isIndex = true;
-					js.key = parseInt(k, 10);
+					rr.isIndex = true;
+					rr.key = parseInt(k, 10);
 				} else {
-					js.isIndex = false;
-					js.key = k;
+					rr.isIndex = false;
+					rr.key = k;
 				}
-				js.value = get(k);
+				rr.value = get(k);
 				if (split) {
-					if (js.isIndex) {
+					if (rr.isIndex) {
 						try { if (onIndex) save(await runIfCode(onIndex)); }
 						catch (e) { react(e); }
 					} else {
@@ -54,18 +55,18 @@ function common (d, keys) {
 			return result;
 		})();
 		for (const k of keys) {
-			js.capture = false;
+			rr.capture = false;
 			++count;
 			if (isIndex(k)) {
-				js.isIndex = true;
-				js.key = parseInt(k, 10);
+				rr.isIndex = true;
+				rr.key = parseInt(k, 10);
 			} else {
-				js.isIndex = false;
-				js.key = k;
+				rr.isIndex = false;
+				rr.key = k;
 			}
-			js.value = get(k);
+			rr.value = get(k);
 			if (split) {
-				if (js.isIndex) {
+				if (rr.isIndex) {
 					try { if (onIndex) save(runIfCode(onIndex)); }
 					catch (e) { react(e); }
 				} else {
@@ -77,29 +78,31 @@ function common (d, keys) {
 		}
 		if (!count) {
 			const ls = d.mp.at('else');
+
 			if (ls) return runIfCode(ls);
 		}
 		return result;
-	} catch (e) { if (!js.capture) throw e; }
-	finally { js.active = false; }
+	} catch (e) { if (!rr.capture) throw e; }
+	finally { rr.active = false; }
 }
 
 // Return a key/value interface for whatever object we were given
 function getKVI (obj) {
-	const ot = typeof obj, mt = obj?.msjsType;
+	const ot = typeof obj, mt = MsjsObject.typeOf(obj);
 	let keys, get;
-	if ((ot !== 'object' && ot !== 'function') || obj === null) obj = [obj];
-	if (mt) {
-		if (typeAccepts(mt, 'keyIter')) keys = obj('keyIter');
-		else if (typeAccepts(mt, 'keys')) keys = obj('keys').values();
-		if (typeAccepts(mt, 'at')) get = k => obj('at', [k]);
-		else if (typeAccepts(mt, 'get')) get = k => obj('get', [k]);
-	} else {
+
+	if (ot !== 'object' || obj === null) obj = [obj];
+	if (mt) { // Mesgjs object
+		if (typeAccepts(mt, 'keyIter')) keys = $c.sm(obj, 'keyIter');
+		else if (typeAccepts(mt, 'keys')) keys = $c.sm(obj, 'keys').values();
+		if (typeAccepts(mt, 'at')) get = (k) => $c.sm(obj, 'at', [k]);
+		else if (typeAccepts(mt, 'get')) get = (k) => $c.sm(obj, 'get', [k]);
+	} else { // Something else
 		obj = unifiedList(obj);
 		if (typeof obj?.keys === 'function') {
 			keys = obj.keys();
-			if (Array.isArray(keys)) keys = keys.values();
-		} else if (Array.isArray(obj?.keys)) keys = obj.keys.values();
+			if (keys instanceof Array) keys = keys.values();
+		} else if (obj?.keys instanceof Array) keys = obj.keys.values();
 		if (typeof obj?.at === 'function') get = (key) => obj.at(key);
 		else if (typeof obj?.get === 'function') get = (key) => obj.get(key);
 		else get = (key) => obj[key];
@@ -113,7 +116,7 @@ function getKVI (obj) {
 // (afor ...)
 // Async version - returns a (JS) promise
 function opFor (d) {
-	const src = d.js.src = getKVI(d.mp.at(0));
+	const src = d.rr.src = getKVI(d.mp.at(0));
 	return common(d, src.keys);
 }
 
@@ -121,7 +124,7 @@ function opFor (d) {
 // (arev ...)
 // Async version - returns a (JS) promise
 function opRev (d) {
-	const src = d.js.src = getKVI(d.mp.at(0));
+	const src = d.rr.src = getKVI(d.mp.at(0));
 	return common(d, [...src.keys].reverse());
 }
 
@@ -129,19 +132,18 @@ export function install (name) {
 	getInterface(name).set({
 		lock: true, pristine: true,
 		handlers: {
-			'@init': (d) => setRO(d.octx, 'js', {}),
-			active: (d) => !!d.js.active,
+			active: (d) => !!d.rr.active,
 			afor: opFor,
 			arev: opRev,
 			eq: (d) => d.rr === d.mp.at(0),
 			for: opFor,
-			isIndex: (d) => d.js.isIndex,
-			key: (d) => d.js.key,
+			isIndex: (d) => d.rr.isIndex,
+			key: (d) => d.rr.key,
 			ne: (d) => d.rr !== d.mp.at(0),
 			next: (d) => throwFlow(d, 'next', name),
 			rev: opRev,
 			stop: (d) => throwFlow(d, 'stop', name),
-			value: (d) => d.js.value,
+			value: (d) => d.rr.value,
 		},
 	});
 }

@@ -1293,13 +1293,13 @@ function stub (type, ...names) {
  * Helper to throw custom MsjsFlow exceptions (not @d(return))
  */
 export function throwFlow (d, type, ifName) {
-	const { js, mp } = d;
+	const { mp, rr } = d;
 
-	if (!js?.active) throw new MsjsFlowError(`(${type}) to inactive ${ifName}`);
-	js.capture = true;
+	if (!rr?.active) throw new MsjsFlowError(`(${type}) to inactive ${ifName}`);
+	rr.capture = true;
 	if (mp.has('result')) {
-		js.hasFlowRes = true;
-		js.flowRes = mp.at('result');
+		rr.hasFlowRes = true;
+		rr.flowRes = mp.at('result');
 	}
 	throw new MsjsFlow(type);
 }

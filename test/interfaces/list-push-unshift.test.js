@@ -474,7 +474,7 @@ Deno.test('Mesgjs @list push/unshift operations', async (t) => {
 	await t.step('(pushx) should expand @set arguments', async () => {
 		await loadMesgjsModuleSource(`
 			#(nset list=[a])
-			#(nset msSet=@c(get @set init=[from=[x y z]]))
+			#(nset msSet=@c(get @set)(new from=[x y z]))
 			#list(pushx #msSet)
 			%*(nset r25=#list)
 		`);
@@ -506,7 +506,7 @@ Deno.test('Mesgjs @list push/unshift operations', async (t) => {
 	await t.step('(pushx) should expand @map arguments', async () => {
 		await loadMesgjsModuleSource(`
 			#(nset list=[a])
-			#(nset msMap=@c(get @map))
+			#(nset msMap=@c(get @map)(new))
 			#msMap(nset k1=v1 k2=v2)
 			#list(pushx #msMap)
 			%*(nset r27=#list)
@@ -542,7 +542,7 @@ Deno.test('Mesgjs @list push/unshift operations', async (t) => {
 	await t.step('(unshx) should expand @set arguments', async () => {
 		await loadMesgjsModuleSource(`
 			#(nset list=[d])
-			#(nset msSet=@c(get @set init=[from=[x y z]]))
+			#(nset msSet=@c(get @set)(new from=[x y z]))
 			#list(unshx #msSet)
 			%*(nset r29=#list)
 		`);
@@ -574,7 +574,7 @@ Deno.test('Mesgjs @list push/unshift operations', async (t) => {
 	await t.step('(unshx) should expand @map arguments', async () => {
 		await loadMesgjsModuleSource(`
 			#(nset list=[c])
-			#(nset msMap=@c(get @map))
+			#(nset msMap=@c(get @map)(new))
 			#msMap(nset k1=v1 k2=v2)
 			#list(unshx #msMap)
 			%*(nset r31=#list)
