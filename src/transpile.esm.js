@@ -32,7 +32,7 @@ let nextBlock = 0;
 
 // Transpile pre-parsed input to JavaScript code (text)
 export function transpileTree (tree, opts = {}) {
-	const errors = Array.isArray(opts.errors) ? opts.errors : [];
+	const errors = (opts.errors instanceof Array) ? opts.errors : [];
 	const outBuf = [], blocks = opts.repl ? {} : [], outStack = [];
 	const aws = opts.addWhiteSpace;
 	let jsFirst = false;

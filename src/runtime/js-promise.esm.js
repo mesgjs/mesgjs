@@ -17,7 +17,7 @@ const dualStatus = (status) => Object.assign(new NANOS(status), status);
 
 function arrayFrom (value) {
 	// Pass arrays through as-is
-	if (Array.isArray(value)) {
+	if (value instanceof Array) {
 		return value;
 	}
 	// Flatten iterables and generators
@@ -63,7 +63,7 @@ const proto = {
 	all (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!Array.isArray(promises)) {
+		if (!(promises instanceof Array)) {
 			throw new TypeError('@promise(all) requires an iterable of promises');
 		}
 		const results = [];
@@ -82,7 +82,7 @@ const proto = {
 	allSettled (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!Array.isArray(promises)) {
+		if (!(promises instanceof Array)) {
 			throw new TypeError('@promise(allSettled) requires an iterable of promises');
 		}
 		const results = [];
@@ -106,7 +106,7 @@ const proto = {
 	any (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!Array.isArray(promises)) {
+		if (!(promises instanceof Array)) {
 			throw new TypeError('@promise(any) requires an iterable of promises');
 		}
 		const reasons = [];
@@ -149,7 +149,7 @@ const proto = {
 	race (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!Array.isArray(promises)) {
+		if (!(promises instanceof Array)) {
 			throw new TypeError('@promise(race) requires an iterable of promises');
 		}
 		if (!promises.length) console.warn('@promise empty (race) will never settle!');

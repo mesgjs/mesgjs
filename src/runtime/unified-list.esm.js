@@ -32,7 +32,7 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 		if (!uniHas(obj, key)) return defFn();
 		if (obj instanceof NANOS) obj = obj.at(key, { raw: opts.raw });
 		else if (obj instanceof Map) obj = obj.get(key);
-		else if (isPlainObject(obj) || Array.isArray(obj)) obj = obj[key];
+		else if (obj instanceof Array || isPlainObject(obj)) obj = obj[key];
 		else if (obj instanceof Set) obj = true;
 		else return defFn();
 	}
@@ -43,14 +43,14 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 export const uniHas = (obj, key) => {
 	if (obj?.msjsType && obj.jsv) obj = obj.jsv;
 	if (obj instanceof NANOS || obj instanceof Map || obj instanceof Set) return obj.has(key);
-	if (isPlainObject(obj) || Array.isArray(obj)) return Object.hasOwn(obj, key);
+	if (obj instanceof Array || isPlainObject(obj)) return key in obj;
 	// Unknown/undefined for unsupported types
 };
 
 // Return the next-index for map-ish values
 export const uniNext = (obj) => {
 	if (obj instanceof NANOS) return obj.next;
-	if (Array.isArray(obj)) return obj.length;
+	if (obj instanceof Array) return obj.length;
 	let keys;
 	if (isPlainObject(obj)) keys = Object.keys(obj);
 	else if (obj instanceof Map) keys = obj.keys();
@@ -81,7 +81,7 @@ class ListProxy {
 	entries () {
 		const list = this._list;
 		if (list instanceof NANOS || list instanceof Map || list instanceof Set) return list.entries();
-		if (isPlainObject(list) || Array.isArray(list)) return Object.entries(list).values();
+		if (list instanceof Array || isPlainObject(list)) return Object.entries(list).values();
 		return [].entries();
 	}
 

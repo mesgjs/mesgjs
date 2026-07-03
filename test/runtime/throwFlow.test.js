@@ -18,26 +18,26 @@ Deno.test("throwFlow", async (t) => {
 
 	await t.step("should throw MsjsFlow in an active context", () => {
 		const d = {
-			js: { active: true },
+			rr: { active: true },
 			mp: new NANOS(),
 		};
 		assertThrows(() => throwFlow(d, "return", "@test"), MsjsFlow, "return");
-		assertEquals(d.js.capture, true);
+		assertEquals(d.rr.capture, true);
 	});
 
 	await t.step("should capture the result in the dispatch object", () => {
 		const d = {
-			js: { active: true },
+			rr: { active: true },
 			mp: new NANOS({ result: "the-result" }),
 		};
 		assertThrows(() => throwFlow(d, "return", "@test"), MsjsFlow, "return");
-		assertEquals(d.js.hasFlowRes, true);
-		assertEquals(d.js.flowRes, "the-result");
+		assertEquals(d.rr.hasFlowRes, true);
+		assertEquals(d.rr.flowRes, "the-result");
 	});
 
 	await t.step("should throw MsjsFlowError in an inactive context", () => {
 		const d = {
-			js: { active: false },
+			rr: { active: false },
 			mp: new NANOS(),
 		};
 		assertThrows(

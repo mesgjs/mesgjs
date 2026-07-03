@@ -993,13 +993,13 @@ export class MsjsObject {
 		// Canonicalize message parameters
 		if (mop instanceof NANOS) mop = mop.storage;
 		if (typeof mop === 'object') { // List-op message
-			if (Object.hasOwn(mop, 'else')) {
+			if ('else' in mop) {
 				mc.hasElse = true;
 				mc.elseExpr = mop.else;
 			}
-			if (Object.hasOwn(mop, 'mid')) mc.smi = modMidToName.get(mop.mid);
-			if (Object.hasOwn(mop, 'params')) mp = mop.params;
-			if (Object.hasOwn(mop, 'op')) mop = mop.op;
+			if ('mid' in mop) mc.smi = modMidToName.get(mop.mid);
+			if ('params' in mop) mp = mop.params;
+			if ('op' in mop) mop = mop.op;
 			else mop = mop[0];
 		}
 		switch (typeof mop) {

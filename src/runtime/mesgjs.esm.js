@@ -130,6 +130,10 @@ function msjsReceiver (jsv) {
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
 			if (jsv[convertSym]) instance = jsv[convertSym]();
+			else if (jsv instanceof Array) {
+				arrayBox ||= getInstance('@jsArray');
+				instance = arrayBox;
+			}
 			else if (jsv instanceof RegExp) {
 				regExpBox ||= getInstance('@regex');
 				instance = regExpBox;
@@ -141,10 +145,6 @@ function msjsReceiver (jsv) {
 			else if (jsv instanceof Set) {
 				setBox ||= getInstance('@set');
 				instance = setBox;
-			}
-			else if (Array.isArray(jsv)) {
-				arrayBox ||= getInstance('@jsArray');
-				instance = arrayBox;
 			}
 			else if (isPlainObject(jsv)) {
 				objectBox ||= getInstance('@jsObject');
