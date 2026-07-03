@@ -1,97 +1,93 @@
 /*
- * Mesgjs @regex interface - JS RegExp wrapper
+ * Mesgjs @regex interface - JS RegExp receiver singleton
+ * Mesgjs @rematch interface - matchAll iterator
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, MsjsCode, setRO, throwFlow } from './runtime.esm.js';
 
 const listize = (res) => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
-function opInit (d) {
-	const raw = d.mp.at(0, ''), re = (raw instanceof RegExp) ? raw : new RegExp(raw, d.mp.at(1, ''));
-
-	setRO(d.rr, { jsv: re, valueOf: () => re });
-	setRO(d.octx, 'js', { re });
-	setRO(d.js.re, $c.symbols.instance, d.rr, false);
-}
-
-// (eq to)
-// Returns @t if "to" refers to the identical JS RegExp object
-function opEq (d) {
-	const to = d.mp.at(0);
-
-	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
-}
-
-// regex(matchAll string each={block!} else={block!} collect=@f)
+// rematch(matchAll regex string each={block!} else={block!} collect=@f)
 function opMatchAll (d) {
-	const { js, mp } = d;
+	const { mp, rr } = d;
+	const regex = mp.at(0), string = mp.at(1, '');
 	const each = mp.at('each'), ls = mp.at('else'), collect = mp.at('collect');
 
-	delete js.capture;
-	delete js.match;
-	js.num = -1;						// -1 = no matches (so far)
+	if (!(regex instanceof RegExp)) throw new TypeError('Missing regular expression parameter');
+	rr.capture = false;
+	rr.match = undefined;
+	rr.num = -1;						// -1 = no matches (so far)
+	rr.regex = regex;
 
 	let result = collect ? new NANOS() : undefined;
 	const save = res => { if (collect) result.push(res); else result = res; };
 
-	js.active = true;
+	rr.active = true;
 	try {
-		for (const match of mp.at(0, '').matchAll(js.re)) {
-			++js.num;					// 0-based match number
-			if (each?.msjsType === '@code') {
-				js.match = listize(match);
-				try { save(each('run')); }
+		for (const match of string.matchAll(regex)) {
+			++rr.num;					// 0-based match number
+			if (each instanceof MsjsCode) {
+				rr.match = listize(match);
+				try { save($c.sm(each, 'run')); }
 				catch (ex) {
-					if (!js.capture) throw ex;
-					if (js.hasFlowRes) {
-						save(js.flowRes);
-						js.hasFlowRes = js.flowRes = false;
+					if (!rr.capture) throw ex;
+					if (rr.hasFlowRes) {
+						save(rr.flowRes);
+						rr.hasFlowRes = rr.flowRes = false;
 					}
 					if (ex.message === 'stop') break;
-					delete js.capture;
+					rr.capture = false;
 				}
 			}
 		}
-		if (js.num < 0 && ls?.msjsType === '@code') {
-			try { save(ls('run')); }
+		if (rr.num < 0 && ls instanceof MsjsCode) {
+			try { save($c.sm(ls, 'run')); }
 			catch (ex) {
-				if (!js.capture) throw ex;
-				if (js.hasFlowRes) {
-					save(js.flowRes);
-					js.hasFlowRes = js.flowRes = false;
+				if (!rr.capture) throw ex;
+				if (rr.hasFlowRes) {
+					save(rr.flowRes);
+					rr.hasFlowRes = rr.flowRes = false;
 				}
 			}
 		}
-	} finally { js.active = false; }
+	} finally { rr.active = false; }
 	return result;
 }
 
 export function install () {
-	const name = '@regex';
+	const regex = '@regex';
+	const rematch = '@rematch';
 
-	getInterface(name).set({
+	getInterface(regex).set({
+		lock: true, pristine: true, singleton: true,
+		handlers: {
+			'@eq': (d) => d.orr === d.mp.at(0),
+			'@jsv': (d) => d.orr,
+			eq: (d) => d.orr === d.mp.at(0),
+			exec: (d) => listize(d.orr.exec(d.mp.at(0, ''))),
+			flags: (d) => d.orr.flags,
+			last: (d) => d.orr.lastIndex,
+			match1: (d) => listize(d.mp.at(0, '').match(d.orr)),
+			ne: (d) => d.orr !== d.mp.at(0),
+			search: (d) => d.mp.at(0, '').search(d.orr),
+			setLast: (d) => { if (d.orr instanceof RegExp) d.orr.lastIndex = d.mp.at(0, 0); return d.orr; },
+			source: (d) => d.orr.source,
+			test: (d) => d.orr.test(d.mp.at(0, '')),
+		},
+	});
+
+	getInterface(rematch).set({
 		lock: true, pristine: true,
 		handlers: {
-			'@init': opInit,
-			'@eq': opEq,
-			'@jsv': (d) => d.js.re,
-			eq: opEq,
-			exec: (d) => listize(d.js.re.exec(d.mp.at(0, ''))),
-			flags: (d) => d.js.re.flags,
-			last: (d) => d.js.re.lastIndex,
-			match: (d) => d.js.match,
-			match1: (d) => listize(d.mp.at(0, '').match(d.js.re)),
+			last: (d) => d.rr.regex?.last,
+			next: (d) => throwFlow(d, 'next', rematch),
+			match: (d) => d.rr.match,
 			matchAll: opMatchAll,
-			ne: (d) => !opEq(d),
-			next: (d) => throwFlow(d, 'next', name),
-			num: (d) => d.js.num,			// current match number
-			search: (d) => d.mp.at(0, '').search(d.js.re),
-			setLast: (d) => { d.js.re.lastIndex = d.mp.at(0, 0); return d.rr; },
-			source: (d) => d.js.re.source,
-			stop: (d) => throwFlow(d, 'stop', name),
-			test: (d) => d.js.re.test(d.mp.at(0, '')),
+			num: (d) => d.rr.num,			// current match number
+			setLast: (d) => { if (d.rr.regex instanceof RegExp) d.rr.regex.lastIndex = d.mp.at(0, 0); return d.rr; },
+			stop: (d) => throwFlow(d, 'stop', rematch),
 		},
 	});
 }

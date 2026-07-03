@@ -8,44 +8,42 @@ import {
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
 
-const mockCode = (runLogic) => {
-	const fn = (op) => {
-		if (op === "run") return runLogic();
-	};
-	fn.msjsType = "@code";
-	return fn;
-};
+const mod = $modScope();
+
+function getCode (fn) {
+	return mod.d.b(fn);
+}
 
 Deno.test("@regex Interface", async (t) => {
 	const mString = $toMsjs("hello world");
 
-	await t.step("consistent instances", () => {
+	await t.step("consistent receivers", () => {
 		const re = /hello/;
-		assertStrictEquals($toMsjs(re), $toMsjs(re));
+		assertStrictEquals($msjsReceiver(re), $msjsReceiver(re));
 	});
 
 	await t.step("Initialization", () => {
 		const mRegex = mString("re", "g");
-		assertEquals(mRegex.msjsType, "@regex");
-		assertEquals(mRegex("source"), "hello world");
-		assertEquals(mRegex("flags"), "g");
+		assertEquals(mRegex instanceof RegExp, true);
+		assertEquals($c.sm(mRegex, "source"), "hello world");
+		assertEquals($c.sm(mRegex, "flags"), "g");
 	});
 
 	await t.step("(test)", () => {
 		const mRegex = mString("re", "g");
-		assertEquals(mRegex("test", "hello"), false);
-		assertEquals(mRegex("test", "hello world hello"), true);
+		assertEquals($c.sm(mRegex, "test", "hello"), false);
+		assertEquals($c.sm(mRegex, "test", "hello world hello"), true);
 	});
 
 	await t.step("(exec)", () => {
 		const mRegex = mString('re', 'g');
-		const res = mRegex("exec", "Well, hello world!");
+		const res = $c.sm(mRegex, "exec", "Well, hello world!");
 		assertEquals(res?.at(0), "hello world");
 	});
 
 	await t.step("(match1)", () => {
 		const mRegex = mString("re", "g");
-		const res = mRegex("match1", "Well, hello world!");
+		const res = $c.sm(mRegex, "match1", "Well, hello world!");
 		assertEquals(res?.at(0), "hello world");
 		const noMatch = $toMsjs(/a/)("match1", "b");
 		assertEquals(noMatch, null);
@@ -53,22 +51,23 @@ Deno.test("@regex Interface", async (t) => {
 
 	await t.step("(search)", () => {
 		const mRegex = mString("re", "g");
-		const res = mRegex("search", "Well, hello world!");
+		const res = $c.sm(mRegex, "search", "Well, hello world!");
 		assertEquals(res, 6);
 		const noMatch = $toMsjs(/a/)("search", "b");
 		assertEquals(noMatch, -1);
 	});
 
 	await t.step("(matchAll)", () => {
-		const rx = $toMsjs(/t(e)(st(\d?))/g);
+		const re = /t(e)(st(\d?))/g;
+		const rem = $c.getInstance('@rematch');
 		const str = "test1test2";
 		const expected = [
 			["test1", "e", "st1", "1"],
 			["test2", "e", "st2", "2"],
 		];
 		let i = 0;
-		const each = mockCode(() => {
-			const match = rx("match");
+		const each = getCode(() => {
+			const match = $c.sm(rem, "match");
 			assert(match?.size >= 4);
 			assertEquals(match?.at(0), expected[i][0]);
 			assertEquals(match?.at(1), expected[i][1]);
@@ -76,10 +75,10 @@ Deno.test("@regex Interface", async (t) => {
 			assertEquals(match?.at(3), expected[i][3]);
 			i++;
 		});
-		rx("matchAll", ls([, str, "each", each]));
+		$c.sm(rem, "matchAll", ls([, re, , str, "each", each]));
 		assertEquals(i, 2);
 
-		const elseBlock = mockCode(() => assert(true));
-		$toMsjs(/a/g)("matchAll", ls([, "b", "else", elseBlock]));
+		const elseBlock = getCode(() => assert(true));
+		$c.sm(rem, 'matchAll', ls([, /a/g, , 'b', 'else', elseBlock]));
 	});
 });

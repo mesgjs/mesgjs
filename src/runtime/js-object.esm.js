@@ -4,7 +4,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, setRO } from './runtime.esm.js';
+import { getInterface, MsjsObject, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
 
 // Helper classes to create null-prototyped objects "stamped" as locally-created
@@ -62,7 +62,7 @@ export function install (name) {
 		lock: true, pristine: true, singleton: true,
 		handlers: {
 			'@eq': (d) => d.orr === d.mp.at(0),
-			'@jsv': (d) => (d.orr instanceof MsjsObect) ? new Verifiable() : d.orr,
+			'@jsv': (d) => (d.orr instanceof MsjsObject) ? new Verifiable() : d.orr,
 			'@': opAt,
 			'=': opSet,
 			'==': opNset,

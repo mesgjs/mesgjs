@@ -7,11 +7,17 @@ import {
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
 
+const mod = $modScope();
+
+function getCode (fn) {
+	return mod.d.b(fn);
+}
+
 Deno.test("@string Interface", async (t) => {
 	const mString = $toMsjs("hello");
 
 	await t.step("Initialization and Primitives", () => {
-		assertEquals(mString.msjsType, "@string");
+		assertEquals($msjsReceiver('').msjsType, "@string");
 		assertEquals(mString("valueOf"), "hello");
 		assertEquals(mString("toString"), "hello");
 		assertEquals(mString("@jsv"), "hello");
@@ -65,9 +71,9 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals($toMsjs(answer3("toLower"))("=", ls([, "y", , "yes", , "yup", , "yeah"])), false, "Should not match 'nope'");
 
 		// Test with RIC (run-if-code) values - mocked code blocks
-		const ricHello = Object.assign(() => 'hello', { msjsType: '@code' });
-		const ricWorld = Object.assign(() => 'world', { msjsType: '@code' });
-		const ricHey = Object.assign(() => 'hey', { msjsType: '@code' });
+		const ricHello = getCode(() => 'hello');
+		const ricWorld = getCode(() => 'world');
+		const ricHey = getCode(() => 'hey');
 
 		assertEquals(mString("eq", ls([, "hi", , ricHello, , ricHey])), true, "Should match RIC value that returns 'hello'");
 		assertEquals(mString("=", ls([, ricWorld, , ricHello])), true, "Should match RIC value using = operator");
@@ -94,9 +100,9 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals($toMsjs(answer2("toLower"))("!=", ls([, "n", , "no", , "nope", , "nah"])), true, "Should be true when 'maybe' doesn't match");
 
 		// Test with RIC (run-if-code) values - mocked code blocks
-		const ricHello = Object.assign(() => 'hello', { msjsType: '@code' });
-		const ricWorld = Object.assign(() => 'world', { msjsType: '@code' });
-		const ricHey = Object.assign(() => 'hey', { msjsType: '@code' });
+		const ricHello = getCode(() => 'hello');
+		const ricWorld = getCode(() => 'world');
+		const ricHey = getCode(() => 'hey');
 
 		assertEquals(mString("ne", ls([, "hi", , ricHello, , ricHey])), false, "Should be false when RIC value returns 'hello'");
 		assertEquals(mString("!=", ls([, ricWorld, , ricHello])), false, "Should be false when RIC value matches using != operator");
@@ -142,8 +148,8 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals($toMsjs("123.45")("toFloat"), 123.45);
 		assertEquals($toMsjs("123")("toBigInt"), 123n);
 		const re = mString("re", "g");
-		assertEquals(re.msjsType, "@regex");
-		assertEquals(re("source"), "hello");
-		assertEquals(re("flags"), "g");
+		assertEquals(re instanceof RegExp, true);
+		assertEquals($c.sm(re, "source"), "hello");
+		assertEquals($c.sm(re, "flags"), "g");
 	});
 });

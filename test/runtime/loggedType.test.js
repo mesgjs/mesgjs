@@ -26,8 +26,7 @@ Deno.test("loggedType", async (t) => {
 
 		assertEquals(loggedType(msjsString), "M.@string");
 		assertEquals(loggedType(msjsNumber), "M.@number");
-		// CONTINUE HERE: Fix @promises (FAILING)
-		// assertEquals(loggedType(msjsPromise), "M.@promise");
+		assertEquals(loggedType(msjsPromise), "M.@promise");
 	});
 
 });

@@ -802,6 +802,7 @@ export class MsjsObject {
 		// Send @init message if the instance has a code handler for it
 		if (getHandler(mc, type, '@init', false, true) && mc.code) {
 			const initDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP, mc);
+			const code = mc.code;
 
 			if (sr && key === OBJ_KEY) {
 				mc.sr = sr;
@@ -813,7 +814,7 @@ export class MsjsObject {
 			mc.mp = mp;
 			mc.orr = mc.rr = rr;
 			mc.rt = type;
-			mc.code(initDisp);
+			code(initDisp);
 		}
 		return rr;
 	}
@@ -949,11 +950,12 @@ export class MsjsObject {
 		}
 
 		if (typeof mp.proto === 'object') {
-			const protoClass = class extends MsjsObject {};
+			const mName = 'M.' + name;
+			const protoClass = { [mName]: class extends MsjsObject {} }[mName]; // Variable class naming hack
 			const props = Object.getOwnPropertyDescriptors(mp.proto);
 			delete props.constructor;
-			props.name = { value: 'M-' + name };
-			Object.defineProperties(protoClass, props);
+			props.name = { value: mName };
+			Object.defineProperties(protoClass.prototype, props);
 			ix.protoClass = protoClass;
 		}
 
@@ -1050,7 +1052,8 @@ export class MsjsObject {
 		try {
 			if (trace) dispObj.#traceDispatch(0);
 
-			const result = codeRun ? rr.#core1(rr.#core2) : mc.code(dispObj);
+			const code = codeRun ? rr.#core1 : mc.code;
+			const result = codeRun ? code(rr.#core2) : code(dispObj);
 
 			if (trace) dispObj.#traceDispatch(1, result);
 			return result;
@@ -1112,11 +1115,11 @@ export class MsjsObject {
 	}
 }
 
-class MsjsCode extends MsjsObject {};
-class MsjsDispatch extends MsjsObject {};
-class MsjsFunction extends MsjsObject {};
-class MsjsInterface extends MsjsObject {};
-class MsjsModule extends MsjsObject {};
+export class MsjsCode extends MsjsObject {};
+export class MsjsDispatch extends MsjsObject {};
+export class MsjsFunction extends MsjsObject {};
+export class MsjsInterface extends MsjsObject {};
+export class MsjsModule extends MsjsObject {};
 
 //////////////////////////////////////////////////////////////////////
 // END OF Mesgjs-object "chameleon" class

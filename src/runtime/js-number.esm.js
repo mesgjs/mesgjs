@@ -6,6 +6,7 @@
 
 import { getInterface, MsjsObject, setRO, typeAccepts } from './runtime.esm.js';
 
+// Perform an operation (via callback function) across all parameters
 function perform (d, opf, def = 0) {
 	const mp = d.mp; let js = d.orr;
 
@@ -21,6 +22,8 @@ function toNum (v, def) {
 	return (jsType === 'number' || jsType === 'bigint') ? v : def;
 }
 
+// (add number...) or (+ number...)
+// Return the sum of the receiver and parameters
 function opAdd (d) {
 	const mp = d.mp;
 	let js = d.orr;
@@ -55,6 +58,8 @@ function opLog (d) {
 	return Math.log10(orr);
 }
 
+// rr(max number...) or 0(max of=[number...])
+// Return the maximum value (receiver included in the first form, not in the second)
 function opMax (d) {
 	const { orr, mp } = d;
 
@@ -62,6 +67,8 @@ function opMax (d) {
 	return Math.max(orr, ...mp.values());
 }
 
+// rr(min number...) or 0(min of=[number...])
+// Return the minimum value (receiver included in the first form, not in the second)
 function opMin (d) {
 	const { orr, mp } = d;
 
@@ -69,6 +76,8 @@ function opMin (d) {
 	return Math.min(orr, ...mp.values());
 }
 
+// mul(number...) or *(number...)
+// Return the product of the receiver and parameters
 function opMul (d) {
 	const mp = d.mp;
 	let orr = d.orr;
@@ -77,6 +86,8 @@ function opMul (d) {
 	return orr;
 }
 
+// sub(number...) or -(number...)
+// Return the receiver reduced by all parameters
 function opSub (d) {
 	const mp = d.mp; let orr = d.orr;
 
@@ -99,7 +110,7 @@ export function install () {
 			'<=': (d) => d.orr <= toNum(d.mp.at(0)), // le
 			'<<': (d) => d.orr << toNum(d.mp.at(0)), // lshf
 			'<': (d) => d.orr < toNum(d.mp.at(0)), // lt
-			'/+': (d) => perform(d, (a, b) => a % b, NaN), // mod
+			'/+': (d) => perform(d, (a, b) => a % b, NaN), // mod (the additional amount remaining following division)
 			'*': opMul,
 			'!=': (d) => d.orr !== toNum(d.mp.at(0)), // ne
 			'+-': (d) => -d.orr, // neg

@@ -18,6 +18,7 @@ function opAt (d) {
 }
 
 // (new from?=source)
+// Returns a new JS Map
 function opNew (d) {
 	if (!d.mp.has('from')) return new Map();
 	return new Map([...unifiedList(d.mp.at('from').entries())]);
@@ -33,8 +34,7 @@ function opNset (d) {
 	return orr;
 }
 
-// (set key value)
-// (set key to=value)
+// (set key value) or (set key to=value)
 function opSet (d) {
 	d.orr.set(d.mp.at(0), d.mp.at('to', d.mp.at(1)));
 	return d.orr;

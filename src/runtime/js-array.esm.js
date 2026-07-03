@@ -18,6 +18,14 @@ function opAt (d) {
 	}});
 }
 
+// (new from?=source)
+// Returns a new JS Array
+function opNew (d) {
+	if (!d.mp.has('from')) return [];
+	return [...unifiedList(d.mp.at('from'), true).values()];
+}
+
+// (set index value) or (set index to=value)
 function opSet (d) {
 	// Set value at index only if index is numeric
 	const index = parseInt(d.mp.at(0), 10);
@@ -44,6 +52,7 @@ export function install (name) {
 			keyIter: (d) => Object.keys(d.orr).values(),
 			length: (d) => d.orr.length,
 			ne: (d) => d.orr !== d.mp.at(0),
+			new: opNew,
 			next: (d) => d.orr.length, // For @list compatibility
 			pop: (d) => d.orr.pop(),
 			push: (d) => d.orr.push(...d.mp.values()),
