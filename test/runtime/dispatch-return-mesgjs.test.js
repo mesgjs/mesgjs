@@ -136,9 +136,12 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 	});
 
 	await t.step("should work with conditional return", async () => {
+		$c.debugConfig({ dispatch: true });
 		await loadMesgjsModuleSource(`
 			#(nset fn={
+				@c(log DEBUG mp: !(toSLID))
 				@c(if !0 {
+					@c(log return early)
 					@d(return early)
 					default-early !}
 				)
@@ -147,6 +150,8 @@ Deno.test("@d(return) in Mesgjs code", async (t) => {
 			%*(nset r13a=#fn(call @t))
 			%*(nset r13b=#fn(call @f))
 		`);
+		$c.debugConfig({ dispatch: false });
+		console.log('DEBUG $gss', $gss.toSLID());
 		assertEquals($gss.at('r13a'), 'early', "Expected early return when condition is true");
 		assertEquals($gss.at('r13b'), 'normal-return', "Expected normal return when condition is false");
 	});

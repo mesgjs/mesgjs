@@ -27,24 +27,13 @@ const handlerCache = new SieveCache(1024);
 const hdr = '-- Mesgjs Dispatch Stack --';
 let initPhase = 2;
 const interfaces = Object.create(null);
-
-// msgCtx is the shared message context.
-// This is typically a one-time allocation, but gets swapped during @defacc processing
-// in getHandler. The shape there must be kept in sync with the shape here.
-let msgCtx = {
-	/* Sender */   sr: null, st: null, smi: null,
-	/* Message */  mop: null, hasElse: false, elseExpr: null, isInit: false, mp: null,
-	/* Receiver */ orr: null, rr: null, rt: null,
-	/* Dispatch */ dop: null, hop: null, ht: null, code: null, value: null,
-};
-
 const modLoaded = new Set();
 const modMap = new Map();
 const modMeta = new NANOS();
 const modMidToName = new Map();
 let nextAnonIf = 0; // Next anonymous interface number
 let nextUCID = 0; // Next universal code id for code bindings
-const noopFunction = () => {};
+const NOOP_FN = () => {};
 const OBJ_KEY = Symbol('MsjsObject'); // MsjsObject constructor auth token
 const stack = []; // Mesgjs dispatch stack
 
@@ -88,7 +77,7 @@ function appendStackTrace (e) {
 	for (let up = 0; --down >= 0;) {
 		const curFrm = stack[down], disp = curFrm.disp;
 		const rawOp = disp.mop;
-		const st = disp.st ?? '@u';
+		const st = disp.st || '@u';
 		const rt = disp.rt;
 		const mp = disp.mp;
 		const dispOp = (typeof rawOp === 'symbol') ? 'J.Symbol' : rawOp;
@@ -217,7 +206,7 @@ export function fwait (...list) {
 		}
 	}
 
-	promise.catch(noopFunction);
+	promise.catch(NOOP_FN);
 	for (const feature of extended) if (featurePromises.has(feature)) promises.push(featurePromises.get(feature));
 	return promise.all(promises);
 }
@@ -235,18 +224,17 @@ export function fready (mid, feature) {
 
 /**
  * Try to locate a specific or default handler for a type and operation.
+ * @param {MsgCtx} mc - Message context object for results
  * @param {string} type0 - The initial type at which to begin searching
  * @param {string} dop - The dispatch requested operation
- * @modifies {msgCtx} msgCtx
  * @returns {boolean} - Whether a handler was found
  */
-function getHandler (type0, dop, next, isInit) {
-	msgCtx.dop = dop;
+function getHandler (mc, type0, dop, next, isInit) {
+	mc.dop = dop;
 	// Ignore (no-op) @init outside of getInstance
 	if (dop === '@init' && !isInit) {
-		msgCtx.ht = type0;
-		msgCtx.hop = dop;
-		msgCtx.code = msgCtx.value = undefined;
+		mc.ht = type0;
+		mc.hop = dop;
 		return true;
 	}
 
@@ -254,10 +242,9 @@ function getHandler (type0, dop, next, isInit) {
 	const hit = cacheKey && handlerCache.get(cacheKey);
 
 	if (hit) {
-		msgCtx.code = hit.code;
-		msgCtx.ht = hit.type;
-		msgCtx.hop = hit.hop;
-		msgCtx.value = undefined;
+		mc.code = hit.code;
+		mc.ht = hit.type;
+		mc.hop = hit.hop;
 		return true;
 	}
 
@@ -292,9 +279,8 @@ function getHandler (type0, dop, next, isInit) {
 		if (isInit) {
 			// No-op is always the default for instance @init
 			// Nothing cacheable, so just "load and go"
-			msgCtx.code = msgCtx.value = undefined;
-			msgCtx.ht = type0;
-			msgCtx.hop = dop;
+			mc.ht = type0;
+			mc.hop = dop;
 			return true;
 		}
 
@@ -304,23 +290,13 @@ function getHandler (type0, dop, next, isInit) {
 			if (accCode) {
 				// If @defacc is also present, it moderates what @default accepts
 				// (@defacc requires interrupting the dispatch in progress and then resuming it)
-				const saveMsgCtx = msgCtx;
+				const amc = new MsgCtx();
+				const accDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP, amc);
 
-				try {
-					msgCtx = { // New message context for @defacc, using the same original shape
-						sr: undefined, st: undefined, smi: undefined,
-						mop: '@defacc', hasElse: false, elseExpr: undefined, isInit: false,
-						mp: { op: dop, type: defType },
-						orr: undefined, rr: undefined, rt: '',
-						dop: '@defacc', hop: '@defacc', ht: accType, code: accCode, value: undefined,
-					};
-
-					const dispObj = new MsjsDispatch(OBJ_KEY, TYPE_DISP);
-
-					useDef = accCode(dispObj);
-				} finally {
-					msgCtx = saveMsgCtx;
-				}
+				amc.mop = amc.dop = amc.hop = '@defacc';
+				amc.mp = { op: dop, type: defType };
+				amc.ht = accType;
+				useDef = accCode(accDisp);
 			}
 
 			if (useDef) {
@@ -332,10 +308,9 @@ function getHandler (type0, dop, next, isInit) {
 	}
 
 	if (!handCode) return false;
-	msgCtx.code = handCode;
-	msgCtx.ht = handType;
-	msgCtx.hop = handOp;
-	msgCtx.value = undefined;
+	mc.code = handCode;
+	mc.ht = handType;
+	mc.hop = handOp;
 
 	const cacheable = ((!cacheKey || !handCode || !interfaces[handType].locked) ? false :
 		(handCode.cache ?? (handOp !== dop || handType !== type0)));
@@ -499,15 +474,12 @@ export function modHasCap (module, cap) {
  */
 export function moduleScope () {
 	const m = new MsjsModule(OBJ_KEY, TYPE_MOD);
-	const mc = msgCtx;
+	const mc = new MsgCtx();
+	const d = new MsjsDispatch(OBJ_KEY, TYPE_DISP, mc);
 
 	mc.sr = mc.orr = mc.rr = m;
 	mc.st = mc.rt = mc.ht = TYPE_MOD;
 	mc.mop = mc.dop = mc.hop = 'load';
-	mc.hasElse = mc.isInit = false;
-	mc.smi = mc.elseExpr = mc.mp = mc.code = mc.value = undefined;
-
-	const d = new MsjsDispatch(OBJ_KEY, TYPE_DISP);
 
 	// `%/` AKA `@mps` (module private/persistent state) is just the persistent state
 	// from the module's @dispatch object, but accessible from anywhere in the module.
@@ -516,6 +488,16 @@ export function moduleScope () {
 		get: () => d.p,
 	});
 	return { d, m, ls: listFromPairs, na: namespaceAt };
+}
+
+// Message context class
+// - Maximize shape and value consistency as much as practical
+// - Minimize copying, code-level resets, and risk of cross-request leaks
+class MsgCtx {
+	/* Sender */   sr; st = ''; smi;
+	/* Message */  mop = ''; hasElse = false; elseExpr; isInit = false; mp;
+	/* Receiver */ orr; rr; rt = '';
+	/* Dispatch */ dop = ''; hop = ''; ht = ''; code; value;
 }
 
 /*
@@ -572,10 +554,10 @@ export class MsjsObject {
 			this.#core2 = params[1];
 			this.#dispatch = MsjsObject.#codeDispatch;
 			break;
-		case TYPE_DISP: // @dispatch(context = { ...msgCtx })
-			// #core1: a copy of the current message context
+		case TYPE_DISP: // @dispatch(context)
+			// #core1: the message context
 			// #core2: JIT bound code objects
-			this.#core1 = params[0] ?? { ...msgCtx };
+			this.#core1 = params[0];
 			this.#dispatch = MsjsObject.#dispatchDispatch;
 			break;
 		case TYPE_FUN: // @function(code, ps)
@@ -601,13 +583,13 @@ export class MsjsObject {
 	}
 
 	// @code Mesgjs message handlers
-	static #codeDispatch (op, mp) {
+	static #codeDispatch (mc, op, mp) {
 		switch (op) {
 		case 'fn':
-			msgCtx.value = new MsjsFunction(OBJ_KEY, TYPE_FUN, this.#core1, mp);
+			mc.value = new MsjsFunction(OBJ_KEY, TYPE_FUN, this.#core1, mp);
 			return true;
 		case 'run':
-			msgCtx.code = this.#core1;
+			mc.code = this.#core1;
 			return true;
 		}
 		return false;
@@ -615,7 +597,7 @@ export class MsjsObject {
 
 	// @code interface init, JS properties, and methods
 	static #codeInit () {
-		setProto(MsjsCode, 'value', {
+		Object.defineProperties(MsjsCode.prototype, Object.getOwnPropertyDescriptors({
 			fn (mp) {
 				if (this.#type !== TYPE_CODE) this.#notFun('@code.fn');
 				if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
@@ -625,32 +607,29 @@ export class MsjsObject {
 				if (this.#type !== TYPE_CODE) this.#notFun('@code.run');
 				return MsjsObject.sm(this, 'run');
 			},
-		});
+		}));
 		getInterface(TYPE_CODE).set({ pristine: true, private: true, lock: true });
 		stub(TYPE_CODE, 'fn', 'run');
 	}
 
 	// @dispatch Mesgjs message handlers
-	static #dispatchDispatch (op, mp) {
+	static #dispatchDispatch (mc, op, mp) {
 		const origCtx = this.#core1;
 
-		if (msgCtx.sr !== origCtx.rr) throw new TypeError(`@d(${op}) on mismatched dispatch`);
-		msgCtx.ht = TYPE_DISP;
-		msgCtx.code = undefined;
+		if (mc.sr !== origCtx.rr) throw new TypeError(`@d(${op}) on mismatched dispatch`);
+		mc.ht = TYPE_DISP;
 
 		switch (op) {
 		// Original message-context getters1G
 		case 'smi': case 'sr': case 'st':
 		case 'mop': case 'dop': case 'hop': case 'ht':
 		case 'orr': case 'rr': case 'rt':
-			msgCtx.value = origCtx[op];
+			mc.value = origCtx[op];
 			return true;
 		case 'redis': // Redispatch
 		{
-			msgCtx.value = undefined;
-			if (mp.has('else')) msgCtx.elseExpr = mp.at('else'); // Redis else has priority over list-op
-			else if (!msgCtx.hasElse) msgCtx.elseExpr = undefined;
-			msgCtx.hasElse = true;
+			if (mp.has('else')) mc.elseExpr = mp.at('else'); // Redis else has priority over list-op
+			mc.hasElse = true;
 			if (origCtx.rr.#dispatch) return false; // Take "else" path for custom-dispatch objects
 
 			// Determine a starting interface type
@@ -664,28 +643,28 @@ export class MsjsObject {
 			const rdop = mp.at('op', hop);
 			const next = (type === ht && rdop === hop) || (reqType === '@next');
 
-			if (!getHandler(type, rdop, next, isInit)) return false;
+			if (!getHandler(mc, type, rdop, next, isInit)) return false;
 			// Don't allow switch to @default if not changing op
 			// (The proposed handler op must match the requested op if the
 			// requested op matches the previous handler op)
-			if (rdop === hop && msgCtx.hop !== rdop) return false;
+			if (rdop === hop && mc.hop !== rdop) return false;
 
 			// Determine the redis message params
 			const rdmp = mp.at('params', origCtx.mp);
 
 			// Reset message context for redispatch
 			// Send as if from original sender
-			msgCtx.sr = origCtx.sr;
-			msgCtx.st = origCtx.st;
-			msgCtx.smi = origCtx.smi;
+			mc.sr = origCtx.sr;
+			mc.st = origCtx.st;
+			mc.smi = origCtx.smi;
 			// Preserve original message op and receiver info
-			msgCtx.mop = origCtx.mop;
-			msgCtx.isInit = isInit;
-			if (rdmp instanceof NANOS) msgCtx.mp = rdmp;
-			else msgCtx.mp = (rdmp == null) ? new NANOS() : new NANOS(rdmp);
-			msgCtx.orr = origCtx.orr;
-			msgCtx.rr = origCtx.rr;
-			msgCtx.rt = origCtx.rt;
+			mc.mop = origCtx.mop;
+			mc.isInit = isInit;
+			if (rdmp instanceof NANOS) mc.mp = rdmp;
+			else mc.mp = (rdmp == null) ? new NANOS() : new NANOS(rdmp);
+			mc.orr = origCtx.orr;
+			mc.rr = origCtx.rr;
+			mc.rt = origCtx.rt;
 			// Keep/use dop, hop, ht, code set by getHandler
 			return true;
 		}
@@ -699,14 +678,29 @@ export class MsjsObject {
 
 	// @dispatch interface init, JS properties, and methods
 	static #dispatchInit () {
-		setProto(MsjsDispatch, 'get', {
-			dop () { return (this.#type === TYPE_DISP) ? this.#core1.dop : undefined; }, // Requested dispatch op
-			hop () { return (this.#type === TYPE_DISP) ? this.#core1.hop : undefined; }, // Dispatched handler op
-			ht () { return (this.#type === TYPE_DISP) ? this.#core1.ht : undefined; }, // Dispatched handler type
-			mop () { return (this.#type === TYPE_DISP) ? this.#core1.mop : undefined; }, // Original message op
-			mp () { return (this.#type === TYPE_DISP) ? this.#core1.mp : undefined; }, // Current message parameters
-			orr () { return (this.#type === TYPE_DISP) ? this.#core1.orr : undefined; }, // Current message parameters
-			p () { // Receiver's persistent storage (%)
+		Object.defineProperties(MsjsDispatch.prototype, Object.getOwnPropertyDescriptors({
+			b (tpl) {
+				if (this.#type !== TYPE_DISP) this.#notFun('@dispatch.b');
+
+				const code = typeof tpl === 'function' ? tpl : tpl.cd;
+				let ucid = code[UCID_SYM];
+
+				if (ucid === undefined) {
+					ucid = code[UCID_SYM] = nextUCID++;
+				}
+				this.#core2 ||= [];
+				this.#core2[ucid] ||= new MsjsCode(OBJ_KEY, TYPE_CODE, code, this);
+				return this.#core2[ucid];
+			},
+			get dop () { return (this.#type === TYPE_DISP) ? this.#core1.dop : undefined; }, // Requested dispatch op
+			get hop () { return (this.#type === TYPE_DISP) ? this.#core1.hop : undefined; }, // Dispatched handler op
+			get ht () { return (this.#type === TYPE_DISP) ? this.#core1.ht : undefined; }, // Dispatched handler type
+			get js () { return (this.#type === TYPE_DISP) ? this.#core1.rr.#js : undefined; }, // Receiver's JS state
+			set js (v) { if (this.#type === TYPE_DISP) this.#core1.rr.#js = v; },
+			get mop () { return (this.#type === TYPE_DISP) ? this.#core1.mop : undefined; }, // Original message op
+			get mp () { return (this.#type === TYPE_DISP) ? this.#core1.mp : undefined; }, // Current message parameters
+			get orr () { return (this.#type === TYPE_DISP) ? this.#core1.orr : undefined; }, // Current message parameters
+			get p () { // Receiver's persistent storage (%)
 				if (this.#type !== TYPE_DISP) return;
 
 				const rr = this.#core1.rr;
@@ -714,21 +708,23 @@ export class MsjsObject {
 				rr.#storage ||= new NANOS();
 				return rr.#storage;
 			},
-			rr () { return (this.#type === TYPE_DISP) ? this.#core1.rr : undefined; }, // Current message parameters
-			rt () { return (this.#type === TYPE_DISP) ? this.#core1.rt : undefined; }, // Current message parameters
-			smi () { return (this.#type === TYPE_DISP) ? this.#core1.smi : undefined; }, // Sending module identifier
-			sr () { return (this.#type === TYPE_DISP) ? this.#core1.sr : undefined; }, // Sender
-			st () { // Sender type
+			get rr () { return (this.#type === TYPE_DISP) ? this.#core1.rr : undefined; }, // Current message parameters
+			get rt () { return (this.#type === TYPE_DISP) ? this.#core1.rt : undefined; }, // Current message parameters
+			s: MsjsObject.sm, // Attributed send message
+			sm: MsjsObject.sm,
+			get smi () { return (this.#type === TYPE_DISP) ? this.#core1.smi : undefined; }, // Sending module identifier
+			get sr () { return (this.#type === TYPE_DISP) ? this.#core1.sr : undefined; }, // Sender
+			get st () { // Sender type
 				if (this.#type !== TYPE_DISP) return;
 				if (this.#core1.sr) this.#core1.st ||= MsjsObject.typeOf(this.#core1.sr);
 				return this.#core1.st;
 			},
-			t () { // Dispatch transient storage (#)
+			get t () { // Dispatch transient storage (#)
 				if (this.#type !== TYPE_DISP) return;
 				this._ts ||= new NANOS();
 				return this._ts;
 			},
-			x () { // Exclusive private persistent storage (%%)
+			get x () { // Exclusive private persistent storage (%%)
 				if (this.#type !== TYPE_DISP) return;
 				if (!this._xs) {
 					const ht = this.#core1.ht, rr = this.#core1.rr;
@@ -747,42 +743,21 @@ export class MsjsObject {
 				}
 				return this._xs;
 			},
-		});
-		Object.defineProperty(MsjsDispatch.prototype, 'js', {
-			get: function () { return (this.#type === TYPE_DISP) ? this.#core1.rr.#js : undefined; }, // Receiver's JS state
-			set: function (v) { if (this.#type === TYPE_DISP) this.#core1.rr.#js = v; },
-		});
-		setProto(MsjsDispatch, 'value', {
-			b (tpl) {
-				if (this.#type !== TYPE_DISP) this.#notFun('@dispatch.b');
-
-				const code = typeof tpl === 'function' ? tpl : tpl.cd;
-				let ucid = code[UCID_SYM];
-
-				if (ucid === undefined) {
-					ucid = code[UCID_SYM] = nextUCID++;
-				}
-				this.#core2 ||= [];
-				this.#core2[ucid] ||= new MsjsCode(OBJ_KEY, TYPE_CODE, code, this);
-				return this.#core2[ucid];
-			},
-			s: MsjsObject.sm, // Attributed send message
-			sm: MsjsObject.sm,
-		});
+		}));
 		getInterface(TYPE_DISP).set({ pristine: true, private: true, lock: true });
 		stub(TYPE_DISP, 'dop', 'hop', 'ht', 'js', 'mop', 'orr', 'redis', 'return', 'rr', 'rt', 'sr', 'st', 'smi');
 	}
 
-	static #functionDispatch (op, mp) {
+	static #functionDispatch (mc, op, mp) {
 		switch (op) {
 		case 'call':
-			msgCtx.code = this.#core1;
+			mc.code = this.#core1;
 			return true;
 		case 'fn':
-			msgCtx.value = new MsjsFunction(OBJ_KEY, TYPE_FUN, this.#core1, mp);
+			mc.value = new MsjsFunction(OBJ_KEY, TYPE_FUN, this.#core1, mp);
 			return true;
 		case 'jsfn':
-			msgCtx.value = this.#core2 ||= jsfnCall.bind(this);
+			mc.value = this.#core2 ||= jsfnCall.bind(this);
 			return true;
 		}
 		return false;
@@ -790,7 +765,7 @@ export class MsjsObject {
 
 	// @function interface init, JS methods, and properties
 	static #functionInit () {
-		setProto(MsjsFunction, 'value', {
+		Object.defineProperties(MsjsFunction.prototype, Object.getOwnPropertyDescriptors({
 			call (...mp) {
 				if (this.#type !== TYPE_FUN) this.#notFun('@function.call');
 				return MsjsObject.sm(this, 'call', mp.length ? new NANOS([...mp]) : new NANOS());
@@ -804,7 +779,7 @@ export class MsjsObject {
 				this.#core2 ||= jsfnCall.bind(this);
 				return this.#core2;
 			},
-		});
+		}));
 		getInterface(TYPE_FUN).set({ pristine: true, private: true, lock: true });
 		stub(TYPE_FUN, 'call', 'fn', 'jsfn');
 	}
@@ -819,27 +794,26 @@ export class MsjsObject {
 		// Don't allow behavior or interface properties to change once an in1Gstance exists
 		ix.locked = true;
 
-		const rr = new MsjsObject(OBJ_KEY, type);
+		const rr = ix.protoClass ? new ix.protoClass(OBJ_KEY, type) : new MsjsObject(OBJ_KEY, type);
+		const mc = new MsgCtx();
 
 		if (ix.singleton) ix.instance = rr;
 
 		// Send @init message if the instance has a code handler for it
-		if (getHandler(type, '@init', false, true) && msgCtx.code) {
+		if (getHandler(mc, type, '@init', false, true) && mc.code) {
+			const initDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP, mc);
+
 			if (sr && key === OBJ_KEY) {
-				msgCtx.sr = sr;
-				msgCtx.st = st;
-			} else msgCtx.sr = msgCtx.st = undefined;
-			msgCtx.smi = undefined;
-			msgCtx.mop = '@init';
-			msgCtx.isInit = true;
+				mc.sr = sr;
+				mc.st = st;
+			}
+			mc.mop = '@init';
+			mc.isInit = true;
 			if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
-			msgCtx.mp = mp;
-			msgCtx.orr = msgCtx.rr = rr;
-			msgCtx.rt = type;
-
-			const initDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP);
-
-			msgCtx.code(initDisp);
+			mc.mp = mp;
+			mc.orr = mc.rr = rr;
+			mc.rt = type;
+			mc.code(initDisp);
 		}
 		return rr;
 	}
@@ -856,17 +830,17 @@ export class MsjsObject {
 		MsjsObject.#moduleInit();
 	}
 
-	static #interfaceDispatch (op, mp) {
+	static #interfaceDispatch (mc, op, mp) {
 		switch (op) {
 		case 'instance':
-			msgCtx.value = MsjsObject.getInstance(this.#core1, mp, OBJ_KEY, msgCtx.sr, msgCtx.st);
+			mc.value = MsjsObject.getInstance(this.#core1, mp, OBJ_KEY, mc.sr, mc.st);
 			return true;
 		case 'name':
-			msgCtx.value = this.#core1;
+			mc.value = this.#core1;
 			return true;
 		case 'set':
 			MsjsObject.#setInterface(this.#core1, mp, this.#core2);
-			msgCtx.value = this;
+			mc.value = this;
 			return true;
 		}
 		return false;
@@ -874,10 +848,8 @@ export class MsjsObject {
 
 	// @interface interface init, JS methods, and properties
 	static #interfaceInit () {
-		setProto(MsjsInterface, 'get', {
-			ifName () { return this.#core1; },
-		});
-		setProto(MsjsInterface, 'value', {
+		Object.defineProperties(MsjsInterface.prototype, Object.getOwnPropertyDescriptors({
+			get ifName () { return this.#core1; },
 			instance (mp) {
 				if (this.#type !== TYPE_IF) this.#notFun('@interface.instance');
 				return MsjsObject.getInstance(this.#core1, mp, OBJ_KEY);
@@ -887,7 +859,7 @@ export class MsjsObject {
 				MsjsObject.#setInterface(this.#core1, mp, this.#core2);
 				return this;
 			},
-		});
+		}));
 		getInterface(TYPE_IF).set({ pristine: true, private: true, lock: true });
 		stub(TYPE_IF, 'instance', 'name', 'set');
 	}
@@ -976,6 +948,15 @@ export class MsjsObject {
 			}
 		}
 
+		if (typeof mp.proto === 'object') {
+			const protoClass = class extends MsjsObject {};
+			const props = Object.getOwnPropertyDescriptors(mp.proto);
+			delete props.constructor;
+			props.name = { value: 'M-' + name };
+			Object.defineProperties(protoClass, props);
+			ix.protoClass = protoClass;
+		}
+
 		if (mp.abstract) ix.abstract = true;
 		if (mp.final) ix.final = true;
 		if (mp.lock) ix.locked = true;
@@ -998,9 +979,8 @@ export class MsjsObject {
 		const sr = isDispatch ? this.#core1.rr : undefined;
 		const st = isDispatch ? this.#core1.rt : undefined;
 		const orr = rr;
-		const mc = msgCtx;
-		let rt, dispatchable = false;
-		let hasElse = false, elseExpr, smi;
+		const mc = new MsgCtx();
+		let rt;
 
 		try { rt = rr.#type; } catch (_) { /* */ }
 		if (!rt) { // Not a native receiver
@@ -1012,10 +992,10 @@ export class MsjsObject {
 		if (mop instanceof NANOS) mop = mop.storage;
 		if (typeof mop === 'object') { // List-op message
 			if (Object.hasOwn(mop, 'else')) {
-				hasElse = true;
-				elseExpr = mop.else;
+				mc.hasElse = true;
+				mc.elseExpr = mop.else;
 			}
-			if (Object.hasOwn(mop, 'mid')) smi = modMidToName.get(mop.mid);
+			if (Object.hasOwn(mop, 'mid')) mc.smi = modMidToName.get(mop.mid);
 			if (Object.hasOwn(mop, 'params')) mp = mop.params;
 			if (Object.hasOwn(mop, 'op')) mop = mop.op;
 			else mop = mop[0];
@@ -1027,81 +1007,63 @@ export class MsjsObject {
 		default:
 			throw new TypeError('Invalid message operation');
 		}
-		mc.hasElse = hasElse;
-		mc.elseExpr = elseExpr;
 
 		const codeRun = rt === TYPE_CODE && mop === 'run';
+		const trace = debugSettings.dispatch || debugSettings.stack;
+		let dispatchable = codeRun;
 
-		if (codeRun) {
-			const cc = rr.#core2; // @code's defining context
-
-			mc.sr = cc.sr;
-			mc.st = cc.st;
-			mc.smi = cc.smi;
-			mc.mop = cc.mop;
-			mc.isInit = false;
-			mc.mp = cc.mp;
-			mc.orr = cc.orr;
-			mc.rr = cc.rr;
-			mc.rt = cc.rt;
-			mc.code = rr.#core1; // @code's code
-			mc.value = undefined;
-			dispatchable = true;
-		} else if (rt) { // Supported receiver; pursue dispatch
-			// Set up default message context
-			mc.sr = sr;
-			mc.st = st;
-			mc.smi = smi;
+		// Receiver is support if rt is defined.
+		// Set up message context unless using @code's defining context
+		// (or if the (run) context is needed for tracing).
+		if (rt && (!codeRun || trace)) {
+			if (sr) {
+				mc.sr = sr;
+				mc.st = st;
+			}
 			mc.mop = mc.dop = mc.hop = mop;
 			mc.isInit = false;
-			if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
-			mc.mp = mp;
+			if (!codeRun) {
+				if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
+				mc.mp = mp;
+			}
 			mc.orr = orr;
 			mc.rr = rr;
 			mc.rt = mc.ht = rt;
-			mc.code = mc.value = undefined;
 
 			// Attempt custom or standard dispatch according to type.
 			// Caller will trampoline to keep the stack compact if the dispatch resolves to code.
-			dispatchable = rr.#dispatch ? rr.#dispatch(mop, mp) : getHandler(rt, mop);
+			if (!codeRun) dispatchable = rr.#dispatch ? rr.#dispatch(mc, mop, mp) : getHandler(mc, rt, mop);
 		}
 
 		if (!dispatchable) {
 			// Not dispatchable; use else or throw
-			if (msgCtx.hasElse) return MsjsObject.runIfCode(msgCtx.elseExpr);
+			if (mc.hasElse) return MsjsObject.runIfCode(mc.elseExpr);
 			if (!rt) throw new TypeError('Unsupported receiver');
 			if (debugSettings.dispatch) console.log(`[Mesgjs dispatch] @u => ${rt}(${op}) [NO HANDLER]${fmtDispSrc(debugSettings.dispatchSource)}`);
-			throw new TypeError(`No Mesgjs handler found for ${rt}(${msgCtx.mop})`)
+			throw new TypeError(`No Mesgjs handler found for ${rt}(${mc.mop})`)
 		}
-		if (!msgCtx.code) return msgCtx.value; // No code -> return value (without tracing)
+		if (!codeRun && !mc.code) return mc.value; // No code -> return value (without tracing)
 
-		// Create dispatch object and execute selected handler
-		const dispObj = codeRun ? rr.#core2 : new MsjsDispatch(OBJ_KEY, TYPE_DISP);
-		const trace = debugSettings.dispatch || debugSettings.stack;
-		const traceObj = trace && (codeRun ? new MsjsDispatch(OBJ_KEY, TYPE_DISP, {
-			sr: undefined, st: undefined, smi: undefined,
-			mop: 'run', hasElse: false, elseExpr: undefined, isInit: false, mp: undefined,
-			orr: undefined, rr: undefined, rt: TYPE_CODE,
-			dop: 'run', hop: 'run', ht: TYPE_CODE, code: undefined, value: undefined,
-		}) : dispObj);
+		// Create dispatch object (except for untraced run) and execute selected handler
+		const dispObj = (!codeRun || trace) ? new MsjsDispatch(OBJ_KEY, TYPE_DISP, mc) : undefined;
 
 		try {
-			if (trace) traceObj.#traceDispatch(0);
+			if (trace) dispObj.#traceDispatch(0);
 
-			const result = msgCtx.code(dispObj);
+			const result = codeRun ? rr.#core1(rr.#core2) : mc.code(dispObj);
 
-			if (trace) traceObj.#traceDispatch(1, result);
+			if (trace) dispObj.#traceDispatch(1, result);
 			return result;
 		}
 		catch (e) {
-			if (trace) traceObj.#traceDispatch(2, e);
-			if (e instanceof MsjsFlow && !codeRun && dispObj.capture) {
+			if (trace) dispObj.#traceDispatch(2, e);
+			if (e instanceof MsjsFlow && dispObj?.capture) {
 				return dispObj.result;
 			}
 			throw e;
 		}
 		finally {
-			if (trace) traceObj.#traceDispatch(3);
+			if (trace) dispObj.#traceDispatch(3);
 		}
 	}
 
@@ -1291,20 +1253,6 @@ export function setModMeta (meta) {
 	loaded.allSettled(loadPros);
 }
 
-/**
- * An Object.defineProperty wrapper to faciliate setting class prototype properties
- * @param {function} cls - The class of the prototype to set
- * @param {'get'|'value'} type - The property type
- * @param {object} props - { name: value } descriptors
- */
-function setProto (cls, type, props) {
-	const proto = cls.prototype;
-
-	for (const [name, value] of Object.entries(props)) {
-		Object.defineProperty(proto, name, { [type]: value });
-	}
-}
-
 /*
  * Set a read-only object property or properties
  * setRO(obj, key, value, enumerable = true)
@@ -1368,9 +1316,10 @@ export function typeAccepts (type, op) {
 		return ((ix && !ix.private) ? [...Object.keys(ix.handlers)] : undefined);
 	}
 
-	const found = getHandler(type, op);
+	const mc = new MsgCtx();
+	const found = getHandler(mc, type, op);
 
-	if (found) return [ msgCtx.ht, msgCtx.hop === '@default' ? 'default': 'specific' ];
+	if (found) return [ mc.ht, mc.hop === '@default' ? 'default': 'specific' ];
 }
 
 // Return whether the flat-chain for type 1 includes type 2.

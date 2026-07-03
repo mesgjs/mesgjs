@@ -5,25 +5,25 @@ import {
 import "../../src/runtime/mesgjs.esm.js";
 
 Deno.test("@true and @false Interfaces", async (t) => {
-	const { $toMsjs } = globalThis;
+	const { $msjsReceiver } = globalThis;
 	const { getInstance } = globalThis.$c;
-	const mt = $toMsjs(true);
-	const mf = $toMsjs(false);
+	const mt = $msjsReceiver(true);
+	const mf = $msjsReceiver(false);
 
 	await t.step("consistent intances", () => {
 		assertStrictEquals(mt, getInstance('@true'));
 		assertStrictEquals(mf, getInstance('@false'));
-		assertStrictEquals(mt, $toMsjs(true));
-		assertStrictEquals(mf, $toMsjs(false));
+		assertStrictEquals(mt, $msjsReceiver(true));
+		assertStrictEquals(mf, $msjsReceiver(false));
 	});
 
 	await t.step("should support (valueOf) message", () => {
-		assertEquals(mt("valueOf"), true);
-		assertEquals(mf("valueOf"), false);
+		assertEquals($c.sm(mt, "valueOf"), true);
+		assertEquals($c.sm(mf, "valueOf"), false);
 	});
 
 	await t.step("should support (toString) message", () => {
-		assertEquals(mt("toString"), "@t");
-		assertEquals(mf("toString"), "@f");
+		assertEquals($c.sm(mt, "toString"), "@t");
+		assertEquals($c.sm(mf, "toString"), "@f");
 	});
 });
