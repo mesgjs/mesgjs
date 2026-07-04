@@ -32,6 +32,10 @@ The sub-class definitions themselves are minimal, literally e.g. `class MsjsCode
 
 User interfaces can use this ultra-efficient prototype approach (minus privileged internal behaviors, of course) via an optional new `proto` setting during interface configuration. When supplied, it gets applied via the instantiation of an anonymous sub-class created by the runtime.
 
+### `@c` / `$c`
+
+The Mesgjs `@c` / JS `$c` `@core` singleton is, of course, a Mesgjs object. This means that it too is now a `MsjsObject` instance (user-type, not internal interface), **not a receiver function** (and as such, tests with `$c(operation)` *will no longer work* and **MUST** be rewritten to use `$c.sm($c, ...)` or `d.s($c, ...)` to receive messages).
+
 ## V4 Messaging API
 
 With Mesgjs objects no longer being functions taking an a message operation and parameters, all messages are sent using `MsjsObject.sm(receiver, operation, parameters)`. This is both a static (class) method and an instance method.
@@ -70,7 +74,7 @@ function $toMsjs (rr) {
 This allows some basic-functionality tests to continue to work as before, e.g.:
 ```javascript
 const mo = $toMsjs(',');
-const result = mo('joining', ['a', 'b', 'c'])); // a,b,c
+const result = mo('joining', ['a', 'b', 'c']); // a,b,c
 ```
 but it behaves something like a *form of promise* (based on a fleeting future value), and doesn't work for e.g. instance equality comparisons:
 ```javascript
