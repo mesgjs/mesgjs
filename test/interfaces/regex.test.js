@@ -7,12 +7,7 @@ import {
 
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
-
-const mod = $modScope();
-
-function getCode (fn) {
-	return mod.d.b(fn);
-}
+import { codeBlock } from "../harness.esm.js";
 
 Deno.test("@regex Interface", async (t) => {
 	const mString = $toMsjs("hello world");
@@ -66,7 +61,7 @@ Deno.test("@regex Interface", async (t) => {
 			["test2", "e", "st2", "2"],
 		];
 		let i = 0;
-		const each = getCode(() => {
+		const each = codeBlock(() => {
 			const match = $c.sm(rem, "match");
 			assert(match?.size >= 4);
 			assertEquals(match?.at(0), expected[i][0]);
@@ -78,7 +73,7 @@ Deno.test("@regex Interface", async (t) => {
 		$c.sm(rem, "matchAll", ls([, re, , str, "each", each]));
 		assertEquals(i, 2);
 
-		const elseBlock = getCode(() => assert(true));
+		const elseBlock = codeBlock(() => assert(true));
 		$c.sm(rem, 'matchAll', ls([, /a/g, , 'b', 'else', elseBlock]));
 	});
 });

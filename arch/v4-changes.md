@@ -52,6 +52,8 @@ Singleton receivers can be used for many JavaScript types, including arrays, pla
 
 While an `@dispatch` object is still created for each message, the allocation-and-release overhead for typically short-lifespan objects is significantly reduced when boxing JavaScript values.
 
+> Note: In a few cases, the architectural shift may dictate a split of existing interfaces. An example of this is the `@regex` interface, which has been split into `@regex` (now a singleton receiver) and `@rematch` (this subset of the original functionality remains a multi-instance interface used to handle regex `matchAll` `each`-block iterations in order to continue to function similarly to the `@loop` and `@kvIter` interfaces).
+
 ## `$toMsjs` And `$msjsReceiver`
 
 The `$toMsjs` helper is now deprecated and should no longer be used in new code.
@@ -65,7 +67,16 @@ function $toMsjs (rr) {
 }
 ```
 
-This allows some basic functionality tests to continue to work as before (e.g. `const mo = $toMsjs(','); const result = mo('joining', ['a', 'b', 'c'])); /* a,b,c */`), but it behaves something like a *form of promise* (based on a fleeting future value), and doesn't work for e.g. instance equality comparisons (`const a = []; $toMsjs(a) === $toMsjs(a); /* no longer true */`).
+This allows some basic-functionality tests to continue to work as before, e.g.:
+```javascript
+const mo = $toMsjs(',');
+const result = mo('joining', ['a', 'b', 'c'])); // a,b,c
+```
+but it behaves something like a *form of promise* (based on a fleeting future value), and doesn't work for e.g. instance equality comparisons:
+```javascript
+const a = [];
+const equal = $toMsjs(a) === $toMsjs(a); // no longer true
+```
 
 The new `$msjsReceiver` function replaces `$toMsjs` in the messaging pipeline. If `sm` is passed a non-Mesgjs receiver, it calls `globalThis.$msjsReceiver` to return the correct receiver (if available, potentially a singleton). The implementation is typically in `mesgjs.esm.js` (like `$toMsjs`) so that different sites can customize this function without modifying the primary runtime files (designated point of customization).
 

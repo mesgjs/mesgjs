@@ -6,12 +6,7 @@ import {
 
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
-
-const mod = $modScope();
-
-function getCode (fn) {
-	return mod.d.b(fn);
-}
+import { codeBlock } from "../harness.esm.js";
 
 Deno.test("@string Interface", async (t) => {
 	const mString = $toMsjs("hello");
@@ -71,9 +66,9 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals($toMsjs(answer3("toLower"))("=", ls([, "y", , "yes", , "yup", , "yeah"])), false, "Should not match 'nope'");
 
 		// Test with RIC (run-if-code) values - mocked code blocks
-		const ricHello = getCode(() => 'hello');
-		const ricWorld = getCode(() => 'world');
-		const ricHey = getCode(() => 'hey');
+		const ricHello = codeBlock(() => 'hello');
+		const ricWorld = codeBlock(() => 'world');
+		const ricHey = codeBlock(() => 'hey');
 
 		assertEquals(mString("eq", ls([, "hi", , ricHello, , ricHey])), true, "Should match RIC value that returns 'hello'");
 		assertEquals(mString("=", ls([, ricWorld, , ricHello])), true, "Should match RIC value using = operator");
@@ -100,9 +95,9 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals($toMsjs(answer2("toLower"))("!=", ls([, "n", , "no", , "nope", , "nah"])), true, "Should be true when 'maybe' doesn't match");
 
 		// Test with RIC (run-if-code) values - mocked code blocks
-		const ricHello = getCode(() => 'hello');
-		const ricWorld = getCode(() => 'world');
-		const ricHey = getCode(() => 'hey');
+		const ricHello = codeBlock(() => 'hello');
+		const ricWorld = codeBlock(() => 'world');
+		const ricHey = codeBlock(() => 'hey');
 
 		assertEquals(mString("ne", ls([, "hi", , ricHello, , ricHey])), false, "Should be false when RIC value returns 'hello'");
 		assertEquals(mString("!=", ls([, ricWorld, , ricHello])), false, "Should be false when RIC value matches using != operator");

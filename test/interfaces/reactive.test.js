@@ -26,7 +26,7 @@ Deno.test("@reactive Interface", async (t) => {
 
 	await t.step("should react to changes", async () => {
 		const r1 = newReactive(ls([, 1]));
-		const cb1 = await codeBlock(() => r1("rv") + 1);
+		const cb1 = codeBlock(() => r1("rv") + 1);
 		const r2 = newReactive(ls([ "def", cb1 ]));
 
 		assertEquals(r2("rv"), 2);
@@ -38,7 +38,7 @@ Deno.test("@reactive Interface", async (t) => {
 		const r1 = newReactive(ls([, 1]));
 		const r2 = newReactive(ls([, 10]));
 		let runCount = 0;
-		const cb1 = await codeBlock(() => {
+		const cb1 = codeBlock(() => {
 			runCount++;
 			return r1("rv") + r2("rv");
 		});
@@ -47,7 +47,7 @@ Deno.test("@reactive Interface", async (t) => {
 		assertEquals(r3("rv"), 11);
 		assertEquals(runCount, 1);
 
-		const cb2 = await codeBlock(() => {
+		const cb2 = codeBlock(() => {
 			r1("set", ls(["v", 2]));
 			r2("set", ls(["v", 20]));
 		});
@@ -60,8 +60,8 @@ Deno.test("@reactive Interface", async (t) => {
 
 	await t.step("(untr) should prevent tracking", async () => {
 		const r1 = newReactive(ls([, 1]));
-		const cb1 = await codeBlock(() => r1('rv') + 1);
-		const cb2 = await codeBlock(() => r1('untr', ls([, cb1])));
+		const cb1 = codeBlock(() => r1('rv') + 1);
+		const cb2 = codeBlock(() => r1('untr', ls([, cb1])));
 		const r2 = newReactive(ls(['def', cb2]));
 
 		assertEquals(r2('rv'), 2);

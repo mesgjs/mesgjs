@@ -3,12 +3,7 @@ import {
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
-
-const mod = $modScope();
-
-function getCode (fn) {
-	return mod.d.b(fn);
-}
+import { codeBlock } from "../harness.esm.js";
 
 Deno.test("@loop Interface", async (t) => {
 	const { $c } = globalThis;
@@ -17,7 +12,7 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(run) should execute a block a fixed number of times", () => {
 		const loop = getInstance("@loop");
 		let executionCount = 0;
-		const block = getCode(() => executionCount++);
+		const block = codeBlock(() => executionCount++);
 
 		$c.sm(loop, "run", ls([,block, "times", 3]));
 
@@ -27,7 +22,7 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(run) should expose correct state during iteration", () => {
 		const loop = getInstance("@loop");
 		const results = [];
-		const block = getCode(() => {
+		const block = codeBlock(() => {
 			results.push({
 				num: $c.sm(loop, "num"),
 				num1: $c.sm(loop, "num1"),
@@ -48,7 +43,7 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(run collect=@t) should collect results", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const block = getCode(() => ++i);
+		const block = codeBlock(() => ++i);
 		const collected = $c.sm(loop, "run", ls([,block, "times", 3, "collect", true]));
 
 		assertEquals(collected.at(0), 1);
@@ -59,7 +54,7 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(stop) should terminate a (run) loop early", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const block = getCode(() => {
+		const block = codeBlock(() => {
 			i++;
 			if (i === 2) $c.sm(loop, "stop");
 		});
@@ -70,7 +65,7 @@ Deno.test("@loop Interface", async (t) => {
 
 	await t.step("(next result) should alter the (run) return value", () => {
 		const loop = getInstance("@loop");
-		const block = getCode(() => {
+		const block = codeBlock(() => {
 			if ($c.sm(loop, "num") === 1) $c.sm(loop, "next", ls(["result", "changed"]));
 			return $c.sm(loop, "num");
 		});
@@ -84,7 +79,7 @@ Deno.test("@loop Interface", async (t) => {
 
 	await t.step("(stop result) should set the final (run) return value", () => {
 		const loop = getInstance("@loop");
-		const block = getCode(() => {
+		const block = codeBlock(() => {
 			if ($c.sm(loop, "num") === 1) $c.sm(loop, "stop", ls(["result", "stopped here"]));
 			return $c.sm(loop, "num");
 		});
@@ -95,7 +90,7 @@ Deno.test("@loop Interface", async (t) => {
 
 	await t.step("(stop result) should add to collected (run) results", () => {
 		const loop = getInstance("@loop");
-		const block = getCode(() => {
+		const block = codeBlock(() => {
 			if ($c.sm(loop, "num") === 1) $c.sm(loop, "stop", ls(["result", "stopped here"]));
 			return $c.sm(loop, "num");
 		});
@@ -109,8 +104,8 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(while) should loop based on a post-condition", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const mainBlock = getCode(() => i++);
-		const postTest = getCode(() => i < 3);
+		const mainBlock = codeBlock(() => i++);
+		const postTest = codeBlock(() => i < 3);
 
 		$c.sm(loop, "while", ls([, mainBlock, "post", postTest]));
 		assertEquals(i, 3);
@@ -119,8 +114,8 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(while) should stop based on a pre-condition", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const mainBlock = getCode(() => i++);
-		const preTest = getCode(() => i < 2);
+		const mainBlock = codeBlock(() => i++);
+		const preTest = codeBlock(() => i < 2);
 
 		$c.sm(loop, "while", ls([, mainBlock, "pre", preTest]));
 		assertEquals(i, 2);
@@ -130,9 +125,9 @@ Deno.test("@loop Interface", async (t) => {
 		const loop = getInstance("@loop");
 		let i = 0;
 		let extraRan = 0;
-		const mainBlock = getCode(() => i++);
-		const midTest = getCode(() => i < 4);
-		const extraBlock = getCode(() => extraRan++);
+		const mainBlock = codeBlock(() => i++);
+		const midTest = codeBlock(() => i < 4);
+		const extraBlock = codeBlock(() => extraRan++);
 
 		$c.sm(loop, "while", ls([, mainBlock, "mid", midTest, , extraBlock]));
 		assertEquals(i, 4);
@@ -142,11 +137,11 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(stop) should terminate a (while) loop early", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const mainBlock = getCode(() => {
+		const mainBlock = codeBlock(() => {
 			i++;
 			if (i === 3) $c.sm(loop, "stop");
 		});
-		const postTest = getCode(() => i < 10);
+		const postTest = codeBlock(() => i < 10);
 
 		$c.sm(loop, "while", ls([, mainBlock, "post", postTest]));
 		assertEquals(i, 3);
@@ -155,12 +150,12 @@ Deno.test("@loop Interface", async (t) => {
 	await t.step("(stop result) should work in a (while) main block", () => {
 		const loop = getInstance("@loop");
 		let i = 0;
-		const mainBlock = getCode(() => {
+		const mainBlock = codeBlock(() => {
 			i++;
 			if (i === 2) $c.sm(loop, "stop", ls(["result", "stopped in main"]));
 			return i;
 		});
-		const postTest = getCode(() => i < 5);
+		const postTest = codeBlock(() => i < 5);
 
 		const result = $c.sm(loop, "while", ls([, mainBlock, "post", postTest]));
 		assertEquals(result, "stopped in main");
