@@ -101,8 +101,8 @@ function getKVI (obj) {
 		obj = unifiedList(obj);
 		if (typeof obj?.keys === 'function') {
 			keys = obj.keys();
-			if (keys instanceof Array) keys = keys.values();
-		} else if (obj?.keys instanceof Array) keys = obj.keys.values();
+			if (Array.isArray(keys)) keys = keys.values();
+		} else if (Array.isArray(obj?.keys)) keys = obj.keys.values();
 		if (typeof obj?.at === 'function') get = (key) => obj.at(key);
 		else if (typeof obj?.get === 'function') get = (key) => obj.get(key);
 		else get = (key) => obj[key];

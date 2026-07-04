@@ -15,7 +15,9 @@ function perform (d, opf, def = 0) {
 }
 
 function toNum (v, def) {
-	if (v instanceof MsjsObject && typeAccepts(v.msjsType, 'toNumber')) v = $c.sm(v, 'toNumber');
+	const mt = v?.msjsType;
+
+	if (mt && typeAccepts(mt, 'toNumber')) v = $c.sm(v, 'toNumber');
 
 	const jsType = typeof v;
 

@@ -62,7 +62,7 @@ export function install (name) {
 		lock: true, pristine: true, singleton: true,
 		handlers: {
 			'@eq': (d) => d.orr === d.mp.at(0),
-			'@jsv': (d) => (d.orr instanceof MsjsObject) ? new Verifiable() : d.orr,
+			'@jsv': (d) => d.orr?.msjsType ? new Verifiable() : d.orr,
 			'@': opAt,
 			'=': opSet,
 			'==': opNset,

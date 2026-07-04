@@ -4,7 +4,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, MsjsFunction, runIfCode, setRO, typeAccepts } from './runtime.esm.js';
+import { getInstance, getInterface, runIfCode, setRO, typeAccepts } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
 // (eq value ...)
@@ -56,7 +56,7 @@ function opJoining (d) {
 
 function opReplace (d, all = false) {
 	const pat = d.mp.at(0, '');
-	const rawRep = d.mp.at(1, ''), rep = (rawRep instanceof MsjsFunction) ? replWrapper.bind({ msjsfn: rawRep }) : rawRep;
+	const rawRep = d.mp.at(1, ''), rep = (rawRep?.msjsType === '@function') ? replWrapper.bind({ msjsfn: rawRep }) : rawRep;
 
 	return (all ? d.orr.replaceAll(pat, rep) : d.orr.replace(pat, rep));
 }

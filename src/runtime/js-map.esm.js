@@ -45,7 +45,7 @@ export function install (name) {
 		lock: true, pristine: true, singleton: true,
 		handlers: {
 			'@eq': (d) => d.orr === d.mp.at(0),
-			'@jsv': (d) => (d.orr instanceof MsjsObject) ? new Map() : d.orr,
+			'@jsv': (d) => d.orr?.msjsType ? new Map() : d.orr,
 			'@': opAt,
 			'=': opSet,
 			at: opAt,

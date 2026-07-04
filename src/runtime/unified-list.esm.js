@@ -12,8 +12,7 @@
 import { NANOS, isIndex, isNegIndex } from '@nanos';
 
 export const isPlainObject = (obj) => {
-	const type = typeof obj, consName = obj?.constructor?.name;
-	return (type === 'object' && obj !== null && (consName === undefined || consName === 'Object'));
+	return typeof obj === 'object' && obj !== null && (obj.constructor?.name ?? 'Object') === 'Object';
 };
 
 /**
@@ -30,9 +29,9 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 		if (obj?.msjsType && obj.jsv) obj = obj.jsv;
 		if (opts.wrap) key = wrapKey(obj, key);
 		if (!uniHas(obj, key)) return defFn();
-		if (obj instanceof NANOS) obj = obj.at(key, { raw: opts.raw });
+		if (Array.isArray(obj) || isPlainObject(obj)) obj = obj[key];
+		else if (obj instanceof NANOS) obj = obj.at(key, { raw: opts.raw });
 		else if (obj instanceof Map) obj = obj.get(key);
-		else if (obj instanceof Array || isPlainObject(obj)) obj = obj[key];
 		else if (obj instanceof Set) obj = true;
 		else return defFn();
 	}
@@ -42,16 +41,19 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 // Does the object have the specified key?
 export const uniHas = (obj, key) => {
 	if (obj?.msjsType && obj.jsv) obj = obj.jsv;
+	if (Array.isArray(obj)) return key in obj;
+	if (typeof obj === 'object' && (obj.constructor?.name ?? 'Object') === 'Object') return key in obj;
 	if (obj instanceof NANOS || obj instanceof Map || obj instanceof Set) return obj.has(key);
-	if (obj instanceof Array || isPlainObject(obj)) return key in obj;
 	// Unknown/undefined for unsupported types
 };
 
 // Return the next-index for map-ish values
 export const uniNext = (obj) => {
+	if (Array.isArray(obj)) return obj.length;
 	if (obj instanceof NANOS) return obj.next;
-	if (obj instanceof Array) return obj.length;
+
 	let keys;
+
 	if (isPlainObject(obj)) keys = Object.keys(obj);
 	else if (obj instanceof Map) keys = obj.keys();
 	if (keys) {
@@ -67,6 +69,8 @@ export const wrapKey = (obj, key) => {
 	return ((newKey >= 0) ? newKey : undefined);
 };
 
+const EMPTY_ARRAY = [];
+
 class ListProxy {
 	constructor (list) {
 		this._list = list;
@@ -80,9 +84,10 @@ class ListProxy {
 	// Iterates over all the key/value entries
 	entries () {
 		const list = this._list;
+		if (Array.isArray(list)) return Object.entries(list).values();
 		if (list instanceof NANOS || list instanceof Map || list instanceof Set) return list.entries();
-		if (list instanceof Array || isPlainObject(list)) return Object.entries(list).values();
-		return [].entries();
+		if (isPlainObject(list)) return Object.entries(list).values();
+		return EMPTY_ARRAY.entries();
 	}
 
 	// Alias for at
@@ -129,13 +134,16 @@ class ListProxy {
 	}
 }
 
-const emptyList = new ListProxy([]);
+const EMPTY_LIST = new ListProxy([]);
 
 export function unifiedList (value, promote) {
-	if (value instanceof NANOS || value instanceof ListProxy) return value;
-	if (isPlainObject(value) || value instanceof Array || value instanceof Map || value instanceof Set) return new ListProxy(value);
+	if (typeof value === 'object') {
+		if (Array.isArray(value) || (value.constructor?.name ?? 'Object') === 'Object') return new ListProxy(value);
+		if (value instanceof NANOS || value instanceof ListProxy) return value;
+		if (value instanceof Map || value instanceof Set) return new ListProxy(value);
+	}
 	if (!promote) return value;
-	if (value === undefined) return emptyList;
+	if (value === undefined) return EMPTY_LIST;
 	return new ListProxy([ value ]);
 }
 

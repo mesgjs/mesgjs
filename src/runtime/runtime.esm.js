@@ -442,7 +442,9 @@ export async function loadModule (module) {
  * Helper to show types in place of values during dispatch/stack traces
  */
 export function loggedType (v) {
-	if (v instanceof MsjsObject) return 'M.' + v.msjsType;
+	const mt = v?.msjsType;
+
+	if (mt) return 'M.' + mt;
 
 	const jt = typeof v;
 
@@ -880,11 +882,11 @@ export class MsjsObject {
 	}
 
 	static runIfCode (v) {
-		return (v instanceof MsjsCode && v.#type === TYPE_CODE) ? MsjsObject.sm(v, 'run') : v;
+		return (v?.msjsType === TYPE_CODE) ? MsjsObject.sm(v, 'run') : v;
 	}
 
 	static runWhileCode (v) {
-		while (v instanceof MsjsCode && v.#type === TYPE_CODE) v = MsjsObject.sm(v, 'run');
+		while (v?.msjsType === TYPE_CODE) v = MsjsObject.sm(v, 'run');
 		return v;
 	}
 
@@ -934,7 +936,7 @@ export class MsjsObject {
 		const handlers = ix.handlers, addHandlers = mp.handlers || {};
 
 		for (const [op, handler] of (addHandlers instanceof NANOS) ? addHandlers.entries() : Object.entries(addHandlers)) {
-			if (handler instanceof MsjsCode && handler.#type === TYPE_CODE) handlers[op] = handler.#core1;
+			if (typeof handler === 'object' && handler !== null && #type in handler && handler.#type === TYPE_CODE) handlers[op] = handler.#core1;
 			else if (typeof handler === 'function') handlers[op] = handler;
 			else if (handler === false) handlers[op] = false;
 		}
@@ -977,17 +979,16 @@ export class MsjsObject {
 	 * @returns {*} - The response to the message
 	 */
 	static sm (rr, mop, mp) {
-		const isDispatch = this instanceof MsjsDispatch && this.#type === TYPE_DISP;
+		const isDispatch = typeof this === 'object' && this !== null && #type in this && this.#type === TYPE_DISP;
 		const sr = isDispatch ? this.#core1.rr : undefined;
 		const st = isDispatch ? this.#core1.rt : undefined;
 		const orr = rr;
 		const mc = new MsgCtx();
-		let rt;
+		let rt = typeof rr === 'object' && rr !== null && #type in rr && rr.#type;
 
-		try { rt = rr.#type; } catch (_) { /* */ }
 		if (!rt) { // Not a native receiver
 			rr = gt.$msjsReceiver(rr);
-			if (rr) try { rt = rr.#type; } catch (_) { /* */ }
+			rt = typeof rr === 'object' && rr !== null && #type in rr && rr.#type;
 		}
 
 		// Canonicalize message parameters
@@ -1060,7 +1061,7 @@ export class MsjsObject {
 		}
 		catch (e) {
 			if (trace) dispObj.#traceDispatch(2, e);
-			if (e instanceof MsjsFlow && dispObj?.capture) {
+			if (dispObj?.capture && e instanceof MsjsFlow) {
 				return dispObj.result;
 			}
 			throw e;
@@ -1111,7 +1112,7 @@ export class MsjsObject {
 	}
 
 	static typeOf (obj) {
-		try { return obj.#type; } catch (_) { /* */ }
+		return (typeof obj === 'object' && obj !== null && #type in obj) ? obj.#type : undefined;
 	}
 }
 

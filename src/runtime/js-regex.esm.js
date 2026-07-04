@@ -5,7 +5,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, MsjsCode, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, setRO, throwFlow } from './runtime.esm.js';
 
 const listize = (res) => res && new NANOS(res, { groups: res.groups && new NANOS(res.groups) });
 
@@ -14,6 +14,7 @@ function opMatchAll (d) {
 	const { mp, rr } = d;
 	const regex = mp.at(0), string = mp.at(1, '');
 	const each = mp.at('each'), ls = mp.at('else'), collect = mp.at('collect');
+	const eachIsCode = each?.msjsType === '@code';
 
 	if (!(regex instanceof RegExp)) throw new TypeError('Missing regular expression parameter');
 	rr.capture = false;
@@ -28,7 +29,7 @@ function opMatchAll (d) {
 	try {
 		for (const match of string.matchAll(regex)) {
 			++rr.num;					// 0-based match number
-			if (each instanceof MsjsCode) {
+			if (eachIsCode) {
 				rr.match = listize(match);
 				try { save($c.sm(each, 'run')); }
 				catch (ex) {
@@ -42,7 +43,7 @@ function opMatchAll (d) {
 				}
 			}
 		}
-		if (rr.num < 0 && ls instanceof MsjsCode) {
+		if (rr.num < 0 && ls?.msjsType === '@code') {
 			try { save($c.sm(ls, 'run')); }
 			catch (ex) {
 				if (!rr.capture) throw ex;

@@ -143,7 +143,7 @@ export function install (name) {
 		lock: true, pristine: true, singleton: true,
 		handlers: {
 			'@eq': (d) => d.orr === d.mp.at(0),
-			'@jsv': (d) => (d.orr instanceof MsjsObject) ? new NANOS() : d.orr,
+			'@jsv': (d) => d.orr?.msjsType ? new NANOS() : d.orr,
 			'@': opAt,
 			'==': opNset,
 			'>': (d) => d.orr.pop(),

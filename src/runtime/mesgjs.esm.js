@@ -25,9 +25,9 @@ import { install as installTimestamp } from './msjs-timestamp.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './js-undefined.esm.js';
 
-import { getInstance, initialize, MsjsObject, setModMeta, setRO } from './runtime.esm.js';
+import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
-import { isPlainObject } from './unified-list.esm.js';
+import { reactive } from '@reactive';
 
 // The minimum "main program":
 // import { setModMeta } from '.../mesgjs.esm.js';
@@ -88,6 +88,7 @@ let mapBox;
 let nullBox;
 let numberBox;
 let objectBox;
+let reactiveBox;
 let regExpBox;
 let setBox;
 let stringBox;
@@ -114,6 +115,7 @@ function msjsReceiver (jsv) {
 		falseBox = getInstance('@false');
 		nullBox = getInstance('@null');
 		numberBox = getInstance('@number');
+		reactiveBox = getInstance('@reactive');
 		stringBox = getInstance('@string');
 		trueBox = getInstance('@true');
 		undefBox = getInstance('@undefined');
@@ -125,14 +127,22 @@ function msjsReceiver (jsv) {
 	case 'number':
 		return numberBox;
 	case 'object':
-		if (jsv instanceof MsjsObject) return jsv;
 		if (jsv === null) return nullBox;
+		if (jsv.msjsType) return jsv;
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
 			if (jsv[convertSym]) instance = jsv[convertSym]();
-			else if (jsv instanceof Array) {
+			else if (Array.isArray(jsv)) {
 				arrayBox ||= getInstance('@jsArray');
 				instance = arrayBox;
+			}
+			else if (jsv.$reactive === reactive.type) {
+				reactiveBox ||= getInstance('@reactive');
+				instance = reactiveBox;
+			}
+			else if ((jsv.constructor?.name ?? 'Object') === 'Object') {
+				objectBox ||= getInstance('@jsObject');
+				instance = objectBox;
 			}
 			else if (jsv instanceof RegExp) {
 				regExpBox ||= getInstance('@regex');
@@ -145,10 +155,6 @@ function msjsReceiver (jsv) {
 			else if (jsv instanceof Set) {
 				setBox ||= getInstance('@set');
 				instance = setBox;
-			}
-			else if (isPlainObject(jsv)) {
-				objectBox ||= getInstance('@jsObject');
-				instance = objectBox;
 			}
 			if (instance) instances.set(jsv, instance);
 		}

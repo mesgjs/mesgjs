@@ -6,18 +6,14 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, MsjsCode, MsjsFunction, setRO } from './runtime.esm.js';
+import { getInstance, getInterface, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
-const identity = (x) => x, thrower = (x) => { throw x; };
-const callable = (f) => typeof f === 'function' || f instanceof MsjsCode || f instanceof MsjsFunction;
-const thenable = (o) => typeof o?.then === 'function';
 const privKey = Symbol();
-const dualStatus = (status) => Object.assign(new NANOS(status), status);
 
 function arrayFrom (value) {
 	// Pass arrays through as-is
-	if (value instanceof Array) {
+	if (Array.isArray(value)) {
 		return value;
 	}
 	// Flatten iterables and generators
@@ -28,6 +24,14 @@ function arrayFrom (value) {
 	if (typeof value?.values === 'function') {
 		return [...value.values()];
 	}
+}
+
+function callable (f) {
+	if (typeof f === 'function') return true;
+
+	const type = f?.msjsType;
+
+	return type === '@code' || type === '@function';
 }
 
 function callHandlers (list) {
@@ -41,10 +45,11 @@ function callHandlers (list) {
 		queueMicrotask(() => {
 			try {
 				const handler = ok ? onResolve : onReject;
+				const mt = handler?.msjsType;
 
-				if (handler instanceof MsjsCode) {
+				if (mt === '@code') {
 					next.resolve($c.sm(handler, 'run'));
-				} else if (handler instanceof MsjsFunction) {
+				} else if (mt === '@function') {
 					const mp = ok ? { state, resolve: result } : { state, reject: result, message: result?.message };
 
 					next.resolve($c.sm(handler, 'call', mp));
@@ -58,12 +63,16 @@ function callHandlers (list) {
 	}
 }
 
+function dualStatus (status) { return Object.assign(new NANOS(status), status); }
+
+function identity (x) { return x; }
+
 const proto = {
 	// Resolve all of a set of promises with an array of their results
 	all (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!(promises instanceof Array)) {
+		if (!Array.isArray(promises)) {
 			throw new TypeError('@promise(all) requires an iterable of promises');
 		}
 		const results = [];
@@ -82,7 +91,7 @@ const proto = {
 	allSettled (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!(promises instanceof Array)) {
+		if (!Array.isArray(promises)) {
 			throw new TypeError('@promise(allSettled) requires an iterable of promises');
 		}
 		const results = [];
@@ -106,7 +115,7 @@ const proto = {
 	any (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!(promises instanceof Array)) {
+		if (!Array.isArray(promises)) {
 			throw new TypeError('@promise(any) requires an iterable of promises');
 		}
 		const reasons = [];
@@ -149,7 +158,7 @@ const proto = {
 	race (promises) {
 		if (this[privKey].state !== 'pending') return;
 		promises = arrayFrom(promises);
-		if (!(promises instanceof Array)) {
+		if (!Array.isArray(promises)) {
 			throw new TypeError('@promise(race) requires an iterable of promises');
 		}
 		if (!promises.length) console.warn('@promise empty (race) will never settle!');
@@ -206,6 +215,10 @@ const proto = {
 
 };
 proto.finally = proto.always;
+
+function thenable (o) { return typeof o?.then === 'function'; }
+
+function thrower (x) { throw x; }
 
 function opInit (d) {
 	// Initialize, and make this object JS/Mesgjs "bilingual"

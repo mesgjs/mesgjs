@@ -4,7 +4,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, runIfCode, MsjsCode, setRO, throwFlow } from './runtime.esm.js';
+import { getInterface, runIfCode, setRO, throwFlow } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
 /*
@@ -61,7 +61,7 @@ function opRun (d) {
  */
 function opWhile (d) {
 	const { mp, rr } = d;
-	const ifc = (v) => (v instanceof MsjsCode) ? v : undefined;
+	const ifc = (v) => (v?.msjsType === '@code') ? v : undefined;
 	// Snapshot blocks at start (in theory, they could change during execution)
 	const main = mp.at(0), xtra = ifc(mp.at(1)), pre = ifc(mp.at('pre')), mid = xtra && ifc(mp.at('mid')), post = ifc(mp.at('post'));
 	// At least one of the pre or post code blocks must be present
