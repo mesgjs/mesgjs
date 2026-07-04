@@ -10,40 +10,38 @@ import "../../src/runtime/mesgjs.esm.js";
 const { $c, $toMsjs } = globalThis;
 
 Deno.test("@set Interface", async (t) => {
-	const mSet = $c("get", "@set");
-	mSet("add", 1);
-	mSet("add", "hello");
+	const mSet = new Set([1, 'hello']);
 
-	await t.step("Consistent Instances", () => {
+	await t.step("Consistent Receivers", () => {
 		const set = new Set();
-		assertStrictEquals($toMsjs(set), $toMsjs(set));
+		assertStrictEquals($msjsReceiver(set), $msjsReceiver(set));
 	});
 
 	await t.step("Initialization and State", () => {
-		assertEquals(mSet.msjsType, "@set");
-		assertEquals(mSet("size"), 2);
-		assertEquals(mSet("has", 1), true);
-		assertEquals(mSet("has", "world"), false);
+		assertEquals($msjsReceiver(mSet).msjsType, "@set");
+		assertEquals($c.sm(mSet, "size"), 2);
+		assertEquals($c.sm(mSet, "has", 1), true);
+		assertEquals($c.sm(mSet, "has", "world"), false);
 	});
 
 	await t.step("Manipulation", () => {
-		assertEquals(mSet("delete", 2), false);
-		assertEquals(mSet("delete", 1), true);
-		assertEquals(mSet("size"), 1);
-		mSet("clear");
-		assertEquals(mSet("size"), 0);
+		assertEquals($c.sm(mSet, "delete", 2), false);
+		assertEquals($c.sm(mSet, "delete", 1), true);
+		assertEquals($c.sm(mSet, "size"), 1);
+		$c.sm(mSet, "clear");
+		assertEquals($c.sm(mSet, "size"), 0);
 	});
 
 	await t.step("Iteration", () => {
-		mSet("add", 1);
-		mSet("add", 2);
-		mSet("add", 3);
-		const keys = mSet("keys");
+		$c.sm(mSet, "add", 1);
+		$c.sm(mSet, "add", 2);
+		$c.sm(mSet, "add", 3);
+		const keys = $c.sm(mSet, "keys");
 		assertEquals(keys.length, 3);
 		assertEquals(keys[0], 1);
-		const values = mSet("values");
+		const values = $c.sm(mSet, "values");
 		assertEquals(values[2], 3);
-		const entries = mSet("entries");
+		const entries = $c.sm(mSet, "entries");
 		assertEquals(entries[0], [1, 1]);
 	});
 });

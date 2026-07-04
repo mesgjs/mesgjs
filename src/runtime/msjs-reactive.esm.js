@@ -1,5 +1,5 @@
 /*
- * Mesgjs @reactive interface
+ * Mesgjs @reactive receiver singleton interface
  *
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
@@ -12,93 +12,80 @@ setRO(globalThis, 'reactive', reactive);
 
 let instType;
 
+// Helper to appropriately execute different types of "def" sources
 function jsdef (def) {
+	if (def?.$reactive === reactive.type) return def.getter;
 	switch (def?.msjsType) {
-	case '@code':		return () => def('run');
-	case '@function':	return def('jsfn');
-	case instType:		return def('@jsv').getter;
-	default:			return def;
+	case '@code':		return () => $c.sm(def, 'run');
+	case '@function':	return $c.sm(def, 'jsfn');
 	}
+	return def;
 }
 
+// Helper to normalize to a plain JS function
 function jsfn (fn) {
 	switch (fn?.msjsType) {
-	case '@code':		return fn('fn')('jsfn');
-	case '@function':	return fn('jsfn');
-	default:			return fn;
+	case '@code':		return $c.sm($c.sm(fn, 'fn'), 'jsfn');
+	case '@function':	return $c.sm(fn, 'jsfn');
 	}
-}
-
-function opInit (d) {
-	const { mp } = d, p0 = mp.at(0);
-
-	// Wrap an existing reactive or create a new one
-	if (p0?.$reactive === reactive.type) setRO(d.octx, 'js', p0);
-	else {
-		const cmp = mp.at('cmp'), def = mp.at('def');
-
-		if (typeof cmp === 'function') mp.set('cmp', jsfn(cmp));
-		if (typeof def === 'function') mp.set('def', jsdef(def));
-		if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
-		setRO(d.octx, 'js', reactive(mp?.storage || {}));
-	}
-	setRO(d.js, $c.symbols.instance, d.rr, false);
-	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
+	return fn;
 }
 
 // Perform a reactive batch operation using a @code block or plain JS function
 function opBatch (d) {
 	const task = d.mp.at(0);
 
-	if (typeof task !== 'function') return;
-	if (task.msjsType) return reactive.batch(() => runIfCode(task));
-	return reactive.batch(task);
+	if (typeof task === 'function') return reactive.batch(task);
+	return reactive.batch(() => runIfCode(task));
 }
 
-function opEq (d) {
-	const to = d.mp.at(0);
+// (new cmp?=cmp def?=def v?=v)
+function opNew (d) {
+	const { mp } = d;
 
-	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
+	mp.set('cmp', jsfn(mp.at('cmp')));
+	mp.set('def', jsdef(mp.at('def')));
+	if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
+	return reactive(mp?.storage || {});
 }
 
 function opSet (d) {
-	const { js, mp } = d;
+	const { mp, orr } = d;
 
-	for (const en of mp.entries()) {
-		switch (en[0]) {
+	for (const [key, value] of mp.entries()) {
+		switch (key) {
 		case 'def':
-			if (typeof en[1] === 'function') js.def = jsdef(en[1]);
+			orr.def = jsdef(value);
 			break;
 		case 'eager': case 'eager1': case 'eager2':
-			js.eager = en[1];
+			orr.eager = value;
 			break;
 		case 'v': case '0':
-			js.wv = en[1];
+			orr.wv = value;
 			break;
 		}
 	}
-	return d.rr; // Return instance for chaining
+	return d.orr; // Return instance for chaining
 }
 
 function opUnbatch (d) {
 	const task = d.mp.at(0);
 
-	if (typeof task !== 'function') return;
-	if (task.msjsType) return reactive.unbatch(() => runIfCode(d.mp.at(0)));
-	return reactive.unbatch(task);
+	if (typeof task === 'function') return reactive.unbatch(task);
+	return reactive.unbatch(() => runIfCode(d.mp.at(0)));
 }
 
 function opUntr (d) {
 	const task = d.mp.at(0);
 
-	if (typeof task !== 'function') return;
-	if (task.msjsType) return reactive.untracked(() => runIfCode(d.mp.at(0)));
-	return reactive.untracked(task);
+	if (typeof task === 'function') return reactive.untracked(task);
+	return reactive.untracked(() => runIfCode(d.mp.at(0)));
 }
 
 // Return a reactive-interface object
 const isReactive = (v) => !!reactive.typeOf(v);
-const onSet = (n, k, v) => { // On NANOS set
+
+function onSet  (n, k, v) { // On NANOS set
 	const curVal = n.atRaw(k), curIsR = isReactive(curVal), newIsR = isReactive(v);
 
 	if (curIsR) {
@@ -116,7 +103,8 @@ const onSet = (n, k, v) => { // On NANOS set
 	}
 	// Keep original value
 	return v;
-};
+}
+
 function rio (r) {
 	if (!r) r = reactive();
 	return {
@@ -135,23 +123,23 @@ function rio (r) {
 export function install (name) {
 	instType = name;
 	getInterface(name).set({
-		lock: true, pristine: true,
+		lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': opInit,
-			'@eq': opEq,
-			'@jsv': (d) => d.js,
+			'@eq': (d) => d.orr === d.mp.at(0),
+			'@jsv': (d) => d.orr,
 			batch: opBatch,
-			def: (d) => d.js.def,
-			eager: (d) => d.js.eager,
-			eq: opEq,
-			error: (d) => d.js.error,
-			fv: (d) => reactive.fv(d.js),
-			ne: (d) => !opEq(d),
-			rio: (d) => rio(d.js),
-			rv: (d) => d.js.rv,
+			def: (d) => d.orr.def,
+			eager: (d) => d.orr.eager,
+			eq: (d) => d.orr === d.mp.at(0),
+			error: (d) => d.orr.error,
+			fv: (d) => reactive.fv(d.orr),
+			ne: (d) => d.orr !== d.mp.at(0),
+			new: opNew,
+			rio: (d) => rio(d.orr),
+			rv: (d) => d.orr.rv,
 			set: opSet,
 			unbatch: opUnbatch,
-			unready: (d) => d.js.unready(),
+			unready: (d) => d.orr.unready(),
 			untr: opUntr,
 			wait: () => reactive.wait(),
 		},

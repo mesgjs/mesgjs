@@ -33,7 +33,7 @@ export function install (name) {
 		lock: true, pristine: true, singleton: true,
 		handlers: {
 			'@eq': (d) => d.orr === d.mp.at(0),
-			'@jsv': (d) => d.orr,
+			'@jsv': (d) => d.orr?.msjsType ? new Set() : d.orr,
 			'+': opAdd,
 			'-': (d) => d.orr.delete(d.mp.at(0)),
 			add: opAdd,

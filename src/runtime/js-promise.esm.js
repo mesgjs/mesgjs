@@ -1,5 +1,5 @@
 /*
- * Mesgjs @promise interface - JS Promise wrapper
+ * Mesgjs @promise interface
  * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
  *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
