@@ -979,29 +979,39 @@ export class MsjsObject {
 	 * @returns {*} - The response to the message
 	 */
 	static sm (rr, mop, mp) {
-		const isDispatch = typeof this === 'object' && this !== null && #type in this && this.#type === TYPE_DISP;
+		const isDispatch = this !== null && typeof this === 'object' && #type in this && this.#type === TYPE_DISP;
 		const sr = isDispatch ? this.#core1.rr : undefined;
 		const st = isDispatch ? this.#core1.rt : undefined;
 		const orr = rr;
-		const mc = new MsgCtx();
-		let rt = typeof rr === 'object' && rr !== null && #type in rr && rr.#type;
+		let rt = rr !== null && typeof rr === 'object' && #type in rr && rr.#type;
+		let hasElse = false, elseExpr, smi;
 
 		if (!rt) { // Not a native receiver
 			rr = gt.$msjsReceiver(rr);
-			rt = typeof rr === 'object' && rr !== null && #type in rr && rr.#type;
+			rt = rr !== null && typeof rr === 'object' && #type in rr && rr.#type;
 		}
 
 		// Canonicalize message parameters
 		if (mop instanceof NANOS) mop = mop.storage;
 		if (typeof mop === 'object') { // List-op message
 			if ('else' in mop) {
-				mc.hasElse = true;
-				mc.elseExpr = mop.else;
+				hasElse = true;
+				elseExpr = mop.else;
 			}
-			if ('mid' in mop) mc.smi = modMidToName.get(mop.mid);
+			if ('mid' in mop) smi = modMidToName.get(mop.mid);
 			if ('params' in mop) mp = mop.params;
 			if ('op' in mop) mop = mop.op;
 			else mop = mop[0];
+		}
+
+		const codeRun = rt === TYPE_CODE && mop === 'run';
+		const trace = debugSettings.dispatch || debugSettings.stack;
+
+		if (codeRun && !trace) {
+			// For untraced @code(run), we can avoid MsgCtx and MsjsDispatch allocation completely
+			const code = rr.#core1;
+
+			return code(rr.#core2);
 		}
 		switch (typeof mop) {
 		case 'number': case 'string': case 'symbol': break;
@@ -1011,11 +1021,14 @@ export class MsjsObject {
 			throw new TypeError('Invalid message operation');
 		}
 
-		const codeRun = rt === TYPE_CODE && mop === 'run';
-		const trace = debugSettings.dispatch || debugSettings.stack;
+		const mc = new MsgCtx();
 		let dispatchable = codeRun;
 
-		// Receiver is support if rt is defined.
+		mc.hasElse = hasElse;
+		mc.elseExpr = elseExpr;
+		mc.smi = smi;
+
+		// Receiver is supported if rt is defined.
 		// Set up message context unless using @code's defining context
 		// (or if the (run) context is needed for tracing).
 		if (rt && (!codeRun || trace)) {
@@ -1024,7 +1037,6 @@ export class MsjsObject {
 				mc.st = st;
 			}
 			mc.mop = mc.dop = mc.hop = mop;
-			mc.isInit = false;
 			if (!codeRun) {
 				if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
 				mc.mp = mp;
@@ -1054,7 +1066,7 @@ export class MsjsObject {
 			if (trace) dispObj.#traceDispatch(0);
 
 			const code = codeRun ? rr.#core1 : mc.code;
-			const result = codeRun ? code(rr.#core2) : code(dispObj);
+			const result = code(codeRun ? rr.#core2 : dispObj);
 
 			if (trace) dispObj.#traceDispatch(1, result);
 			return result;
