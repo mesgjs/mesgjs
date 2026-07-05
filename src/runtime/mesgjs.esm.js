@@ -38,6 +38,19 @@ const instanceSym = Symbol.for('msjsInstance');
 const convertSym = Symbol.for('toMsjs');
 const instances = new WeakMap();
 
+let arrayBox;
+let falseBox;
+let mapBox;
+let nullBox;
+let numberBox;
+let objectBox;
+let reactiveBox;
+let regExpBox;
+let setBox;
+let stringBox;
+let trueBox;
+let undefBox;
+
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
 	/*
@@ -80,20 +93,20 @@ function installCoreExtensions () {
 	installTimestamp('@timestamp');
 	installTry('@try');
 	installUndefined();
-}
 
-let arrayBox;
-let falseBox;
-let mapBox;
-let nullBox;
-let numberBox;
-let objectBox;
-let reactiveBox;
-let regExpBox;
-let setBox;
-let stringBox;
-let trueBox;
-let undefBox;
+	// Pre-init boxes for common JS types
+	arrayBox = getInstance('@jsArray');
+	falseBox = getInstance('@false');
+	mapBox = getInstance('@map');
+	nullBox = getInstance('@null');
+	numberBox = getInstance('@number');
+	objectBox = getInstance('@jsObject');
+	regExpBox = getInstance('@regex');
+	setBox = getInstance('@set');
+	stringBox = getInstance('@string');
+	trueBox = getInstance('@true');
+	undefBox = getInstance('@undefined');
+}
 
 /**
  * Returns the Mesgjs receiver for a non-Mesgjs object.
@@ -111,15 +124,6 @@ let undefBox;
 function msjsReceiver (jsv) {
 	let instance;
 
-	if (!nullBox) { // Preload key types
-		falseBox = getInstance('@false');
-		nullBox = getInstance('@null');
-		numberBox = getInstance('@number');
-		reactiveBox = getInstance('@reactive');
-		stringBox = getInstance('@string');
-		trueBox = getInstance('@true');
-		undefBox = getInstance('@undefined');
-	}
 	switch (typeof jsv) {
 	case 'boolean':
 		return jsv ? trueBox : falseBox;
@@ -131,31 +135,38 @@ function msjsReceiver (jsv) {
 		if (jsv.msjsType) return jsv;
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
-			if (jsv[convertSym]) instance = jsv[convertSym]();
+			if (jsv[convertSym]) {
+				instance = jsv[convertSym]();
+			}
 			else if (Array.isArray(jsv)) {
-				arrayBox ||= getInstance('@jsArray');
 				instance = arrayBox;
 			}
 			else if (jsv.$reactive === reactive.type) {
 				reactiveBox ||= getInstance('@reactive');
 				instance = reactiveBox;
 			}
-			else if ((jsv.constructor?.name ?? 'Object') === 'Object') {
-				objectBox ||= getInstance('@jsObject');
-				instance = objectBox;
-			}
 			else if (jsv instanceof RegExp) {
-				regExpBox ||= getInstance('@regex');
 				instance = regExpBox;
 			}
 			else if (jsv instanceof Map) {
-				mapBox ||= getInstance('@map');
 				instance = mapBox;
 			}
 			else if (jsv instanceof Set) {
-				setBox ||= getInstance('@set');
 				instance = setBox;
 			}
+			// NOTE: @jsObject only grants read-only access to external objects
+			/* // Lenient version (object-box any other object class)
+			else {
+				instance = objectBox;
+			} /* */
+			/* */ // Strict version (only object-box plain objects)
+			else {
+				const proto = Object.getPrototypeOf(jsv);
+
+				if (proto === Object.prototype || proto === null) {
+					instance = objectBox;
+				}
+			} /* */
 			if (instance) instances.set(jsv, instance);
 		}
 		return instance;

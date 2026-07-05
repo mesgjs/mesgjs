@@ -11,8 +11,14 @@
 
 import { NANOS, isIndex, isNegIndex } from '@nanos';
 
+const hasOwn = Object.hasOwn;
+
 export const isPlainObject = (obj) => {
-	return typeof obj === 'object' && obj !== null && (obj.constructor?.name ?? 'Object') === 'Object';
+	if (obj === null || typeof obj !== 'object') return false;
+
+	const proto = Object.getPrototypeOf(obj);
+
+	return proto === Object.prototype || proto === null;
 };
 
 /**
@@ -41,9 +47,9 @@ export const uniAt = (obj, keyPath, opts = {}) => {
 // Does the object have the specified key?
 export const uniHas = (obj, key) => {
 	if (obj?.msjsType && obj.jsv) obj = obj.jsv;
-	if (Array.isArray(obj)) return key in obj;
-	if (typeof obj === 'object' && (obj.constructor?.name ?? 'Object') === 'Object') return key in obj;
+	if (Array.isArray(obj)) return hasOwn(obj, key);
 	if (obj instanceof NANOS || obj instanceof Map || obj instanceof Set) return obj.has(key);
+	if (isPlainObject(obj)) return hasOwn(obj, key);
 	// Unknown/undefined for unsupported types
 };
 
@@ -54,8 +60,8 @@ export const uniNext = (obj) => {
 
 	let keys;
 
-	if (isPlainObject(obj)) keys = Object.keys(obj);
-	else if (obj instanceof Map) keys = obj.keys();
+	if (obj instanceof Map) keys = obj.keys();
+	else if (isPlainObject(obj)) keys = Object.keys(obj);
 	if (keys) {
 		const next = keys.filter(isIndex).reduce((acc, cur) => Math.max(acc, parseInt(cur, 10)), -1) + 1;
 		return next;
@@ -138,9 +144,10 @@ const EMPTY_LIST = new ListProxy([]);
 
 export function unifiedList (value, promote) {
 	if (typeof value === 'object') {
-		if (Array.isArray(value) || (value.constructor?.name ?? 'Object') === 'Object') return new ListProxy(value);
+		if (Array.isArray(value)) return new ListProxy(value);
 		if (value instanceof NANOS || value instanceof ListProxy) return value;
 		if (value instanceof Map || value instanceof Set) return new ListProxy(value);
+		if (isPlainObject(value)) return new ListProxy(value);
 	}
 	if (!promote) return value;
 	if (value === undefined) return EMPTY_LIST;

@@ -4,7 +4,7 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInterface, MsjsObject, setRO } from './runtime.esm.js';
+import { getInterface, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
 
 // Helper classes to create null-prototyped objects "stamped" as locally-created
@@ -12,8 +12,7 @@ class NullProto { constructor () { return Object.create(null); } }
 class Verifiable extends NullProto {
 	#isOurs;
 	static isOurs (obj) {
-		try { obj.#isOurs; return true; }
-		catch (_) { return false; }
+		return #isOurs in obj;
 	}
 }
 
