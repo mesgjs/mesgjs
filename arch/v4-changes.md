@@ -32,9 +32,9 @@ The sub-class definitions themselves are minimal, literally e.g. `class MsjsCode
 
 User interfaces can use this ultra-efficient prototype approach (minus privileged internal behaviors, of course) via an optional new `proto` setting during interface configuration. When supplied, it gets applied via the instantiation of an anonymous sub-class created by the runtime.
 
-### `@c` / `$c`
+### `@c` / `$c` `@core` Singleton Instance
 
-The Mesgjs `@c` / JS `$c` `@core` singleton is, of course, a Mesgjs object. This means that it too is now a `MsjsObject` instance (user-type, not internal interface), **not a receiver function** (and as such, tests with `$c(operation)` *will no longer work* and **MUST** be rewritten to use `$c.sm($c, ...)` or `d.s($c, ...)` to receive messages).
+The Mesgjs `@c` / JS `$c` `@core` singleton has always been, and still is, a Mesgjs object (augmented with various properties for facilitating interaction with JavaScript code). **It too is now a `MsjsObject` instance** (user-type, not internal interface), **rather than a receiver function**. Messages of the form `$c(operation)` *will no longer work* and **MUST** be rewritten to use `$c.sm($c, ...)` or `d.s($c, ...)`.
 
 ## V4 Messaging API
 

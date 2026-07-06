@@ -183,7 +183,6 @@ export function install (name) {
 			namedEntries: (d) => new NANOS([...d.orr.namedEntries()]),
 			namedKeys: (d) => new NANOS([...d.orr.namedKeys()]),
 			ne: (d) => d.orr !== d.mp.at(0),
-			new: (d) => d.mp.has('from') ? new NANOS(d.mp.at('from')) : new NANOS(),
 			next: opNext,
 			nset: opNset,
 			options: (d) => new NANOS(d.orr.options),

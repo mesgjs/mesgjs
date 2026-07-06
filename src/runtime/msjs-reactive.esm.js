@@ -39,14 +39,16 @@ function opBatch (d) {
 	return reactive.batch(() => runIfCode(task));
 }
 
-// (new cmp?=cmp def?=def v?=v)
+// (new v? cmp?=cmp def?=def eager?=boolean v?=v)
 function opNew (d) {
-	const { mp } = d;
+	const { mp } = d, opts = {};
 
-	mp.set('cmp', jsfn(mp.at('cmp')));
-	mp.set('def', jsdef(mp.at('def')));
-	if (!mp.has('v') && mp.has(0)) mp.set('v', mp.at(0));
-	return reactive(mp?.storage || {});
+	if (mp.has('cmp')) opts.cmp = jsfn(mp.at('cmp'));
+	if (mp.has('def')) opts.def = jsdef(mp.at('def'));
+	if (mp.has('eager')) opts.eager = jseager(mp.at('eager'));
+	if (mp.has('v')) opts.v = mp.at('v');
+	else if (mp.has(0)) opts.v = mp.at(0);
+	return reactive(opts);
 }
 
 function opSet (d) {

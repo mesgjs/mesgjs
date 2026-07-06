@@ -1,6 +1,6 @@
 # Message Parameter Normalization
 
-When calling Mesgjs message receivers from JavaScript, the second argument (message parameters) is automatically normalized to a NANOS instance. This allows you to pass parameters in various convenient JavaScript formats while ensuring consistent handling inside Mesgjs message handlers.
+When sending messages to Mesgjs objects from JavaScript, the third argument (message parameters) is automatically normalized to a NANOS instance. This allows you to pass parameters in various convenient JavaScript formats while ensuring consistent handling inside Mesgjs message handlers.
 
 ## Supported Parameter Formats
 
@@ -8,64 +8,64 @@ You can pass message parameters in any of these formats:
 
 ### JavaScript Arrays
 ```javascript
-receiver('operation', [value1, value2, value3]);
+$c.sm(receiver, 'operation', [value1, value2, value3]);
 ```
 The array is converted to a NANOS instance with positional values at numeric indices (0, 1, 2, ...).
 
 ### Plain JavaScript Objects
 ```javascript
-receiver('operation', { key1: 'value1', key2: 'value2' });
+$c.sm(receiver, 'operation', { key1: 'value1', key2: 'value2' });
 ```
 The object's properties become named parameters in the NANOS instance.
 
 ### JavaScript Maps
 ```javascript
-receiver('operation', new Map([['key1', 'value1'], ['key2', 'value2']]));
+$c.sm(receiver, 'operation', new Map([['key1', 'value1'], ['key2', 'value2']]));
 ```
 The Map entries are converted to NANOS key/value pairs.
 
 ### JavaScript Sets
 ```javascript
-receiver('operation', new Set([value1, value2, value3]));
+$c.sm(receiver, 'operation', new Set([value1, value2, value3]));
 ```
 The Set values become positional parameters with numeric indices.
 
 ### NANOS Instances (Native)
 ```javascript
 import { NANOS } from './runtime/vendor.esm.js';
-receiver('operation', new NANOS([value1, value2]));
+$c.sm(receiver, 'operation', new NANOS([value1, value2]));
 ```
 NANOS instances are used directly without conversion.
 
 **Note:** If you want to pass an array, object, Map, or Set as a single parameter value (rather than having it assimilated into the parameter structure), wrap it in an array:
 ```javascript
 // This assimilates the array into parameters
-receiver('operation', [1, 2, 3]);  // Results in params at indices 0, 1, 2
+$c.sm(receiver, 'operation', [1, 2, 3]);  // Results in params at indices 0, 1, 2
 
 // This passes the array as a single parameter
-receiver('operation', [[1, 2, 3]]);  // Results in the array at index 0
+$c.sm(receiver, 'operation', [[1, 2, 3]]);  // Results in the array at index 0
 ```
 
 ### Scalar Values
 ```javascript
-receiver('operation', 'singleValue');
+$c.sm(receiver, 'operation', 'singleValue');
 ```
 A single scalar value is wrapped in a NANOS instance as the first positional parameter (index 0).
 
 ### Undefined or Omitted
 ```javascript
-receiver('operation');
+$c.sm(receiver, 'operation');
 // or
-receiver('operation', undefined);
+$c.sm(receiver, 'operation', undefined);
 ```
 An empty NANOS instance is created.
 
 ## How It Works
 
-The normalization happens automatically in the Mesgjs runtime's message processing pipeline ([`canMesgProps()`](../src/runtime/runtime.esm.js:209) at line 229):
+The normalization happens automatically in [`MsjsObject.sm()`](../src/runtime/runtime.esm.js:981) (the static send-message method):
 
 ```javascript
-if (!(mp instanceof NANOS)) mp = new NANOS(mp ?? []);
+if (!(mp instanceof NANOS)) mp = (mp == null) ? new NANOS() : new NANOS(mp);
 ```
 
 This means that **inside every message handler**, `d.mp` (the message parameters) is always a NANOS instance, regardless of what format was passed from JavaScript.
@@ -86,7 +86,12 @@ function opMyOperation(d) {
     const name = mp.at('name');
     const value = mp.at('value');
     
-    // Check if a parameter exists
+    // Use default values for optional parameters
+    // (at returns undefined for missing keys, or the default if provided)
+    const optional = mp.at('optional', 'defaultValue');
+    const count = mp.at('count', 0);
+    
+    // Check if a parameter exists (only needed if undefined is a valid value)
     if (mp.has('optional')) {
         const opt = mp.at('optional');
     }
@@ -100,6 +105,8 @@ function opMyOperation(d) {
 }
 ```
 
+**Note:** The `at` method accepts an optional default value as its second parameter. If the key doesn't exist, the default is returned instead of `undefined`. The `has` method can often be skipped unless you need to distinguish between a missing key and a key with an `undefined` value.
+
 ## Mixed Positional and Named Parameters
 
 You can mix positional and named parameters in several ways:
@@ -108,12 +115,12 @@ You can mix positional and named parameters in several ways:
 ```javascript
 const params = [value1, value2];
 params.name = 'Alice';
-receiver('operation', params);
+$c.sm(receiver, 'operation', params);
 ```
 
 ### From Plain Objects with Numeric Keys
 ```javascript
-receiver('operation', { 0: value1, 1: value2, name: 'Alice' });
+$c.sm(receiver, 'operation', { 0: value1, 1: value2, name: 'Alice' });
 ```
 
 ### Using NANOS Directly
@@ -121,7 +128,7 @@ receiver('operation', { 0: value1, 1: value2, name: 'Alice' });
 import { NANOS } from './runtime/vendor.esm.js';
 const params = new NANOS([value1, value2]);
 params.set('name', 'Alice');
-receiver('operation', params);
+$c.sm(receiver, 'operation', params);
 ```
 
 **Note:** When constructing NANOS instances with multiple arguments, each argument is pushed sequentially. Arrays have their indices offset by the current `.next` value:
@@ -142,10 +149,10 @@ When using list-op style messages (where the operation itself is part of a list/
 
 ```javascript
 // List-op with explicit params
-receiver({ op: 'operation', params: [value1, value2] });
+$c.sm(receiver, { op: 'operation', params: [value1, value2] });
 
 // The params value goes through the same normalization
-receiver({ op: 'operation', params: { key: 'value' } });
+$c.sm(receiver, { op: 'operation', params: { key: 'value' } });
 ```
 
 See [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md) for more details on list-op messages.
@@ -155,13 +162,13 @@ See [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md) for more details o
 ### For Simple Positional Parameters
 Use arrays for clarity:
 ```javascript
-receiver('add', [10, 20]);
+$c.sm(receiver, 'add', [10, 20]);
 ```
 
 ### For Named Parameters
 Use plain objects for readability:
 ```javascript
-receiver('configure', { host: 'localhost', port: 8080 });
+$c.sm(receiver, 'configure', { host: 'localhost', port: 8080 });
 ```
 
 ### For Complex Structures
@@ -171,7 +178,7 @@ import { NANOS } from './runtime/vendor.esm.js';
 const params = new NANOS();
 params.set('config', configObject);
 params.set('callback', callbackFunction);
-receiver('initialize', params);
+$c.sm(receiver, 'initialize', params);
 ```
 
 **Better approach:** Use `NANOS.fromPairs()` or the `ls()` convenience wrapper (available in module scope) for more compact parameter construction:
@@ -180,16 +187,16 @@ import { listFromPairs } from './runtime/runtime.esm.js';
 const ls = listFromPairs;
 
 // Compact syntax: empty keys get sequential numeric indices
-receiver('initialize', ls([, pos1, 'key1', value1, , pos2]));
+$c.sm(receiver, 'initialize', ls([, pos1, 'key1', value1, , pos2]));
 // Results in: 0: pos1, key1: value1, 1: pos2
 ```
 
 This allows easy switching between positional and named parameters in a single, readable expression.
 
 ### For No Parameters
-Simply omit the second argument:
+Simply omit the third argument:
 ```javascript
-receiver('reset');
+$c.sm(receiver, 'reset');
 ```
 
 ## See Also

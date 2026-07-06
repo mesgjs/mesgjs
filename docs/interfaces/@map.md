@@ -1,9 +1,11 @@
-# Mesgjs `@map` Interface
+# Mesgjs `@map` Interface (final, singleton)
 
 This is the interface for Mesgjs objects that wrap JavaScript `Map` instances.
 
-* `(@init map)`
-  * Synopsis: Create a new map, optionally providing a JavaScript `Map` object to wrap.
+The `@map` interface is a **receiver singleton** — all JavaScript `Map` values share the same `@map` receiver instance. The original JavaScript `Map` is available via `d.orr` in handlers.
+
+## Message Operations
+
 * `(at key... path=[key...] else=elseBlock)`\
 `(get key... path=[key...] else=elseBlock)`
 `(@ key... path=[key...] else=elseBlock)`
@@ -30,6 +32,11 @@ This is the interface for Mesgjs objects that wrap JavaScript `Map` instances.
   * Synopsis: Returns a new `@list` that contains the keys for each element in the Map object in insertion order.
 * `(ne to)`
   * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Map` object.
+* `(new from?=source)`
+  * Synopsis: Returns a new JavaScript `Map`.
+  * If `from` is provided, the new map is populated with the key/value pairs from `source` (which should be a `@list`, `@map`, or similar iterable with entries).
+  * If `from` is not provided, returns an empty map.
+  * Note: The returned map is a plain JavaScript `Map`. When used as a message receiver, it will be automatically boxed by the `@map` receiver singleton.
 * `(nset key=value...)`
   * Synopsis: Sets one or more key/value pairs in the Map object using named parameters. Returns the Map object.
 * `(set key to=value)`\

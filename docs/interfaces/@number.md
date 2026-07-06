@@ -1,4 +1,4 @@
-# Mesgjs `@number` Interface
+# Mesgjs `@number` Interface (final, singleton)
 
 This interface supports operations on numbers (both integer and floating point) and JavaScript's "bigint" type. "Receiver" refers to the number that is receiving the message. Example:
 
@@ -7,6 +7,8 @@ This interface supports operations on numbers (both integer and floating point) 
 This is not a special break in syntax to perform multiplication, this is the `@number`-literal `1` as the receiver, being sent the "`(pi)`" message, an operation which is defined to return the product of pi and the receiver.
 
 (For those familiar with JavaScript, its `Math` functionality is built directly into Mesgjs's `@number` interface.)
+
+The `@number` interface is a **receiver singleton** — all JavaScript number and bigint values share the same `@number` receiver instance. The original JavaScript number is available via `d.orr` in handlers.
 
 No operations use RIC (run-if-code) values unless otherwise specified.
 

@@ -68,11 +68,9 @@ function opCase (d) {
 // Uses value1(@eq value2) if available or JS value1 === value2 otherwise
 function opEq (d) {
 	const mp = d.mp;
-	const v1 = mp.at(0), msjsV1 = $toMsjs(v1), type = msjsV1?.msjsType;
-	const v2 = m2.at(1);
+	const v1 = mp.at(0), v2 = mp.at(1);
 
-	if (type && typeAccepts(type, '@eq')) return msjsV1('@eq', [v2]);
-	return v1 === v2;
+	return $c.sm(v1, { op: '@eq', else: v1 === v2 }, v2);
 }
 
 // (get type init=params)

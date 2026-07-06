@@ -1,5 +1,77 @@
 # Mesgjs @core Interface (final, singleton, global @c)
 
+## V4 Messaging API
+
+The `@core` interface is a singleton accessed via the global `$c` object. In Mesgjs v4, all messaging uses the `MsjsObject.sm` API.
+
+### Messaging @c from JavaScript
+
+**Anonymous messages** (no sender attribution):
+```javascript
+// Using $c.sm (recommended)
+const result = $c.sm($c, 'operation', params);
+```
+
+**Attributed messages** (from within a handler, preserving sender context):
+```javascript
+const result = d.s($c, 'operation', params);
+```
+
+### Helper Methods on $c
+
+The `$c` singleton has several runtime functions attached as convenience methods:
+
+| Method | Purpose |
+|--------|---------|
+| `$c.sm(receiver, op, params)` | Send anonymous message (alias for `sendAnonMessage`) |
+| `$c.getInstance(type, params)` | Get or create instance of interface type |
+| `$c.getInterface(name)` | Create a new interface management object |
+| `$c.fcheck(feature)` | Check if feature is ready |
+| `$c.fready(mid, feature)` | Mark feature as ready |
+| `$c.fwait(feature...)` | Wait for feature(s) to become ready |
+| `$c.typeAccepts(type, op)` | Check if type accepts operation |
+| `$c.typeChains(sub, super)` | Check interface chaining |
+| `$c.modHasCap(mod, cap)` | Check module capability |
+| `$c.runIfCode(value)` | Run value if it's a code block |
+| `$c.runWhileCode(value)` | Run value recursively (not iteratively) as long as successively deeper results are code blocks |
+| `$c.debugConfig(settings)` | Configure runtime debugging |
+| `$c.setRO(obj, key, val)` | Set read-only property |
+| `$c.getModMeta()` | Get module metadata |
+| `$c.setModMeta(meta)` | Set module metadata |
+
+These methods provide direct JavaScript access to common `@core` operations without requiring message syntax.
+
+### Examples
+
+**Creating an instance:**
+```javascript
+// Using message syntax
+const obj = $c.sm($c, 'get', ['myInterface']);
+
+// Using helper method (preferred)
+const obj = $c.getInstance('myInterface');
+```
+
+**Conditional execution:**
+```javascript
+// Using message syntax
+const result = $c.sm($c, 'if', ls([, condition, , thenBlock, 'else', elseBlock]));
+
+// Using helper method for runIfCode
+const result = $c.runIfCode(maybeCodeBlock);
+```
+
+**Type introspection:**
+```javascript
+// Check if type accepts an operation
+const accepts = $c.typeAccepts('@string', 'join');
+
+// Check interface chaining
+const chains = $c.typeChains('@true', '@boolean');
+```
+
+## Message Operations
+
 * `(_ value)`
   * Synopsis: The elusive, (mythical?), "basically parentheses" operation.
   * Simply returns value as-is. Cf. the `(run)` message and the `@try` interface.

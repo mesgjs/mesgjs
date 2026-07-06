@@ -1,9 +1,11 @@
-# Mesgjs `@list` Interface
+# Mesgjs `@list` Interface (final, singleton)
 
 This is the interface implemented by storage namespaces (`%`, `#`, `!`, `%*`/`@gss`, `%/`/`@mps`) and lists.
 
-* `(@init list)`
-  * Synopsis: Create a new list, optionally providing the JavaScript `NANOS` object list.  
+The `@list` interface is a **receiver singleton** — all `NANOS` list values share the same `@list` receiver instance. The original `NANOS` object is available via `d.orr` in handlers.
+
+## Message Operations
+
 * `(at key... path=[key...] else=elseBlock)`\
 `(get key... path=[key...] else=elseBlock)`\
 `(@ key... path=[key...] else=elseBlock)`

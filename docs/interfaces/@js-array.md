@@ -1,11 +1,13 @@
-# Mesgjs `@js-array` Interface
+# Mesgjs `@jsArray` Interface (final, singleton)
 
-This interface provides a bridge to native JavaScript `Array` objects, allowing them to be messaged directly within Mesgjs. It is automatically applied to any JavaScript `Array` when it is converted to a Mesgjs object.
+This interface provides a bridge to native JavaScript `Array` objects, allowing them to be messaged directly within Mesgjs. It is automatically applied to any JavaScript `Array` when it is used as a message receiver.
+
+The `@jsArray` interface is a **receiver singleton** — all JavaScript `Array` values share the same `@jsArray` receiver instance. The original JavaScript array is available via `d.orr` in handlers.
 
 This interface mirrors much of the functionality of the JavaScript `Array.prototype`.
 
-* `(@init array)`
-  * Synopsis: Initializes the Mesgjs object with a given JavaScript `array`.
+## Message Operations
+
 * `(@jsv)`
   * Synopsis: Returns the underlying native JavaScript `Array` object.
 * `(at key... path=[key...] else=elseBlock)`\
@@ -34,6 +36,11 @@ This interface mirrors much of the functionality of the JavaScript `Array.protot
   * Synopsis: Returns the *non-sparse* number of elements in the array (there may be fewer elements actually defined).
 * `(ne to)`
   * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Array` object.
+* `(new from?=source)`
+  * Synopsis: Returns a new JavaScript `Array`.
+  * If `from` is provided, the new array is populated with the values from `source` (which should be a `@list` or similar iterable).
+  * If `from` is not provided, returns an empty array.
+  * Note: The returned array is a plain JavaScript array. When used as a message receiver, it will be automatically boxed by the `@jsArray` receiver singleton.
 * `(pop)`
   * Synopsis: Removes and returns the last element of the array. Modifies the array in place. Mirrors `Array.prototype.pop()`.
 * `(push value...)`

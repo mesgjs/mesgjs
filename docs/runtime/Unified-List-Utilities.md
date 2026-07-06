@@ -156,14 +156,15 @@ Determines if a value is a plain JavaScript object (not an array, Map, Set, or o
 **Implementation:**
 ```javascript
 export const isPlainObject = (obj) => {
-    const type = typeof obj;
-    const consName = obj?.constructor?.name;
-    return (type === 'object' && obj !== null && 
-            (consName === undefined || consName === 'Object'));
+	if (obj === null || typeof obj !== 'object') return false;
+
+	const proto = Object.getPrototypeOf(obj);
+
+	return proto === Object.prototype || proto === null;
 };
 ```
 
-**Note:** This function is re-exported through [`mesgjs.esm.js`](../../src/runtime/mesgjs.esm.js:29) and used in the `toMsjs()` conversion function.
+**Note:** This function is re-exported through [`mesgjs.esm.js`](../../src/runtime/mesgjs.esm.js:29) and used in the (deprecated) `toMsjs()` conversion function.
 
 ## The ListProxy Class
 

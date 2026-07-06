@@ -20,9 +20,11 @@ For an interface developer, the most critical parts of the Mesgjs runtime are ex
 From `runtime.esm.js`, you will primarily use the following functions:
 
 *   `getInterface(name)`: This is the starting point for creating or modifying an interface definition.
-*   `getInstance(type, params)`: This is the factory function for creating all Mesgjs objects. **It is the direct replacement for the `new` keyword.** You do not use `new` to create instances of your interfaces.
+*   `getInstance(type, params)`: This is the factory function for creating all Mesgjs objects. **It is the direct replacement for the `new` keyword.** You do not use `new` to create instances of your interfaces. All instances are `MsjsObject` class instances (not functions, as in pre-v4 versions).
 *   `setRO(object, key, value)` or `setRO(object, keyValueObject)`: A utility to create read-only properties on objects. This is used extensively throughout the runtime to enforce immutability where appropriate.
-*   `toMsjs(jsValue)`: A crucial function that converts native JavaScript values (like strings, numbers, booleans, and arrays) into their corresponding Mesgjs object equivalents (e.g., `@string`, `@number`, `@jsArray`) *if* you need to message or otherwise manipulate them as Mesgjs objects instead of accessing them directly. Please note that this function is exposed as `globalThis.$toMsjs`.
+*   `$c.sm(receiver, operation, parameters)`: The primary way to send an **anonymous** message from JavaScript (e.g. from within a handler, when you don't need sender attribution). It automatically normalizes `parameters` to a `NANOS` list and automatically converts plain JavaScript values (numbers, strings, arrays, etc.) to their receiver via the internal `$msjsReceiver` function. See [Mesgjs Messaging Overview](Mesgjs-Messaging-Overview.md) for details.
+
+> **Deprecated:** `$toMsjs(jsValue)` (pre-v4) converted native JavaScript values into Mesgjs wrapper *functions*. In v4, boxed JavaScript primitives and native types are represented by type-wide **receiver singletons**, and value-to-receiver conversion now happens automatically inside `$c.sm` / `MsjsObject.sm`. `$toMsjs` still exists as a limited backward-compatibility shim (see [JavaScript Runtime Reference](JavaScript-Runtime-Reference.md#toMsjsvalue-️-deprecated)), but new code should simply call `$c.sm(jsValue, operation, params)` directly instead.
 
 ## The Add-On Module Workflow
 
@@ -97,13 +99,14 @@ See the `@interface` interface documentation if you need more unusual features s
 
 Message handlers are JavaScript functions that receive a single argument: the **dispatch object**, conventionally named `d`. This object is your gateway to the entire message context.
 
-*   `d.rr`: The **r**eceiver **r**eference. This is the public interface function for the object instance—the "face" it presents to the outside world, whether that's other Mesgjs objects or external JavaScript code.
+*   `d.rr`: The **r**eceive**r**. In v4, this is the `MsjsObject` class instance for the object—the "face" it presents to the outside world, whether that's other Mesgjs objects or external JavaScript code. It is **not** a function.
+*   `d.orr`: The **o**riginal **r**eceive**r**. For most user-defined objects this is identical to `d.rr`. However, for boxed JavaScript primitives and native types (numbers, strings, arrays, Maps, Sets, etc.), which share type-wide **receiver singletons** in v4, `d.orr` gives you the actual underlying JavaScript value (e.g. the real number or string), while `d.rr` is the shared singleton `MsjsObject` instance for that type. When writing handlers for your own (non-singleton) interfaces, you'll typically just use `d.rr`.
 *   The role of JavaScript's `this` is distributed in Mesgjs:
-    *   `d.octx`: The **o**bject **c**on**t**e**x**t created at instantiation. This plain JavaScript object is the ideal place to hold references to other complex JavaScript objects or resources that the Mesgjs object needs to work with.
-    *   `d.js`: A convenient alias for `d.octx.js`. This is a common pattern for attaching a dedicated JavaScript class instance to a Mesgjs object to manage its logic.
-    *   `d.p`: The **p**ersistent, private storage for the object instance. In contrast to `d.octx` (and `d.js`), this is the only private state accessible to native Mesgjs handlers (either your own, or potentially handlers in chained interfaces if your interfaces isn't *final*).
+    *   `d.js`: A getter/setter enabling *private* JS-level state attached to the object instance (for state you do not want exposed directly as primary object properties). To use it, simply assign to it in your `@init` handler (e.g. `d.js = new MyJsClass(...)`) (or use a just-in-time assignment strategy to avoid `@init` dispatch overhead) and read it in other handlers.
+    *   `d.p`: The **p**ersistent, private storage for the object instance (a `NANOS` list, created on first access). In contrast to `d.js`, this is the only private state accessible to native Mesgjs handlers (either your own, or potentially handlers in chained interfaces if your interface isn't *final*). This is Mesgjs' version of "protected" properties (visible to all types in the object's interface chain, but *not across instances*).
+    *   `d.x`: E**x**clusive persistent storage (a `NANOS` list, created on first access) — like `d.p`, but partitioned per currently-dispatched handler *type* rather than shared across an interface's whole chain. This lets a handler in a chained (non-final) interface keep state that sibling/ancestor handlers for the same object instance cannot see or accidentally clobber. This is Mesgjs' version of "private" properties (distinct per instance *and type*).
 *   `d.mp`: The **m**essage **p**arameters. This is a `NANOS` list containing all parameters passed in the message. See [Message Parameter Normalization](Message-Parameter-Normalization.md) for details on how JavaScript values are converted to NANOS.
-*   `d.sm`: The attributed **s**end-**m**essage function. Use this to send messages to other objects: `sm(recipient, op, params)`. The `params` argument will be automatically normalized to NANOS.
+*   `d.sm` (alias `d.s`): The attributed **s**end-**m**essage function. Use this to send messages to other objects: `d.sm(recipient, op, params)`. The `params` argument will be automatically normalized to NANOS. **Important:** `d.sm` must be called as `d.sm(...)` (or `d.s(...)`) — do not destructure it off of `d`, or the sender-attribution context will be lost and the message will be sent anonymously instead. See [Attributed Send-Message Function](Mesgjs-Messaging-Overview.md#attributed-send-message-function) for details.
 
 Here is an example handler:
 
@@ -115,7 +118,7 @@ function opSomeOperation(d) {
     // Store a value in the object's persistent storage
     d.p.set('lastOp', 'someOperation');
 
-    // Send a message to another object
+    // Send an attributed message to another object
     // ls() is a NANOS helper accepting a flat array of key/value pairs
     // (empty keys are assigned sequential numeric-like keys)
     const otherObject = getInstance('some-other-interface');
@@ -125,7 +128,7 @@ function opSomeOperation(d) {
 
 ### F. Step 4: The `@init` Constructor
 
-The `@init` handler is special. It acts as the constructor for your object and is called when a new instance is created with `getInstance`. This is the ideal place to set up initial state and, if you're creating a "bilingual" interface, attach a JavaScript prototype.
+The `@init` handler is special. It acts as the constructor for your object and is called when a new instance is created with `getInstance` (or `getInterface(name).instance()`), but only if a handler for it is actually registered — the runtime avoids creating a dispatch object for `@init` at all when there's no handler to call, reducing instantiation overhead. This is the ideal place to set up initial state.
 
 ```javascript
 function opInit(d) {
@@ -134,17 +137,29 @@ function opInit(d) {
         d.p.set('value', d.mp.at('initialValue'));
     }
 
-    // For a bilingual interface, attach the JS prototype
-    // ** Important: As d.rr is a function, you must chain the Function prototype **
-    // You will generally want to bind some key methods with access to internal
-    // (e.g. d.js) state.
-    Object.setPrototypeOf(d.rr, YourInterfacePrototype);
-
-    // For a JS-heavy interface, attach a JS class instance for state
-    // (Be sure to initialize d.octx.js; d.js is a getter)
-    d.octx.js = new MyJavaScriptClass(d.mp.at('initialConfig'));
+    // For a JS-heavy interface, attach a JS class instance for state.
+    // d.js is a getter/setter (not merely an alias for an object-context property).
+    d.js = new MyJavaScriptClass(d.mp.at('initialConfig'));
 }
 ```
+
+**Attaching a JavaScript prototype (bilingual interfaces):** In v4, `d.rr` is a `MsjsObject` class instance, not a function, so you no longer chain `Function.prototype`. Instead of setting a prototype by hand inside `@init`, declare a `proto` object as part of your interface configuration (passed to `.set()`), and the runtime will construct a dedicated subclass of `MsjsObject` for your interface type and attach it automatically to every instance:
+
+```javascript
+const proto = {
+    then (onResolve, onReject) { /* ... */ },
+    get jsv () { return this; }, // Conventional JS-value accessor
+};
+
+yourInterface.set({
+    handlers: { /* ... */ },
+    proto, // Every instance of this interface gets `proto` as its prototype
+});
+```
+
+> Note: Initialization **must** be done via an `@init` hander. 
+
+See [Case Study: The `@promise` Interface](#case-study-the-promise-interface) below for a complete example.
 
 ## Case Study: The `@promise` Interface
 
@@ -153,7 +168,7 @@ The built-in `@promise` interface is the perfect example of a bilingual interfac
 *   **Mesgjs:** It responds to messages like `myPromise(then onResolved)`.
 *   **JavaScript:** It can be used with standard JS syntax like `myPromise.then(onResolved)`.
 
-This is achieved in its `@init` handler, which attaches a JavaScript `proto` object to the Mesgjs object instance (`d.rr`). The `proto` object contains the standard JavaScript Promise methods (`.then()`, `.catch()`, etc.), while the `handlers` map in `yourInterface.set()` implements the Mesgjs message endpoints. Both sets of functions ultimately operate on the same underlying state, providing two different "dialects" to access the same functionality.
+This is achieved by passing a `proto` object as part of the interface configuration in `getInterface('@promise').set({ ..., proto })`. The `proto` object contains the standard JavaScript Promise-like methods (`.then()`, `.catch()`, `.resolve()`, etc.) directly as instance methods — no explicit `Object.setPrototypeOf` call is needed in `@init`. The `handlers` map in the same `.set()` call implements the Mesgjs message endpoints, and each handler typically just delegates to the corresponding method on `d.rr` (e.g. `then: (d) => d.rr.then(d.mp.at(0), d.mp.at(1))`). Both sets of functions ultimately operate on the same underlying state, providing two different "dialects" to access the same functionality.
 
 ## Conclusion
 

@@ -1,6 +1,8 @@
-# Mesgjs `@string` And `@regex` Interfaces
+# Mesgjs `@string`, `@regex`, and `@rematch` Interfaces
 
-# Mesgjs `@string` Interface
+# Mesgjs `@string` Interface (final, singleton)
+
+The `@string` interface is a receiver singleton — all JavaScript string values share the same `@string` receiver instance. The original JavaScript string is available via `d.orr` in handlers.
 
 RIC (run-if-code) values are only used where explicitly indicated.
 
@@ -140,32 +142,77 @@ operations `(match1)` (equivalent to JS `.match`), `(matchAll)`, and
 `(search)` are regex-based (rather than string-based) operations in
 Mesgjs, and hence part of the `@regex` interface.
 
-# Mesgjs `@regex` Interface
+# Mesgjs `@regex` Interface (final, singleton)
 
 Regular expressions (regexs) are used for pattern-matching operations on strings.
+
+The `@regex` interface is a **receiver singleton** — all JavaScript `RegExp` values share the same `@regex` receiver instance. The original JavaScript `RegExp` is available via `d.orr` in handlers.
+
+For match iteration state (used by `matchAll`), see the `@rematch` interface below.
 
 RIC values are rarely used in this interface; assume no values are RIC
 values except where otherwise indicated.
 
-* `(@init source flags)`
-  * Synopsis: Instance initializer. The source may be either a string (used to generate a new JS `RegExp` instance in conjunction with the optional flags) or an existing JS `RegExp` instance.
+## Creating @regex Instances
+
+@regex receivers are created automatically when a JavaScript `RegExp` is used as a message receiver. You can also create a regex from a string using the `(re)` message on `@string`:
+
+```mesgjs
+// From a string (creates a new JS RegExp)
+'pattern'(re g)          // regex with "g" flag
+
+// From a JS RegExp literal (in @js blocks or when passed from JS)
+@js{ d.t.set('myRE', /pattern/g); @} // #myRE
+```
+
+## Message Operations
+
 * `(@jsv)`
   * Synopsis: Returns the underlying JavaScript `RegExp` instance.
 * `(eq to)`\
   `(@eq to)`
   * Synopsis: Returns `@t` if `to` refers to the identical underlying JS `RegExp` object (boxed or unboxed).
 * `(exec string)`
-  * Synopsis: Executes the regex against string.
+  * Synopsis: Executes the regex against string. Returns a `@list` (JS NANOS) with the match result, or `@n` (null) if no match.
 * `(flags)`
   * Synopsis: Returns the regex flags.
 * `(last)`
   * Synopsis: Returns the regex's "lastIndex" (essentially, where the next match can start).
+* `(match1 string)`
+  * Synopsis: Matches the regex against string, returning the first match as a `@list` or `@n` (null).
+  * Based on JS `string.match(regex)`.
+* `(ne to)`
+  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `RegExp` object.
+* `(search string)`
+  * Synopsis: Returns the index of the first match of the regex in string, or `-1` if not found.
+* `(setLast index)`
+  * Synopsis: Sets the regex's "lastIndex" value (where the next match can start).
+* `(source)`
+  * Synopsis: Returns the regex source string.
+* `(test string)`
+  * Synopsis: Returns `@t` if the regex matches `string`, or `@f` (false) otherwise.
+
+# Mesgjs `@rematch` Interface (final)
+
+The `@rematch` interface provides match iteration state for the `(matchAll)` operation. Unlike `@regex`, `@rematch` is a **multi-instance** interface — each `(matchAll)` operation uses its own `@rematch` instance to track iteration state.
+
+## Obtaining a @rematch Instance
+
+```mesgjs
+// Get a @rematch instance
+#(nset rem=@c(get @rematch))
+
+// Use it for matchAll iteration
+#rem(matchAll #regex #string each={ ... !})
+```
+
+## Message Operations
+
+* `(last)`
+  * Synopsis: Returns the regex's "lastIndex" value during iteration.
 * `(match)`
   * Synopsis: Returns the current match value during `(matchAll)` as a Mesgjs `@list` (JS NANOS), with a nested list for `groups` (when applicable).
-* `(match1 string)`
-  * Synopsis: Matches the regex against string, returning the first match or `@n` (null).
-  * Based on JS `string.match(regex)`.
-* `(matchAll string each={ block !} else={ block !} collect=@f)`
+* `(matchAll regex string each={ block !} else={ block !} collect=@f)`
   * Synopsis: Matches the regex against string.
   * RIC values: `each`, `else`
   * Based on JS `string.matchAll(regex)`.
@@ -174,22 +221,14 @@ values except where otherwise indicated.
   * If collect is `@f`, the last executed `each` or `else` block value is returned.
   * If collect is `@t`, a list of `each` or `else` block values is returned.
   * If you just want a list of all the matches, you can use
-    `(matchAll string each={[` _`regex`_`(match) ]} collect=@t)`
+    `(matchAll regex string each={[` _`rematch`_`(match) ]} collect=@t)`
 * `(next result=value)`
   * Synopsis: Continues with the next match in `matchAll`, optionally setting or accumulating results.
-* `(ne to)`
-  * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `RegExp` object.
 * `(num)`
   * Synopsis: Returns the 0-based match iteration number during `(matchAll)`.
   * Returns `-1` in the else block.
-* `(search string)`
-  * Synopsis: Returns the index of the first match of the regex in string, or `-1` if not found.
 * `(setLast index)`
   * Synopsis: Sets the regex's "lastIndex" value (where the next match can start).
-* `(source)`
-  * Synopsis: Returns the regex source string.
 * `(stop result=value)`
   * Synopsis: Stops further match iterations in `(matchAll)`, optionally setting or accumulating results.
-* `(test string)`
-  * Synopsis: Returns `@t` if the regex matches `string`, or `@f` (false) otherwise.
 

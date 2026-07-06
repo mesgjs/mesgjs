@@ -40,6 +40,7 @@ const instances = new WeakMap();
 
 let arrayBox;
 let falseBox;
+let listBox;
 let mapBox;
 let nullBox;
 let numberBox;
@@ -77,10 +78,6 @@ function installCoreExtensions () {
 	installJSObject('@jsObject');
 	installKVIter('@kvIter');
 	installList('@list');
-	// Teach toMsjs how to convert NANOS to a Msjs @list
-	NANOS.prototype[convertSym] = function () {
-		return getInstance('@list', [this]);
-	}
 	installLoop('@loop');
 	installMap('@map');
 	installNull();
@@ -97,6 +94,7 @@ function installCoreExtensions () {
 	// Pre-init boxes for common JS types
 	arrayBox = getInstance('@jsArray');
 	falseBox = getInstance('@false');
+	listBox = getInstance('@list');
 	mapBox = getInstance('@map');
 	nullBox = getInstance('@null');
 	numberBox = getInstance('@number');
@@ -145,6 +143,9 @@ function msjsReceiver (jsv) {
 				reactiveBox ||= getInstance('@reactive');
 				instance = reactiveBox;
 			}
+			else if (jsv instanceof NANOS) {
+				instance = listBox;
+			}
 			else if (jsv instanceof RegExp) {
 				instance = regExpBox;
 			}
@@ -155,11 +156,11 @@ function msjsReceiver (jsv) {
 				instance = setBox;
 			}
 			// NOTE: @jsObject only grants read-only access to external objects
-			/* // Lenient version (object-box any other object class)
+			/* */ // Lenient version (Object-box any other object class)
 			else {
 				instance = objectBox;
 			} /* */
-			/* */ // Strict version (only object-box plain objects)
+			/* // Strict version (only object-box plain objects)
 			else {
 				const proto = Object.getPrototypeOf(jsv);
 
@@ -179,11 +180,11 @@ function msjsReceiver (jsv) {
 }
 
 // ($)toMsjs backwards-compatibility function
-// (deprecated - use $c.sm (sendAnonMessage) in new code)
+// (deprecated - use $c.sm (MsjsObject.sm / "sendAnonMessage") in new code)
 function toMsjs (rr) {
 	const rfn = (op, mp) => $c.sm(rr, op, mp);
 
-	rfn.msjsType = rr?.msjsType;
+	rfn.msjsType = rr?.msjsType || msjsReceiver(rr)?.msjsType;
 	rfn.jsv = rr;
 	rfn.valueOf = () => rr;
 	return rfn;

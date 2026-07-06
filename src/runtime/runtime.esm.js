@@ -626,6 +626,7 @@ export class MsjsObject {
 		case 'smi': case 'sr': case 'st':
 		case 'mop': case 'dop': case 'hop': case 'ht':
 		case 'orr': case 'rr': case 'rt':
+		case 'js':
 			mc.value = origCtx[op];
 			return true;
 		case 'redis': // Redispatch
