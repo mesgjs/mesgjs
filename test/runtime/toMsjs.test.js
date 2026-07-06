@@ -5,7 +5,8 @@ import "../../src/runtime/mesgjs.esm.js";
 import { NANOS } from "@nanos";
 
 Deno.test("$toMsjs Type Conversion", async (t) => {
-	const $toMsjs = globalThis.$toMsjs;
+	//const $toMsjs = globalThis.$toMsjs;
+	const $toMsjs = globalThis.$msjsReceiver;
 
 	await t.step("should convert JS primitives to Mesgjs types", () => {
 		assertEquals($toMsjs(true).msjsType, "@true");

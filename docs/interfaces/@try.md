@@ -1,5 +1,7 @@
 # Mesgjs @try Interface
 
+## Message Operations
+
 *   `@c(get @try)`
     *   Synopsis: Get a new try/catch instance.
 

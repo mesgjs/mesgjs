@@ -1,5 +1,7 @@
 # Mesgjs @kvIter Interface
 
+## Message Operations
+
 * `@c(get @kvIter)`
   * Synopsis: Gets a new `@kvIter` list iteration instance.  
 * `(for source index=indexBlock named=namedBlock bothBlock collect=@f else=elseBlock)`

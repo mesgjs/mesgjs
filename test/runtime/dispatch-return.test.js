@@ -17,7 +17,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, undefined, "Expected undefined when no return value provided");
 	});
 
@@ -32,7 +32,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 'test-value', "Expected 'test-value' to be returned");
 	});
 
@@ -47,7 +47,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 42, "Expected 42 to be returned");
 	});
 
@@ -66,8 +66,8 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		assertEquals(inst('testTrue'), true, "Expected true to be returned");
-		assertEquals(inst('testFalse'), false, "Expected false to be returned");
+		assertEquals($c.sm(inst, 'testTrue'), true, "Expected true to be returned");
+		assertEquals($c.sm(inst, 'testFalse'), false, "Expected false to be returned");
 	});
 
 	await t.step("should return null", () => {
@@ -81,7 +81,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, null, "Expected null to be returned");
 	});
 
@@ -97,7 +97,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, testObj, "Expected object to be returned");
 	});
 
@@ -113,7 +113,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assert(result instanceof NANOS, "Expected NANOS instance to be returned");
 		assertEquals(result.at(0), 'a');
 		assertEquals(result.at(1), 'b');
@@ -131,7 +131,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 0, "Expected 0 to be returned (not confused with undefined)");
 	});
 
@@ -146,7 +146,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, '', "Expected empty string to be returned (not confused with undefined)");
 	});
 
@@ -161,7 +161,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 'list-op-value', "Expected list-op format to work");
 	});
 
@@ -178,11 +178,11 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result1 = inst('test');
+		const result1 = $c.sm(inst, 'test');
 		assertEquals(result1, 'first-return');
 		assertEquals(callCount, 1, "Handler should only be called once");
 
-		const result2 = inst('test');
+		const result2 = $c.sm(inst, 'test');
 		assertEquals(result2, 'first-return');
 		assertEquals(callCount, 2, "Handler should be called again on second message");
 	});
@@ -193,7 +193,7 @@ Deno.test("@d(return) operation", async (t) => {
 		aif.set({
 			handlers: {
 				outer: (d) => {
-					const innerResult = d.rr('inner');
+					const innerResult = d.sm(d.rr, 'inner');
 					return 'outer-got-' + innerResult;
 				},
 				inner: (d) => {
@@ -203,7 +203,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(aif.ifName);
-		const result = inst('outer');
+		const result = $c.sm(inst, 'outer');
 		assertEquals(result, 'outer-got-inner-value', "Return should only affect inner dispatch, outer continues");
 	});
 
@@ -229,7 +229,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(subIf.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 'sub-got-from-super', "Return in super affects redis result, sub continues");
 	});
 
@@ -255,7 +255,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(subIf.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 'from-super', "Redispatch result is returned from sub");
 	});
 
@@ -290,7 +290,7 @@ Deno.test("@d(return) operation", async (t) => {
 			},
 		});
 		const inst = getInstance(ifC.ifName);
-		const result = inst('test');
+		const result = $c.sm(inst, 'test');
 		assertEquals(result, 'C-got-B-got-from-A', "Nested redispatches with return work correctly");
 	});
 
@@ -311,12 +311,12 @@ Deno.test("@d(return) operation", async (t) => {
 		const inst = getInstance(aif.ifName);
 
 		sideEffect = false;
-		const result1 = inst('test', new NANOS(['early']));
+		const result1 = $c.sm(inst, 'test', new NANOS(['early']));
 		assertEquals(result1, 'early-exit');
 		assertEquals(sideEffect, false, "Side effect should not occur after early return");
 
 		sideEffect = false;
-		const result2 = inst('test', new NANOS(['normal']));
+		const result2 = $c.sm(inst, 'test', new NANOS(['normal']));
 		assertEquals(result2, 'normal-return');
 		assertEquals(sideEffect, true, "Side effect should occur in normal flow");
 	});

@@ -1,27 +1,15 @@
 /*
- * Mesgjs @promise interface - JS Promise wrapper
+ * Mesgjs @promise interface
  * (Implements Promise-like API, but is NOT a JS Promise wrapper interface)
  *
  * Authors: Brian Katzung <briank@kappacs.com> and ChatGPT
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-/*
-Can reject in the original promise task, but queues the handler call (it
-doesn't require the handler yet).
-It returns.
-Handlers can be added in a chain after the new Promise.
-In the reject dispatch, checks for no reject handler.
-*/
-
 import { getInstance, getInterface, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 
-const identity = x => x, thrower = x => { throw x; };
-const callable = f => typeof f === 'function' && (!f.msjsType || f.msjsType === '@code' || f.msjsType === '@function');
-const thenable = o => typeof o?.then === 'function';
 const privKey = Symbol();
-const dualStatus = status => Object.assign(new NANOS(status), status);
 
 function arrayFrom (value) {
 	// Pass arrays through as-is
@@ -38,6 +26,14 @@ function arrayFrom (value) {
 	}
 }
 
+function callable (f) {
+	if (typeof f === 'function') return true;
+
+	const type = f?.msjsType;
+
+	return type === '@code' || type === '@function';
+}
+
 function callHandlers (list) {
 	const { state, result } = this[privKey], ok = state === 'fulfilled';
 	if (!ok && !list.length) {
@@ -48,13 +44,18 @@ function callHandlers (list) {
 		const [ onResolve, onReject, next ] = entry;
 		queueMicrotask(() => {
 			try {
-				const handler = ok ? onResolve : onReject, mt = handler.msjsType;
-				if (mt) {
+				const handler = ok ? onResolve : onReject;
+				const mt = handler?.msjsType;
+
+				if (mt === '@code') {
+					next.resolve($c.sm(handler, 'run'));
+				} else if (mt === '@function') {
 					const mp = ok ? { state, resolve: result } : { state, reject: result, message: result?.message };
-					// Note: @function(call) can see the message params; @code(run) cannot!
-					next.resolve(handler((mt === '@code') ? 'run' : 'call', mp));
+
+					next.resolve($c.sm(handler, 'call', mp));
+				} else {
+					next.resolve(handler(result));
 				}
-				else next.resolve(handler(result));
 			} catch (err) {
 				next.reject(err);
 			}
@@ -62,7 +63,11 @@ function callHandlers (list) {
 	}
 }
 
-const proto = Object.setPrototypeOf({
+function dualStatus (status) { return Object.assign(new NANOS(status), status); }
+
+function identity (x) { return x; }
+
+const proto = {
 	// Resolve all of a set of promises with an array of their results
 	all (promises) {
 		if (this[privKey].state !== 'pending') return;
@@ -208,13 +213,15 @@ const proto = Object.setPrototypeOf({
 		return this;
 	},
 
-}, Function.prototype);
+};
 proto.finally = proto.always;
+
+function thenable (o) { return typeof o?.then === 'function'; }
+
+function thrower (x) { throw x; }
 
 function opInit (d) {
 	// Initialize, and make this object JS/Mesgjs "bilingual"
-	// (Note the alternate d.rr (vs d.js) architecture here)
-	Object.setPrototypeOf(d.rr, proto);
 	setRO(d.rr, privKey, {
 		state: 'pending', result: undefined, handlers: [],
 		timerId: undefined,
@@ -246,6 +253,7 @@ export function install (name) {
 			then: (d) => d.rr.then(d.mp.at(0), d.mp.at(1)),
 			wait: (d) => d.rr.wait(d.mp.at(0), d.mp.at(1)),
 		},
+		proto,
 	});
 }
 

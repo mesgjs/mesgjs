@@ -8,8 +8,7 @@ import '../../src/runtime/mesgjs.esm.js';
 const $n = (n) => $toMsjs(n);
 
 Deno.test('@number - initialization', () => {
-  const num = $c('get', ls([, '@number', 'init', ls([, 42])]));
-  assertEquals(num('valueOf'), 42);
+  assertEquals($c.sm(42, 'valueOf'), 42);
 });
 
 Deno.test('@number - arithmetic', () => {

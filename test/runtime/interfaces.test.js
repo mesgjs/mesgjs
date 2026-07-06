@@ -38,7 +38,7 @@ Deno.test("Interface System", async (t) => {
 
 	await t.step("instance should respond to messages", () => {
 		const instance = getInstance(supertypeName);
-		const result = instance("ping");
+		const result = $c.sm(instance, "ping");
 		assertEquals(result, "pong");
 	});
 
@@ -97,7 +97,7 @@ Deno.test("Interface instance attribution", async (t) => {
 		$gss.clear(); // Ensure clean storage
 
 		const senderInstance = getInstance("sender");
-		senderInstance("createInspector");
+		$c.sm(senderInstance, "createInspector");
 
 		const sr = $gss.at("sr");
 		const st = $gss.at("st");
@@ -147,7 +147,7 @@ Deno.test("Interface instance attribution", async (t) => {
 		});
 
 		const senderInstance2 = getInstance("sender2");
-		senderInstance2("createSubInspector");
+		$c.sm(senderInstance2, "createSubInspector");
 
 		// Verify sender context was passed to sub-interface @init
 		const subSr = $gss.at("subSr");

@@ -1,5 +1,7 @@
 # Mesgjs @loop Interface
 
+## Message Operations
+
 *   `@c(get @loop)`
     *   Synopsis: Get a new loop instance.
 
@@ -65,6 +67,7 @@ Loop iterations will execute sequentially, waiting for asynchronous execution to
     { @c(log %l2(num) %l2(num1)) %l2(num1)(mul 2) !}
     mid={ %l2(num)(lt 2) !}
     { %l2(next result='/') }
-    collect=@t)(toString)
+    collect=@t
+)(toString)
 // 0 1; 1 2; 2 3
 // [(2 '/' 4 '/' 6)]

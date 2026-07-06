@@ -1,5 +1,5 @@
 /*
- * Mesgjs @undefined interface - JS undefined wrapper
+ * Mesgjs @undefined interface - JS undefined receiver singleton
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
@@ -7,27 +7,18 @@
 import { getInterface, setRO } from './runtime.esm.js';
 
 const retUndef = () => undefined;
-const isUndef = (d) => {
-	const value = d.mp.at(0);
-
-	return value === undefined || (typeof value === 'function' && value.msjsType === '@undefined');
-};
 
 export function install () {
 	getInterface('@undefined').set({
 		final: true, lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': d => {
-				setRO(d.octx, 'js', undefined);
-				setRO(d.rr, { jsv: undefined, valueOf: retUndef });
-			},
-			'@eq': isUndef,
+			'@eq': (d) => d.orr === undefined,
 			'@jsv': retUndef,
-			'=': isUndef,
-			'!=': (d) => !isUndef(d),
-			eq: isUndef,
+			'=': (d) => d.mp.at(0) === undefined,
+			'!=': (d) => d.mp.at(0) !== undefined,
+			eq: (d) => d.mp.at(0) === undefined,
 			has: retUndef,
-			ne: (d) => !isUndef(d),
+			ne: (d) => d.mp.at(0) !== undefined,
 			toString: () => '@u',
 			valueOf: retUndef,
 		},

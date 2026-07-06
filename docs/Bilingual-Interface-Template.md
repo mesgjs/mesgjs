@@ -30,7 +30,7 @@ modcaps='optional list of requested module capabilities'
     if (!mid) throw new Error('Module MyModule requires Mesgjs module management to be active');
 
     // Most essential runtime functions are exposed as JS properties of `$c`, the JS presentation of the singleton `@core` Mesgjs interface instance.
-    const { fready, fwait, getInstance, getInterface, setRO, modHasCap } = globalThis.$c;
+    const { fready, fwait, getInstance, getInterface, setRO, modHasCap, sm } = globalThis.$c;
 
     // To wait for dependent modules to be loaded (using their `fready` feature readiness):
     await fwait('feature1Ready', 'feature2Ready');
@@ -130,27 +130,34 @@ This pattern is best-suited to wrapping existing JavaScript implementations for 
 
 ### Alternative, "Mesgjs-First" Approach
 
-You can also add a JavaScript interface to a standard Mesgjs object by changing the instance prototype.
+You can also add a JavaScript interface to a standard Mesgjs object by declaring a `proto` object as part of your interface configuration. The runtime will construct a dedicated subclass of `MsjsObject` for your interface type and attach the prototype automatically to every instance. (This is generally more performant and allows for better optimization by the JS engine than using `Object.setPrototypeOf` after object creation.)
 
 This is more of an "is-a" approach, as each "instance" is one object with integrated interfaces, rather than using a separate wrapper object.
 
-```
-const jsProto = Object.setPrototypeOf({
-    op1 (params) { return this('op1', params); },
-    op2 (params) { return this('op2', params); },
-    get prop () { return this('prop'); },
+```javascript
+const jsProto = {
+	// A constructor is never included
+    op1 (params) { return $c.sm(this, 'op1', params); },
+    op2 (params) { return $c.sm(this, 'op2', params); },
+    get prop () { return $c.sm(this, 'prop'); },
     // Conventional entries (JS from/to Mesgjs):
     get jsv () { return this; },
     valueOf () { return this; },
     [globalThis.$c.symbols.convert] () { return this; },
-}, Function.prototype);
+};
+
 // ...
-function opInit (d) {
-    // Other initialization
-    // Add JS interface to Mesgjs instance/receiver
-    Object.setPrototypeOf(d.rr, jsProto);
-}
+const interface = getInterface('MyInterfaceName');
+interface.set({
+    handlers: {
+        '@init': opInit,
+        // ... other handlers
+    },
+    proto: jsProto, // Every instance gets jsProto as its prototype
+});
 ```
+
+> **Note:** In v4, `d.rr` is a `MsjsObject` class instance, not a function. The old pattern of using `Object.setPrototypeOf(d.rr, jsProto)` with `Function.prototype` chaining no longer works. Use the `proto` property in your interface configuration instead.
 
 This pattern is well-suited for "native" Mesgjs interfaces that will be implemented primarily via, or would benefit from easy accessibility to, embedded JavaScript.
 

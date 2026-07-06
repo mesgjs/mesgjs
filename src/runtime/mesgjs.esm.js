@@ -27,7 +27,7 @@ import { install as installUndefined } from './js-undefined.esm.js';
 
 import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
-import { isPlainObject } from './unified-list.esm.js';
+import { reactive } from '@reactive';
 
 // The minimum "main program":
 // import { setModMeta } from '.../mesgjs.esm.js';
@@ -37,6 +37,20 @@ export { setModMeta };
 const instanceSym = Symbol.for('msjsInstance');
 const convertSym = Symbol.for('toMsjs');
 const instances = new WeakMap();
+
+let arrayBox;
+let falseBox;
+let listBox;
+let mapBox;
+let nullBox;
+let numberBox;
+let objectBox;
+let reactiveBox;
+let regExpBox;
+let setBox;
+let stringBox;
+let trueBox;
+let undefBox;
 
 // Guaranteed-load, @-interface extension modules
 function installCoreExtensions () {
@@ -64,10 +78,6 @@ function installCoreExtensions () {
 	installJSObject('@jsObject');
 	installKVIter('@kvIter');
 	installList('@list');
-	// Teach toMsjs how to convert NANOS to a Msjs @list
-	NANOS.prototype[convertSym] = function () {
-		return getInstance('@list', [this]);
-	}
 	installLoop('@loop');
 	installMap('@map');
 	installNull();
@@ -80,53 +90,110 @@ function installCoreExtensions () {
 	installTimestamp('@timestamp');
 	installTry('@try');
 	installUndefined();
+
+	// Pre-init boxes for common JS types
+	arrayBox = getInstance('@jsArray');
+	falseBox = getInstance('@false');
+	listBox = getInstance('@list');
+	mapBox = getInstance('@map');
+	nullBox = getInstance('@null');
+	numberBox = getInstance('@number');
+	objectBox = getInstance('@jsObject');
+	regExpBox = getInstance('@regex');
+	setBox = getInstance('@set');
+	stringBox = getInstance('@string');
+	trueBox = getInstance('@true');
+	undefBox = getInstance('@undefined');
 }
 
-let falseInst;
-let nullInst;
-let trueInst;
-let undefInst;
-
-// Promote a JS object to a Msjs object for messaging
-function toMsjs (jsv) {
-	if (jsv?.msjsType) return jsv;
-	if (!nullInst) {
-		falseInst = getInstance('@false');
-		nullInst = getInstance('@null');
-		trueInst = getInstance('@true');
-		undefInst = getInstance('@undefined');
-	}
-
+/**
+ * Returns the Mesgjs receiver for a non-Mesgjs object.
+ * IMPORTANT:
+ *   This function is only meant for internal use by the messaging system. The
+ *   same exact (JS ===) receiver object may be used for a range of inputs, so
+ *   the return value by itself does not necessarily distinctly represent the input.
+ *   For example, one singleton receives messages for all numbers, and another
+ *   singleton receives messages for all strings. In such cases, distinctiveness is
+ *   part of dispatch state ("original receiver"), not a property of the receiver.
+ *   
+ * @param {*} jsv - JS value
+ * @returns {MsjsObj} - The Mesgjs receiver object
+ */
+function msjsReceiver (jsv) {
 	let instance;
 
 	switch (typeof jsv) {
 	case 'boolean':
-		return jsv ? trueInst : falseInst;
+		return jsv ? trueBox : falseBox;
 	case 'bigint':
 	case 'number':
-		return getInstance('@number', [jsv]);
+		return numberBox;
 	case 'object':
-		if (jsv === null) return nullInst;
+		if (jsv === null) return nullBox;
+		if (jsv.msjsType) return jsv;
 		instance = jsv[instanceSym] || instances.get(jsv);
 		if (!instance) {
-			if (jsv[convertSym]) instance = jsv[convertSym]();
-			else if (jsv instanceof RegExp) instance = getInstance('@regex', [jsv]);
-			else if (Array.isArray(jsv)) instance = getInstance('@jsArray', [jsv]);
-			else if (jsv instanceof Map) instance = getInstance('@map', [jsv]);
-			else if (jsv instanceof Set) instance = getInstance('@set', [jsv]);
-			else if (isPlainObject(jsv)) instance = getInstance('@jsObject', [jsv]);
+			if (jsv[convertSym]) {
+				instance = jsv[convertSym]();
+			}
+			else if (Array.isArray(jsv)) {
+				instance = arrayBox;
+			}
+			else if (jsv.$reactive === reactive.type) {
+				reactiveBox ||= getInstance('@reactive');
+				instance = reactiveBox;
+			}
+			else if (jsv instanceof NANOS) {
+				instance = listBox;
+			}
+			else if (jsv instanceof RegExp) {
+				instance = regExpBox;
+			}
+			else if (jsv instanceof Map) {
+				instance = mapBox;
+			}
+			else if (jsv instanceof Set) {
+				instance = setBox;
+			}
+			// NOTE: @jsObject only grants read-only access to external objects
+			/* */ // Lenient version (Object-box any other object class)
+			else {
+				instance = objectBox;
+			} /* */
+			/* // Strict version (only object-box plain objects)
+			else {
+				const proto = Object.getPrototypeOf(jsv);
+
+				if (proto === Object.prototype || proto === null) {
+					instance = objectBox;
+				}
+			} /* */
 			if (instance) instances.set(jsv, instance);
 		}
-		if (instance) return instance;
-		return undefInst;
+		return instance;
 	case 'string':
-		return getInstance('@string', [jsv]);
-	default:
-		return undefInst;
+		return stringBox;
+	case 'undefined':
+		return undefBox;
 	}
+	// No compatible instance available
 }
 
-setRO(globalThis, '$toMsjs', toMsjs);
+// ($)toMsjs backwards-compatibility function
+// (deprecated - use $c.sm (MsjsObject.sm / "sendAnonMessage") in new code)
+function toMsjs (rr) {
+	const rfn = (op, mp) => $c.sm(rr, op, mp);
+
+	rfn.msjsType = rr?.msjsType || msjsReceiver(rr)?.msjsType;
+	rfn.jsv = rr;
+	rfn.valueOf = () => rr;
+	return rfn;
+}
+
+setRO(globalThis, {
+	$msjsReceiver: msjsReceiver,
+	$toMsjs: toMsjs,
+});
 initialize(installCoreExtensions);
 
 // END

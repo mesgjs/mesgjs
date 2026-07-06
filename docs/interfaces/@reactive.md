@@ -1,13 +1,13 @@
-# Mesgjs @reactive Interface
+# Mesgjs @reactive Interface (final, singleton)
 
 Reactive values in Mesgjs are similar to spreadsheet cells. They may be assigned either a static value, or a "def" (a definition, like a spreadsheet formula) that is used to calculate the value. Changes to reactive values automatically trigger recalculations of any other reactive values whose definitions depend on the modified values.
 
 Derived values are normally only recalculated if used in the definitions of other values or directly accessed ("lazy evaluation"), but this may be overridden by setting specifying that recalculation should be "eager".
 
-* `(@init reactive cmp=cmpBlock def=defBlock eager=bool v=value)`
-  * Synopsis: Initializer. Wraps a new (or optional existing) reactive JavaScript object.  
-  * RIC values: cmp, def  
-  * When wrapping a new reactive, the comparison block, def(inition) block, eagerness, and initial value may optionally be supplied.  
+The `@reactive` interface is a **receiver singleton** — all reactive JavaScript objects share the same `@reactive` receiver instance. The original JavaScript reactive object is available via `d.orr` in handlers.
+
+## Message Operations
+
 * `(@jsv)`
   * Synopsis: Returns the underlying JavaScript reactive object.  
 * `(batch block)`
@@ -28,6 +28,14 @@ Derived values are normally only recalculated if used in the definitions of othe
   * Synopsis: Traverses any chained reactive values and returns the final, non-reactive, value.  
 * `(ne to)`
   * Synopsis: Returns `@t` if `to` does not refer to the identical underlying reactive JavaScript object.
+* `(new v? cmp?=cmp def?=def eager=bool v?=value)`
+  * Synopsis: Creates a new reactive JavaScript object.
+  * RIC values: cmp, def
+  * The comparison block (`cmp`) determines when the reactive value has changed.
+  * The definition block (`def`) is a "formula" that calculates the value.
+  * If `eager` is true, the value is recalculated eagerly instead of lazily.
+  * The initial value can be set with `v` or a positional parameter.
+  * Note: The returned reactive object is a plain JavaScript reactive. When used as a message receiver, it will be automatically boxed by the `@reactive` receiver singleton.
 * `(rio)`
   * Synopsis: Returns a RIO (reactive interface object) based on the current reactive.
   * A RIO is used to provide limited reactive support to other objects (e g., @list) in an implementation-independent manner.

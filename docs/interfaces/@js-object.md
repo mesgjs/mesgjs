@@ -1,15 +1,14 @@
-# Mesgjs `@js-object` Interface
+# Mesgjs `@jsObject` Interface (final, singleton)
 
 This interface provides a bridge to native JavaScript `Object` objects, allowing them to be messaged directly within Mesgjs.
 
-Only plain JavaScript objects are automatically promoted to Mesgjs `@jsObject` instances. If you want to use the interface with other objects, you must manually instantiate a `@jsObject`, providing the JS object as an `init` parameter.
+The `@jsObject` interface is a **receiver singleton** — all plain JavaScript `Object` values or non-specific object types (depending on the [mesgjs.esm.js](../../src/runtime/mesgjs.esm.js) `msjsReceiver` configuration) share the same `@jsObject` receiver instance. The original JavaScript object is available via `d.orr` in handlers.
+
 
 This interface mirrors some of the functionality of the JavaScript `Object`.
 
-**Read/write vs. read-only objects:** `@jsObject` uses an internal ownership stamp to distinguish objects it has created from externally-supplied ones. When no argument is passed to `@init`, a fresh null-prototype object is created and stamped as owned — write operations (`set`, `=`, `nset`, `==`) work normally on it. When an external JS object is passed as the `@init` argument, it is treated as read-only and write operations throw a `TypeError`. The ownership stamp travels with the object itself, so if a fresh object's underlying JS value is extracted (e.g. via `@jsv`) and later re-wrapped in a new `@jsObject` instance, it retains its stamp and remains writable.
+**Read/write vs. read-only objects:** `@jsObject` uses an internal ownership stamp to distinguish objects it has created from externally-supplied ones. When creating objects with `(new)`, a fresh null-prototype object is created and stamped as owned — write operations (`set`, `=`, `nset`, `==`) work normally on it. All other objects are treated as read-only and write operations throw a `TypeError`.
 
-* `(@init object?)`
-  * Synopsis: Initializes the Mesgjs object. If a plain JS `object` is provided, it is used as the backing store and treated as read-only for write operations. If no argument is provided, a fresh owned null-prototype object is created and is fully read/write.
 * `(@jsv)`
   * Synopsis: Returns the underlying native JavaScript `Object` object.
 * `(at key... path=[key...] else=elseBlock)`\
@@ -32,6 +31,11 @@ This interface mirrors some of the functionality of the JavaScript `Object`.
   * Synopsis: A low-level function that returns the JavaScript key-iterator function used by the `@kvIter` interface.
 * `(ne to)`
   * Synopsis: Returns `@t` if `to` does not refer to the identical underlying JS `Object`.
+* `(new from?=source)`
+  * Synopsis: Returns a new JavaScript `Object` with a null prototype.
+  * If `from` is provided, the new object is populated with the key/value pairs from `source` (which should be a `@list`, `@map`, or similar iterable with entries).
+  * If `from` is not provided, returns an empty object.
+  * The returned object is "owned" and supports write operations (`set`, `nset`, etc.).
 * `(nset key1=value1 ...)`\
 `(== key1=value1 ...)`
   * Synopsis: Sets one or more named properties on the object in a single message. Throws a `TypeError` if the object is read-only (externally-supplied).

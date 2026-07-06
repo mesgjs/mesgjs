@@ -13,7 +13,7 @@
 import { assertEquals, assertExists, assert } from 'jsr:@std/assert';
 import '../src/runtime/mesgjs.esm.js';
 // Being foundational to the language, NANOS is added to globalThis when the runtime is loaded
-import { loadMesgjsModuleSource, transpileMesgjs } from "./harness.esm.js";
+import { loadMesgjsModuleSource, transpileMesgjs } from "../harness.esm.js";
 
 Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	const $gss = globalThis.$gss;

@@ -1,6 +1,6 @@
-# Mesgjs `@timestamp` Interface
+# Mesgjs `@timestamp` Interface (singleton)
 
-The `@timestamp` interface provides utilities for working with timestamps (milliseconds since the Unix epoch, January 1, 1970 00:00:00 UTC). It is a singleton interface — there is only one instance, accessible via `@c(get @timestamp)`.
+The `@timestamp` singleton interface provides utilities for working with timestamps (milliseconds since the Unix epoch, January 1, 1970 00:00:00 UTC). It is a singleton interface — there is only one instance, accessible via `@c(get @timestamp)`.
 
 Timestamps are plain JavaScript numbers (milliseconds since the Unix epoch). They are not wrapped in a special object type.
 

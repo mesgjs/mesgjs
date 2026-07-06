@@ -119,7 +119,7 @@ export function transpileTree (tree, opts = {}) {
 			}
 			return true;
 		}
-		msgs.forEach(m => outseg('sm(', m, true));
+		msgs.forEach(m => outseg('d.s(', m, true));
 		if (!specialBase(base)) generate(base);
 		msgs.forEach(m => { output(','); generateMessage(m); output(')'); });
 	}
@@ -131,7 +131,7 @@ export function transpileTree (tree, opts = {}) {
 			// Generate out-of-band (blocks array) content
 			pushOut();
 			// Code template will be assigned a global block id at first binding
-			output(`{cd:d=>{const{mp,sm}=d;`);
+			output(`{cd:d=>{const{mp}=d;`);
 		}
 
 		const count = node.statements.length, rtn = node.return ? (count - 1) : -1;
@@ -157,7 +157,7 @@ export function transpileTree (tree, opts = {}) {
 			else outBuf.unshift('const c=Object.freeze([', ...blocks.flat(1), ']);');
 			blocks.length = 0;
 		}
-		if (!repl) outBuf.unshift(segment(`export async function loadMsjs(mid){const{d,ls,m,na}=$modScope(),{mp,sm}=d;0&&await 0;\n`));
+		if (!repl) outBuf.unshift(segment(`export async function loadMsjs(mid){const{d,ls,m,na}=$modScope(),{mp}=d;0&&await 0;\n`));
 		if (jsFirst) outBuf.unshift(initialJS);
 		if (!repl) outBuf.push(segment(`}if(!globalThis.msjsNoSelfLoad)loadMsjs();\n`));
 	}

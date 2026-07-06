@@ -7,17 +7,18 @@ import {
 import "../../src/runtime/mesgjs.esm.js";
 
 Deno.test("@undefined Interface", async (t) => {
-  const mUndefined = $c("get", "@undefined");
+	await t.step("Consistent receiver", () => {
+		assertEquals($msjsReceiver(undefined), $msjsReceiver(undefined));
+	});
 
-  await t.step("Singleton properties", () => {
-	assertEquals(mUndefined, $toMsjs(globalThis.$u));
-	assertEquals(mUndefined.msjsType, "@undefined");
-	assertEquals(mUndefined("valueOf"), undefined);
-	assertEquals(mUndefined("@jsv"), undefined);
-  });
+	await t.step("Singleton properties", () => {
+		assertEquals($msjsReceiver(undefined).msjsType, "@undefined");
+		assertEquals($c.sm(undefined, "valueOf"), undefined);
+		assertEquals($c.sm(undefined, "@jsv"), undefined);
+	});
 
-  await t.step("Operations", () => {
-	assertEquals(mUndefined("toString"), "@u");
-	assertEquals(mUndefined("has"), undefined);
-  });
+	await t.step("Operations", () => {
+		assertEquals($c.sm(undefined, "toString"), "@u");
+		assertEquals($c.sm(undefined, "has"), undefined);
+	});
 });

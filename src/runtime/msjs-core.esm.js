@@ -4,7 +4,10 @@
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, modHasCap, runIfCode, runWhileCode, setModMeta, setRO, typeAccepts, typeChains } from './runtime.esm.js';
+import {
+	debugConfig, fcheck, fready, fwait, getInstance, getInterface, getModMeta, logInterfaces, modHasCap,
+	MsjsObject, runIfCode, runWhileCode, sendAnonMessage, setModMeta, setRO, typeAccepts, typeChains
+} from './runtime.esm.js';
 import { NANOS, parseQJSON, parseSLID } from '@nanos';
 
 // (and value...)
@@ -41,19 +44,19 @@ function opAwait (d) {
 // Comparison and result blocks are RIC values.
 function opCase (d) {
 	const mp = d.mp, cmp = mp.at('cmp', '@eq'), stop = mp.next - 1;
-	const rawRef = mp.at(0), msjsRef = $toMsjs(rawRef), ref = msjsRef ?? rawRef, type = msjsRef?.msjsType;
+	const ref = mp.at(0), type = MsjsObject.typeOf(ref);
 	let eq;
 
 	// Determine comparison strategy
-	if (typeof cmp === 'function' && cmp.msjsType === '@function') { // cmp is a Mesgjs @function
-		eq = (value) => cmp('call', [value, ref]); // Compare using `fn(call value ref)`
+	if (MsjsObject.typeOf(cmp) === '@function') {
+		eq = (value) => $c.sm(cmp, 'call', [value, ref]); // Compare using `fn(call value ref)`
 	} else if (cmp === '@eq') { // Use "@eq" protocol if available, otherwise use "same" protocol
-		if (type && typeAccepts(type, '@eq')) eq = (value) => msjsRef('@eq', [value]);
-		else eq = (value) => rawRef === value;
+		if (type && typeAccepts(type, '@eq')) eq = (value) => $c.sm(ref, '@eq', [value]);
+		else eq = (value) => ref === value;
 	} else if (cmp === '@same') { // Use "@same" protocol (value1 === value2)
-		eq = (value) => rawRef === value;
+		eq = (value) => ref === value;
 	} else {
-		eq = (value) => msjsRef(cmp, [value]); // Standard or list-op message (likely with else)
+		eq = (value) => $c.sm(ref, cmp, [value]); // Standard or list-op message (likely with else)
 	}
 
 	for (let i = 1; i < stop; i += 2) if (eq(runIfCode(mp.at(i)))) return runIfCode(mp.at(i + 1));
@@ -65,11 +68,9 @@ function opCase (d) {
 // Uses value1(@eq value2) if available or JS value1 === value2 otherwise
 function opEq (d) {
 	const mp = d.mp;
-	const v1 = mp.at(0), msjsV1 = $toMsjs(v1), type = msjsV1?.msjsType;
-	const v2 = m2.at(1);
+	const v1 = mp.at(0), v2 = mp.at(1);
 
-	if (type && typeAccepts(type, '@eq')) return msjsV1('@eq', [v2]);
-	return v1 === v2;
+	return $c.sm(v1, { op: '@eq', else: v1 === v2 }, v2);
 }
 
 // (get type init=params)
@@ -90,9 +91,6 @@ function opIf (d) {
 	if (mp.has('else')) return runIfCode(mp.at('else'));
 	if (mp.next % 2) return runIfCode(mp.at(end));
 }
-
-// function opImport (d) {
-// }
 
 // (or value...)
 // Or: first true result, else last false result (default false)
@@ -180,7 +178,7 @@ export function install (name) {
 			same: (d) => d.mp.at(0) === d.mp.at(1),
 			slid: (d) => parseSLID(d.mp.at(0, '')),
 			throw: opThrow,
-			type: (d) => globalThis.$toMsjs(d.mp.at(0))?.msjsType,
+			type: (d) => globalThis.$msjsReceiver(d.mp.at(0))?.msjsType,
 			typeAccepts: (d) => typeAccepts(d.mp.at(0), d.mp.at(1)),
 			typeChains: (d) => typeChains(d.mp.at(0), d.mp.at(1)),
 			xor: opXor,
@@ -210,6 +208,7 @@ export function install (name) {
 			runWhileCode,
 			setModMeta,
 			setRO,
+			sm: sendAnonMessage,
 			typeAccepts,
 			typeChains,
 		});

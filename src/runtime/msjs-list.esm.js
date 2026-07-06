@@ -1,44 +1,21 @@
 /*
- * Mesgjs NANOS wrapper interface
+ * Mesgjs NANOS receiver singleton
  * Author: Brian Katzung <briank@kappacs.com>
  * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  */
 
-import { getInstance, getInterface, runIfCode, setRO } from './runtime.esm.js';
+import { getInstance, getInterface, MsjsObject, runIfCode, setRO } from './runtime.esm.js';
 import { unifiedList, uniAt } from './unified-list.esm.js';
-
-function expand (mp) {
-	return mp.values().map((v) => {
-		if (typeof v !== 'function') return v;
-
-		const jsv = v.jsv;
-
-		return (jsv instanceof NANOS || jsv instanceof Map || jsv instanceof Set) ? jsv : v;
-	});
-}
-
-function opInit (d) {
-	const { octx, mp } = d, list = mp.at(0);
-
-	setRO(octx, 'js', (list instanceof NANOS) ? list : new NANOS());
-	setRO(d.rr, { jsv: d.js, valueOf: () => d.js });
-}
 
 // (at key...? path=[key...]? else=default? raw=@f)
 function opAt (d) {
 	const { mp } = d, path = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
 
-	return uniAt(d.js, [...path], { wrap: true, raw: mp.at('raw'),
+	return uniAt(d.orr, [...path], { wrap: true, raw: mp.at('raw'),
 	  defaultFn: () => {
 		if (mp.has('else')) return runIfCode(mp.at('else'));
 		else throw new Error('Key path not found');
 	}});
-}
-
-function opEq (d) {
-	const { mp } = d, to = mp.at(0);
-
-	return d.jsv === to || (typeof to === 'function' && to.msjsType && d.jsv === to.jsv);
 }
 
 // @code implementation for (getter)
@@ -51,59 +28,59 @@ function doGet () {
 // (getter key else=default?)
 // Returns getter @code block
 function opGetter (d) {
-	const { js: list, mp } = d;
+	const { orr: list, mp } = d;
 	const key = mp.at(0), hasElse = mp.has('else'), elseVal = mp.at('else');
 
-	return d.b({ cd: doGet.bind({ list, key, hasElse, elseVal }) });
+	return d.b(doGet.bind({ list, key, hasElse, elseVal }));
 }
 
 // Return the next index key
 function opNext (d) {
 	if (d.mp.has(0)) {
-		d.js.next = d.mp.at(0);
+		d.orr.next = d.mp.at(0);
 		return d.rr;
 	}
-	return d.js.next;
+	return d.orr.next;
 }
 
 // (nset key=value ...)
 function opNset (d) {
-	const { mp, js } = d;
+	const { mp, orr } = d;
 
-	for (const e of mp.namedEntries()) js.set(e[0], e[1]);
+	for (const e of mp.namedEntries()) orr.set(e[0], e[1]);
 }
 
 // (rio), (rio object), (rio @t), (rio @u)
 // Get/set/remove reactive interface object
 function opRIO (d) {
-	const { js, mp } = d;
+	const { orr, mp } = d;
 
 	if (mp.has(0)) {
 		let rio = mp.at(0);
 		if (rio === true) rio = getInstance('@reactive')('rio');
-		js.rio = rio;			// NANOS will validate
+		orr.rio = rio;			// NANOS will validate
 		return d.rr;
 	}
-	return !!js.rio;
+	return !!orr.rio;
 }
 
 // "Reactive transform" - make fully reactive, recursively
 function opRxt (d) {
-	const { js } = d;
+	const { orr } = d;
 
-	if (!js.rio) js.rio = getInstance('@reactive')('rio');
+	if (!orr.rio) orr.rio = getInstance('@reactive')('rio');
 
-	const rio = js.rio;
+	const rio = orr.rio;
 
-	js.setOpts({ autoReactive: true });
-	for (const key of js.keys()) {
-		const value = js.at(key, { raw: true });
+	orr.setOpts({ autoReactive: true });
+	for (const key of orr.keys()) {
+		const value = orr.at(key, { raw: true });
 		const isR = rio.isReactive(value), nrv = isR ? value.rv : value;
 
 		// Convert non-reactive values to reactive ones
-		if (!isR) js.set(key, value);
+		if (!isR) orr.set(key, value);
 		// Recursively apply reactive transform to nested NANOS
-		if (nrv instanceof NANOS) $toMsjs(nrv)('rxt');
+		if (nrv instanceof NANOS) $c.sm(nrv, 'rxt');
 	}
 }
 
@@ -117,9 +94,9 @@ function doSet (d) {
 // (setter key)
 // Returns setter @function block: (call value insert=@f raw=@f?)
 function opSetter (d) {
-	const { js: list, mp } = d, key = mp.at(0);
+	const { orr: list, mp } = d, key = mp.at(0);
 
-	return d.b({ cd: doSet.bind({ list, key }) })('fn');
+	return $c.sm(d.b(doSet.bind({ list, key })), 'fn');
 }
 
 // Supported key types
@@ -133,7 +110,7 @@ function opSet (d) {
 	const { mp } = d, psrc = mp.has('path') ? unifiedList(mp.at('path')).values() : mp.values();
 	const insert = mp.at('insert'), raw = mp.at('raw');
 	const path = [...psrc].filter(k => skt(k)), limit = path.length - (mp.has('to') ? 1 : 0);
-	let cur = d.js;
+	let cur = d.orr;
 
 	for (let i = 0; i < limit; ++i) {
 		const k = path[i];
@@ -150,7 +127,7 @@ function opSet (d) {
 
 // (setOpts name=value ...)
 function opSetOpts (d) {
-	d.js.setOpts(Object.fromEntries(d.mp.namedEntries()));
+	d.orr.setOpts(Object.fromEntries(d.mp.namedEntries()));
 	return d.rr;
 }
 
@@ -158,83 +135,81 @@ function opSetOpts (d) {
 function opSlice (d) {
 	const { mp } = d;
 
-	return d.js.slice(mp.at(0), mp.at(1, d.js.next, { raw: d.mp.get('raw') }));
+	return d.orr.slice(mp.at(0), mp.at(1, d.orr.next, { raw: d.mp.get('raw') }));
 }
 
 export function install (name) {
 	getInterface(name).set({
-		lock: true, pristine: true,
+		lock: true, pristine: true, singleton: true,
 		handlers: {
-			'@init': opInit,
-			'@eq': opEq,
-			'@jsv': (d) => d.js,
+			'@eq': (d) => d.orr === d.mp.at(0),
+			'@jsv': (d) => d.orr?.msjsType ? new NANOS() : d.orr,
 			'@': opAt,
 			'==': opNset,
-			'>': (d) => d.js.pop(),
-			'|+': (d) => d.js.push(d.mp),
-			'|*': (d) => d.js.push(...expand(d.mp)),
+			'>': (d) => d.orr.pop(),
+			'|+': (d) => d.orr.push(d.mp),
+			'|*': (d) => d.orr.push(...d.mp.values()),
 			'=': opSet,
-			'<': (d) => d.js.shift(),
-			'+|': (d) => d.js.unshift(d.mp),
-			'*|': (d) => d.js.unshift(...expand(d.mp)),
+			'<': (d) => d.orr.shift(),
+			'+|': (d) => d.orr.unshift(d.mp),
+			'*|': (d) => d.orr.unshift(...d.mp.values()),
 			at: opAt,
 			// autoPromote
-			clear: (d) => d.js.clear(),
-			copy: (d) => new NANOS().fromPairs(d.js.pairs()),
-			delete: (d) => d.js.delete(d.mp.at(0), { raw: d.mp.at('raw') }),
-			depend: (d) => d.js.depend(),
-			entries: (d) => new NANOS([...d.js.entries({ num: d.mp.at('num'), raw: d.mp.at('raw') })]),
-			eq: opEq,
+			clear: (d) => d.orr.clear(),
+			copy: (d) => new NANOS().fromPairs(d.orr.pairs()),
+			delete: (d) => d.orr.delete(d.mp.at(0), { raw: d.mp.at('raw') }),
+			depend: (d) => d.orr.depend(),
+			entries: (d) => new NANOS([...d.orr.entries({ num: d.mp.at('num'), raw: d.mp.at('raw') })]),
+			eq: (d) => d.orr === d.mp.at(0),
 			// filter: use @kvIter
 			// find: use @kvIter
 			// findLast: use @kvIter
 			// forEach: use @kvIter
 			get: opAt,
 			getter: opGetter,
-			has: (d) => d.js.has(d.mp.at(0)),
-			includes: (d) => d.js.includes(d.mp.at(0)),
-			indexEntries: (d) => new NANOS([...d.js.indexEntries({ num: d.mp.at('num') || d.mp.at(0), raw: d.mp.at('raw') })]),
-			indexKeys: (d) => new NANOS([...d.js.indexKeys(d.mp.at('num') || d.mp.at(0))]),
-			isLocked: (d) => d.js.isLocked(d.mp.at(0)),
-			isRedacted: (d) => d.js.isRedacted(d.mp.at(0)),
-			keyOf: (d) => d.js.keyOf(d.mp.at(0), { num: d.mp.at('num') }),
-			keyIter: (d) => d.js.keys(),
-			keys: (d) => new NANOS([...d.js.keys(d.mp.at('num') || d.mp.at(0))]),
-			lastKeyOf: (d) => d.js.lastKeyOf(d.mp.at(0), { num: d.mp.at('num') }),
-			lock: (d) => d.js.lock(...d.mp.indexValues()),
-			lockAll: (d) => d.js.lockAll(d.mp.at(0)),
-			lockKeys: (d) => d.js.lockKeys(),
-			namedEntries: (d) => new NANOS([...d.js.namedEntries()]),
-			namedKeys: (d) => new NANOS([...d.js.namedKeys()]),
-			ne: (d) => !opEq(d),
+			has: (d) => d.orr.has(d.mp.at(0)),
+			includes: (d) => d.orr.includes(d.mp.at(0)),
+			indexEntries: (d) => new NANOS([...d.orr.indexEntries({ num: d.mp.at('num') || d.mp.at(0), raw: d.mp.at('raw') })]),
+			indexKeys: (d) => new NANOS([...d.orr.indexKeys(d.mp.at('num') || d.mp.at(0))]),
+			isLocked: (d) => d.orr.isLocked(d.mp.at(0)),
+			isRedacted: (d) => d.orr.isRedacted(d.mp.at(0)),
+			keyOf: (d) => d.orr.keyOf(d.mp.at(0), { num: d.mp.at('num') }),
+			keyIter: (d) => d.orr.keys(),
+			keys: (d) => new NANOS([...d.orr.keys(d.mp.at('num') || d.mp.at(0))]),
+			lastKeyOf: (d) => d.orr.lastKeyOf(d.mp.at(0), { num: d.mp.at('num') }),
+			lock: (d) => d.orr.lock(...d.mp.indexValues()),
+			lockAll: (d) => d.orr.lockAll(d.mp.at(0)),
+			lockKeys: (d) => d.orr.lockKeys(),
+			namedEntries: (d) => new NANOS([...d.orr.namedEntries()]),
+			namedKeys: (d) => new NANOS([...d.orr.namedKeys()]),
+			ne: (d) => d.orr !== d.mp.at(0),
 			next: opNext,
 			nset: opNset,
-			options: (d) => new NANOS(d.js.options),
-			pairs: (d) => new NANOS(d.js.pairs(d.mp.at('num') || d.mp.at(0))),
-			pop: (d) => d.js.pop(),
-			push: (d) => d.js.push(d.mp),
-			pushx: (d) => d.js.push(...expand(d.mp)),
-			redact: (d) => d.js.redact(...d.mp.indexValues()),
-			reverse: (d) => d.js.reverse(),
+			options: (d) => new NANOS(d.orr.options),
+			pairs: (d) => new NANOS(d.orr.pairs(d.mp.at('num') || d.mp.at(0))),
+			pop: (d) => d.orr.pop(),
+			push: (d) => d.orr.push(d.mp),
+			pushx: (d) => d.orr.push(...d.mp.values()),
+			redact: (d) => d.orr.redact(...d.mp.indexValues()),
+			reverse: (d) => d.orr.reverse(),
 			rio: opRIO,
 			rxt: opRxt,
-			self: (d) => d.js,
+			self: (d) => d.orr,
 			set: opSet,
 			setOpts: opSetOpts,
 			setter: opSetter,
-			shift: (d) => d.js.shift(),
-			size: (d) => d.js.size,
+			shift: (d) => d.orr.shift(),
+			size: (d) => d.orr.size,
 			slice: opSlice,
-			toJSON: (d) => d.js.toJSON(),
-			toReversed: (d) => d.js.toReversed(),
-			toSLID: (d) => d.js.toSLID(d.mp?.storage || {}),
-			toString: (d) => d.js.toString(d.mp?.storage || {}),
-			unshift: (d) => d.js.unshift(d.mp),
-			unshx: (d) => d.js.unshift(...expand(d.mp)),
-			values: (d) => new NANOS([...d.js.values()]),
+			toJSON: (d) => d.orr.toJSON(),
+			toReversed: (d) => d.orr.toReversed(),
+			toSLID: (d) => d.orr.toSLID(d.mp?.storage || {}),
+			toString: (d) => d.orr.toString(d.mp?.storage || {}),
+			unshift: (d) => d.orr.unshift(d.mp),
+			unshx: (d) => d.orr.unshift(...d.mp.values()),
+			values: (d) => new NANOS([...d.orr.values()]),
 		},
 		cacheHints: {
-			'@init': 'pin',
 			at: 'pin',
 			has: 'pin',
 			nset: 'pin',

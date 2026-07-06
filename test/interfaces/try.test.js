@@ -7,97 +7,90 @@ import {
 
 import "../../src/runtime/mesgjs.esm.js";
 import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
-
-const mockCode = (runLogic) => {
-	const fn = (op) => {
-		if (op === "run") return runLogic();
-	};
-	fn.msjsType = "@code";
-	return fn;
-};
+import { codeBlock } from '../harness.esm.js';
 
 Deno.test("@try Interface", async (t) => {
-	const mTry = $c("get", "@try");
+	const mTry = $c.getInstance("@try");
 
 	await t.step("Successful execution", () => {
-		const main = mockCode(() => "success");
-		const result = mTry("try", ls([, main]));
+		const main = codeBlock(() => "success");
+		const result = $c.sm(mTry, "try", ls([, main]));
 		assertEquals(result, "success");
 	});
 
 	await t.step("Catch block", () => {
-		const main = mockCode(() => {
+		const main = codeBlock(() => {
 			throw new Error("test error");
 		});
 		let caught = false;
-		const catchBlock = mockCode(() => {
+		const catchBlock = codeBlock(() => {
 			caught = true;
-			assertEquals(mTry("error").message, "test error");
-			assertEquals(mTry("name"), "Error");
-			assertEquals(mTry("message"), "test error");
+			assertEquals($c.sm(mTry, "error").message, "test error");
+			assertEquals($c.sm(mTry, "name"), "Error");
+			assertEquals($c.sm(mTry, "message"), "test error");
 		});
-		mTry("try", ls([, main, "catch", catchBlock]));
+		$c.sm(mTry, "try", ls([, main, "catch", catchBlock]));
 		assertEquals(caught, true);
 	});
 
 	await t.step("Catchers block", () => {
-		const main = mockCode(() => {
+		const main = codeBlock(() => {
 			throw new TypeError("type error");
 		});
 		let caught = false;
 		const catchers = ls([
 			'TypeError',
-			mockCode(() => {
+			codeBlock(() => {
 				caught = true;
-				assertEquals(mTry("name"), "TypeError");
+				assertEquals($c.sm(mTry, "name"), "TypeError");
 			}),
 		]);
-		mTry("try", ls([, main, "catchers", catchers]));
+		$c.sm(mTry, "try", ls([, main, "catchers", catchers]));
 		assertEquals(caught, true);
 	});
 
 	await t.step("Always block", () => {
 		let always = false;
-		const main = mockCode(() => "success");
-		const alwaysBlock = mockCode(() => {
+		const main = codeBlock(() => "success");
+		const alwaysBlock = codeBlock(() => {
 			always = true;
 		});
-		mTry("try", ls([, main, "always", alwaysBlock]));
+		$c.sm(mTry, "try", ls([, main, "always", alwaysBlock]));
 		assertEquals(always, true);
 
 		always = false;
-		const errorMain = mockCode(() => {
+		const errorMain = codeBlock(() => {
 			throw new Error("fail");
 		});
-		assertThrows(() => mTry("try", ls([, errorMain, "always", alwaysBlock])), Error);
+		assertThrows(() => $c.sm(mTry, "try", ls([, errorMain, "always", alwaysBlock])), Error);
 		assertEquals(always, true);
 	});
 
 	await t.step("Unhandled exception", () => {
-		const main = mockCode(() => {
+		const main = codeBlock(() => {
 			throw new Error("unhandled");
 		});
-		assertThrows(() => mTry("try", main), Error, "unhandled");
+		assertThrows(() => $c.sm(mTry, "try", main), Error, "unhandled");
 	});
 
 	await t.step("Flow control", () => {
 		let secondBlockRun = false;
-		const first = mockCode(() => {
-			mTry("next");
+		const first = codeBlock(() => {
+			$c.sm(mTry, "next");
 		});
-		const second = mockCode(() => {
+		const second = codeBlock(() => {
 			secondBlockRun = true;
 			return "second";
 		});
-		const result = mTry("try", ls([, first, , second]));
+		const result = $c.sm(mTry, "try", ls([, first, , second]));
 		assertEquals(secondBlockRun, true);
 		assertEquals(result, "second");
 
-		const stopBlock = mockCode(() => {
-			mTry("stop", ls(["result", "stopped"]));
+		const stopBlock = codeBlock(() => {
+			$c.sm(mTry, "stop", ls(["result", "stopped"]));
 			return "not stopped";
 		});
-		const stopResult = mTry("try", [stopBlock]);
+		const stopResult = $c.sm(mTry, "try", [stopBlock]);
 		assertEquals(stopResult, "stopped");
 	});
 });

@@ -7,12 +7,12 @@ import {
 import "../../src/runtime/mesgjs.esm.js";
 
 Deno.test("@js-array Interface", async (t) => {
-	const { NANOS, $toMsjs } = globalThis;
+	const { NANOS, $toMsjs, $msjsReceiver } = globalThis;
 	const { getInstance } = globalThis.$c;
 
-	await t.step("consistent instances", () => {
+	await t.step("consistent receiver", () => {
 		const a = [1];
-		assertStrictEquals($toMsjs(a), $toMsjs(a));
+		assertStrictEquals($msjsReceiver(a), $msjsReceiver(a));
 	});
 
 	await t.step("(at)/(get)/(@) should retrieve a value by index", () => {

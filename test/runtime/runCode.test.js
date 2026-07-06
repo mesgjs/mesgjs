@@ -1,5 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import '../../src/runtime/mesgjs.esm.js';
 import { runIfCode, runWhileCode } from "../../src/runtime/runtime.esm.js";
+import { codeBlock } from "../harness.esm.js";
 
 Deno.test("runIfCode", async (t) => {
 	await t.step("should return non-@code values directly", () => {
@@ -9,10 +11,7 @@ Deno.test("runIfCode", async (t) => {
 	});
 
 	await t.step("should execute a @code object", () => {
-		const codeFn = (op) => {
-			if (op === 'run') return "executed";
-		};
-		codeFn.msjsType = '@code';
+		const codeFn = codeBlock(() => 'executed');
 
 		assertEquals(runIfCode(codeFn), "executed");
 	});
@@ -20,21 +19,17 @@ Deno.test("runIfCode", async (t) => {
 
 Deno.test("runWhileCode", async (t) => {
 	const finalValue = "done";
-
-	const codeFn3 = (op) => finalValue;
-	codeFn3.msjsType = '@code';
-	const codeFn2 = (op) => codeFn3;
-	codeFn2.msjsType = '@code';
-	const codeFn1 = (op) => codeFn2;
-	codeFn1.msjsType = '@code';
+	const codeFn3 = codeBlock(() => finalValue);
+	const codeFn2 = codeBlock(() => codeFn3.run());
+	const codeFn1 = codeBlock(() => codeFn2.run());
 
 	await t.step("should return non-@code values directly", () => {
 		assertEquals(runWhileCode(42), 42);
 	});
 
 	await t.step("should execute a single @code object", () => {
-		const codeFn = (op) => "executed";
-		codeFn.msjsType = '@code';
+		const codeFn = codeBlock(() => 'executed');
+
 		assertEquals(runWhileCode(codeFn), "executed");
 	});
 

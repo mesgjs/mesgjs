@@ -14,10 +14,9 @@ Deno.test("sendAnonMessage", async (t) => {
 	});
 
 	await t.step("should send a message to a Mesgjs object", () => {
-		const str = globalThis.$toMsjs("hello");
-		const result = sendAnonMessage(str, "length");
-		const internalValue = result.valueOf();
-		assertEquals(internalValue, 5);
+		const result = sendAnonMessage($c, 'type', $c);
+
+		assertEquals(result, '@core');
 	});
 
 });

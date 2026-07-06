@@ -28,7 +28,7 @@ const flcInst = getInstance(flcIface.ifName);
 
 Deno.test("senderFLC - anonymous call", () => {
 	capturedFLC = null;
-	flcInst("captureAnon"); // <-- this line should be reported
+	$c.sm(flcInst, "captureAnon"); // <-- this line should be reported
 	const flc = capturedFLC;
 
 	assert(flc, "senderFLC should return an object for an anonymous call");
@@ -43,7 +43,7 @@ Deno.test("senderFLC - anonymous call", () => {
 
 Deno.test("senderFLC - attributed call", () => {
 	capturedFLC = null;
-	const d = flcInst("getD");
+	const d = $c.sm(flcInst, "getD");
 	d.sm(flcInst, "captureAttr"); // <-- this line should be reported
 	const flc = capturedFLC;
 

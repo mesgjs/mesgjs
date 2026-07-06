@@ -72,10 +72,7 @@ export async function loadMesgjsModulePath (path, module = path, options = {}) {
 
 let module;
 
-export async function codeBlock (code) {
-	if (!module) {
-		await import('./runtime-loader.esm.js');
-		module = $modScope();
-	}
-	return module.d.b({ cd: code });
+export function codeBlock (code) {
+	module ||= $modScope();
+	return module.d.b(code);
 }
