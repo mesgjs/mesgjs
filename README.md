@@ -14,6 +14,6 @@ Handlers have access to the messaged object's persistent state, scratch space th
 
 Variables in Mesgjs are simply positional or named values within Mesgjs lists, which provide named and numbered ordered storage, and are read or written by messaging the list that contains them. 
 
-Notably, Mesgjs does not have statements in the traditional programming sense (e.g. for flow control, variable or function declarations, etc). It also lacks things like infix operators (such as 2 \+ 3 \* 5), and the issues that come with them (such as, which operations have what precedence, and do they evaluate left-to-right or right-to-left?).
+Notably, Mesgjs does not have statements in the traditional programming sense (e.g. for flow control, variable or function declarations, etc). It also does not use infix operators (such as 2 \+ 3 \* 5), and this avoids the issues that come with them (such as, which operations have what precedence, and do they evaluate left-to-right or right-to-left?).
 
 The language transpiles to JavaScript and can therefore easily be run both on servers (e.g. using Node or Deno) and in browsers.
