@@ -1,8 +1,10 @@
 import {
 	assert,
 	assertEquals,
+	assertStrictEquals,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import '../../src/runtime/mesgjs.esm.js';
+import { MsjsObject } from '../../src/runtime/runtime.esm.js';
 
 Deno.test("Core Initialization JavaScript Contract", async (t) => {
 
@@ -47,6 +49,11 @@ Deno.test("Core Initialization JavaScript Contract", async (t) => {
 		assert(globalThis.$c.symbols, "$c.symbols object should exist");
 		assertEquals(typeof globalThis.$c.symbols.convert, "symbol", "$c.symbols.convert should be a symbol");
 		assertEquals(typeof globalThis.$c.symbols.instance, "symbol", "$c.symbols.instance should be a symbol");
+	});
+
+	await t.step("should also find MsjsObject on $c", () => {
+		assert(globalThis.$c.MsjsObject, "MsjsObject should be accessible via $c.MsjsObject");
+		assertStrictEquals(globalThis.$c.MsjsObject, MsjsObject, "$c.MsjsObject should be class MsjsObject");
 	});
 
 });

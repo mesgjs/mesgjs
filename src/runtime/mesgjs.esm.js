@@ -25,14 +25,14 @@ import { install as installTimestamp } from './msjs-timestamp.esm.js';
 import { install as installTry } from './msjs-try.esm.js';
 import { install as installUndefined } from './js-undefined.esm.js';
 
-import { getInstance, initialize, setModMeta, setRO } from './runtime.esm.js';
+import { getInstance, initialize, MsjsObject, setModMeta, setRO } from './runtime.esm.js';
 import { NANOS } from '@nanos';
 import { reactive } from '@reactive';
 
 // The minimum "main program":
 // import { setModMeta } from '.../mesgjs.esm.js';
 // setModMeta({ config });
-export { setModMeta };
+export { MsjsObject, setModMeta };
 
 const instanceSym = Symbol.for('msjsInstance');
 const convertSym = Symbol.for('toMsjs');

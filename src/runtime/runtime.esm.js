@@ -537,8 +537,11 @@ export class MsjsFlowError extends RangeError {
 // Custom class prototypes are manually constructed at initialization and
 // then applied using super()-less subclasses for performance.
 
+let curObjKey = null, curObjType = null;
+
 export class MsjsObject {
 	#type;      // Object type (.msjsType)
+	#userKey;   // User object key (undefined for all runtime objects)
 	#dispatch;  // Custom dispatcher, if applicable
 	#storage;   // Persistent storage NANOS, if applicable
 	#js;		// JS additional state
@@ -546,41 +549,49 @@ export class MsjsObject {
 	#core2;     // Type-specific runtime value 2
 
 	constructor (key, type, ...params) {
-		if (key !== OBJ_KEY) throw new Error(`Use getInstance(${type ?? '...'}) instead of new MsjsObject`);
-		this.#type = type;
-		switch (type) {
-		case TYPE_CODE: // @code(code, dispatchContext)
-			// #core1: the code block function
-			// #core2: the defining context
-			this.#core1 = params[0];
-			this.#core2 = params[1];
-			this.#dispatch = MsjsObject.#codeDispatch;
-			break;
-		case TYPE_DISP: // @dispatch(context)
-			// #core1: the message context
-			// #core2: JIT bound code objects
-			this.#core1 = params[0];
-			this.#dispatch = MsjsObject.#dispatchDispatch;
-			break;
-		case TYPE_FUN: // @function(code, ps)
-			// #core1: the code block function
-			// #core2: currently reserved for jsfn
-			this.#core1 = params[0];
-			this.#storage = params[1];
-			this.#dispatch = MsjsObject.#functionDispatch;
-			break;
-		case TYPE_IF:
-			// #core1: the interface name
-			// #core2: the isFirst flag
-			this.#core1 = params[0];
-			this.#core2 = params[1];
-			this.#dispatch = MsjsObject.#interfaceDispatch;
-			break;
-		case TYPE_MOD:
-			// #core1: unused
-			// #core2: unused
-			this.#dispatch = MsjsObject.#moduleDispatch;
-			break;
+		if (key === OBJ_KEY) { // Standard runtime key for all runtime types
+			this.#type = type;
+			switch (type) {
+			case TYPE_CODE: // @code(code, dispatchContext)
+				// #core1: the code block function
+				// #core2: the defining context
+				this.#core1 = params[0];
+				this.#core2 = params[1];
+				this.#dispatch = MsjsObject.#codeDispatch;
+				break;
+			case TYPE_DISP: // @dispatch(context)
+				// #core1: the message context
+				// #core2: JIT bound code objects
+				this.#core1 = params[0];
+				this.#dispatch = MsjsObject.#dispatchDispatch;
+				break;
+			case TYPE_FUN: // @function(code, ps)
+				// #core1: the code block function
+				// #core2: currently reserved for jsfn
+				this.#core1 = params[0];
+				this.#storage = params[1];
+				this.#dispatch = MsjsObject.#functionDispatch;
+				break;
+			case TYPE_IF:
+				// #core1: the interface name
+				// #core2: the isFirst flag
+				this.#core1 = params[0];
+				this.#core2 = params[1];
+				this.#dispatch = MsjsObject.#interfaceDispatch;
+				break;
+			case TYPE_MOD:
+				// #core1: unused
+				// #core2: unused
+				this.#dispatch = MsjsObject.#moduleDispatch;
+				break;
+			}
+		} else if (key === curObjKey && type === curObjType) { // Per-instance key for user types
+			// #core1: JIT null dispatch
+			this.#userKey = key;
+			this.#type = type;
+			curObjKey = null;
+		} else {
+			throw new Error(`Use getInstance(${type ?? '...'}) instead of new MsjsObject`);
 		}
 	}
 
@@ -796,8 +807,10 @@ export class MsjsObject {
 		if (ix.abstract) throw new TypeError(`Cannot get instance for abstract Mesgjs interface "${type}"`);
 		// Don't allow behavior or interface properties to change once an in1Gstance exists
 		ix.locked = true;
+		curObjKey = Symbol();
+		curObjType = type;
 
-		const rr = ix.protoClass ? new ix.protoClass(OBJ_KEY, type) : new MsjsObject(OBJ_KEY, type);
+		const rr = ix.protoClass ? new ix.protoClass(curObjKey, type) : new MsjsObject(curObjKey, type);
 		const mc = new MsgCtx();
 
 		if (ix.singleton) ix.instance = rr;
@@ -820,6 +833,49 @@ export class MsjsObject {
 			code(initDisp);
 		}
 		return rr;
+	}
+
+	/**
+	 * Return JS state for obj if key matches #userKey
+	 * @param {MsjsObject} obj - the object
+	 * @param {symbol} key - the unique instantiation key
+	 * @returns {*} - the JS state
+	 */
+	static getJS (obj, key) {
+		if (!key || obj.#userKey !== key) throw new TypeError('Unauthorized getJS');
+		return obj.#js;
+	}
+
+	/**
+	 * Return a "null" (non-message) dispatch object for obj
+	 * if key matches #userKey
+	 * @param {MsjsObject} obj - the object
+	 * @param {symbol} key - the unique instantiation key
+	 * @returns 
+	 */
+	static getNullDispatch (obj, key) {
+		if (!key || obj.#userKey !== key) throw new TypeError('Unauthorized getNullDispatch');
+		if (!obj.#core2) { // JIT create null dispatch
+			const mc = new MsgCtx();
+
+			mc.rr = obj;
+			mc.rt = obj.#type;
+			obj.#core2 = new MsjsDispatch(OBJ_KEY, TYPE_DISP, mc);
+		}
+		return obj.#core2;
+	}
+
+	/**
+	 * Return persistent storage (NANOS) for obj if key matches #userKey
+	 * JIT allocates the storage if it doesn't exist yet
+	 * @param {MsjsObject} obj - the object
+	 * @param {symbol} key - the unique instantiation key
+	 * @returns {NANOS} - the persistent storage
+	 */
+	static getPS (obj, key) {
+		if (!key || obj.#userKey !== key) throw new TypeError('Unauthorized getPS');
+		obj.#storage ||= new NANOS();
+		return obj.#storage;
 	}
 
 	/*
@@ -952,14 +1008,23 @@ export class MsjsObject {
 			}
 		}
 
-		if (typeof mp.proto === 'object') {
+		const proto = mp.proto;
+
+		if (typeof proto === 'function' && proto?.prototype instanceof MsjsObject) {
+			// Already subclass of MsjsObject - can use as is (even private elements)
+			ix.protoClass = proto;
+		} else if (typeof proto === 'object') {
+			// Convert non-subclass prototype into custom MsjsObject sub-class
 			const mName = 'M.' + name;
 			const protoClass = { [mName]: class extends MsjsObject {} }[mName]; // Variable class naming hack
 			const props = Object.getOwnPropertyDescriptors(mp.proto);
+
 			delete props.constructor;
 			props.name = { value: mName };
 			Object.defineProperties(protoClass.prototype, props);
 			ix.protoClass = protoClass;
+		} else if (proto != null) {
+			throw new TypeError(`Interface ${name} proto must be object or MsjsObject subclass`);
 		}
 
 		if (mp.abstract) ix.abstract = true;
@@ -968,6 +1033,17 @@ export class MsjsObject {
 		if (mp.once) ix.once = true;
 		if (mp.private) ix.private = true;
 		if (mp.singleton) ix.singleton = true;
+	}
+
+	/**
+	 * Set JS state for obj if key matches #userKey
+	 * @param {MsjsObject} obj - The object
+	 * @param {symbol} key - The unique instantiation key
+	 * @param {*} js - JS state
+	 */
+	static setJS (obj, key, js) {
+		if (!key || obj.#userKey !== key) throw new TypeError('Unauthorized setJS');
+		obj.#js = js;
 	}
 
 	/**

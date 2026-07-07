@@ -161,6 +161,48 @@ yourInterface.set({
 
 See [Case Study: The `@promise` Interface](#case-study-the-promise-interface) below for a complete example.
 
+**Using a class with private fields:** For interfaces that need truly private JavaScript state, you can provide a class that extends `MsjsObject` as the `proto`. The constructor receives a per-instance instantiation key that can be used to capture `d.js` into private fields immediately after `super()`:
+
+```javascript
+import { getInterface, getInstance, MsjsObject } from './runtime.esm.js';
+
+class MyWidget extends MsjsObject {
+    #state; // Private field for JS state
+
+    constructor (key, type) {
+        super(key, type);
+        // Capture d.js state into private field immediately after super()
+        this.#state = MsjsObject.getJS(this, key);
+    }
+
+    // JS-side methods can access private state directly
+    get label () { return this.#state?.label; }
+    set label (v) { this.#state.label = v; }
+}
+
+const iface = getInterface('myWidget');
+iface.set({
+    handlers: {
+        '@init': (d) => {
+            // Initialize JS state (accessible via d.js in handlers)
+            d.js = { label: d.mp.at('label') || 'default', count: 0 };
+        },
+        'getLabel': (d) => d.js.label,
+        'setLabel': (d) => { d.js.label = d.mp.at(0); },
+        'incCount': (d) => { d.js.count++; return d.js.count; },
+    },
+    proto: MyWidget,
+});
+
+// Usage:
+const widget = getInstance('myWidget', { label: 'My Widget' });
+widget.label; // 'My Widget' (via JS private field)
+$c.sm(widget, 'getLabel'); // 'My Widget' (via Mesgjs handler)
+$c.sm(widget, 'incCount'); // 1 (handler modifies d.js, which is the same object as #state)
+```
+
+In this pattern, the instantiation key is typically not stored beyond the constructor—it is used once to initialize the private state. The private fields and `d.js` reference the same object, so changes from either side are visible to both.
+
 ## Case Study: The `@promise` Interface
 
 The built-in `@promise` interface is the perfect example of a bilingual interface.

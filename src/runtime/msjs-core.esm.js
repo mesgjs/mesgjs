@@ -204,6 +204,7 @@ export function install (name) {
 			getInterface,
 			getModMeta,
 			modHasCap,
+			MsjsObject,
 			runIfCode,
 			runWhileCode,
 			setModMeta,

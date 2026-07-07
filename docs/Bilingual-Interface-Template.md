@@ -161,6 +161,55 @@ interface.set({
 
 This pattern is well-suited for "native" Mesgjs interfaces that will be implemented primarily via, or would benefit from easy accessibility to, embedded JavaScript.
 
+### Alternative, "Class with Private Fields" Approach
+
+For interfaces that need truly private JavaScript state, you can provide a class that extends `MsjsObject` as the `proto`. This enables ES2022 private fields and custom constructors:
+
+```javascript
+import { getInterface, getInstance, MsjsObject } from './runtime.esm.js';
+
+class MyWidget extends MsjsObject {
+    #state;      // Private field for JS state (d.js equivalent)
+    #persistent; // Private field for persistent storage (d.p equivalent)
+
+    constructor (key, type) {
+        super(key, type);
+        // Capture d.js and d.p into private fields immediately after super()
+        this.#state = MsjsObject.getJS(this, key);
+        this.#persistent = MsjsObject.getPS(this, key);
+    }
+
+    // JS-side methods can access private state directly
+    get label () { return this.#state?.label; }
+    set label (v) { this.#state.label = v; }
+
+    // Access persistent storage from JS
+    get counter () { return this.#persistent.at('counter') || 0; }
+    set counter (v) { this.#persistent.set('counter', v); }
+}
+
+const iface = getInterface('myWidget');
+iface.set({
+    handlers: {
+        '@init': (d) => {
+            // Initialize JS state (accessible via d.js in handlers)
+            d.js = { label: d.mp.at('label') || 'default', count: 0 };
+        },
+        'getLabel': (d) => d.js.label,
+        'setLabel': (d) => { d.js.label = d.mp.at(0); },
+        'incCount': (d) => { d.js.count++; return d.js.count; },
+    },
+    proto: MyWidget,
+});
+
+// Usage:
+const widget = getInstance('myWidget', { label: 'My Widget' });
+widget.label; // 'My Widget' (via JS private field)
+$c.sm(widget, 'getLabel'); // 'My Widget' (via Mesgjs handler)
+```
+
+In this pattern, the instantiation key is typically not stored beyond the constructor—it is used once to initialize the private state. The private fields and `d.js`/`d.p` reference the same objects, so changes from either side are visible to both.
+
 ### The Companion SLID File (`.slid`)
 
 The companion `.slid` file is only required if the associated module has dependencies on other modules.

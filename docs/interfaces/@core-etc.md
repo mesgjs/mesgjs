@@ -32,6 +32,7 @@ The `$c` singleton has several runtime functions attached as convenience methods
 | `$c.typeAccepts(type, op)` | Check if type accepts operation |
 | `$c.typeChains(sub, super)` | Check interface chaining |
 | `$c.modHasCap(mod, cap)` | Check module capability |
+| `$c.MsjsObject` | The MsjsObject class (for extending in class-based interfaces) |
 | `$c.runIfCode(value)` | Run value if it's a code block |
 | `$c.runWhileCode(value)` | Run value recursively (not iteratively) as long as successively deeper results are code blocks |
 | `$c.debugConfig(settings)` | Configure runtime debugging |

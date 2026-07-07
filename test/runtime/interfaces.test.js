@@ -227,3 +227,35 @@ Deno.test("Interface Attributes", async (t) => {
 		assert(inst1 === inst2);
 	});
 });
+
+Deno.test("Interface proto validation", async (t) => {
+	await t.step("should throw if proto is not object or subclass of MsjsObject", () => {
+		const badProtoName = "badProtoType";
+		const badProtoType = getInterface(badProtoName);
+		assertThrows(
+			() => badProtoType.set({ handlers: {}, proto: "not-an-object" }),
+			TypeError,
+			`Interface ${badProtoName} proto must be object or MsjsObject subclass`,
+		);
+	});
+
+	await t.step("should throw if proto is a plain function (not MsjsObject subclass)", () => {
+		const badProtoName2 = "badProtoType2";
+		const badProtoType2 = getInterface(badProtoName2);
+		assertThrows(
+			() => badProtoType2.set({ handlers: {}, proto: function NotAMsjsClass() {} }),
+			TypeError,
+			`Interface ${badProtoName2} proto must be object or MsjsObject subclass`,
+		);
+	});
+
+	await t.step("should throw if proto is a number", () => {
+		const badProtoName3 = "badProtoType3";
+		const badProtoType3 = getInterface(badProtoName3);
+		assertThrows(
+			() => badProtoType3.set({ handlers: {}, proto: 42 }),
+			TypeError,
+			`Interface ${badProtoName3} proto must be object or MsjsObject subclass`,
+		);
+	});
+});

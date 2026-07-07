@@ -33,7 +33,7 @@ In addition to providing your own interface name, you can create *anonymous* int
     * `once`: Boolean. If true, prevents returning the interface again and throws an error if returned before.
     * `pristine`: Boolean. If true, throws an error if not the first configuration.
     * `private`: Boolean. If true, instances can only be generated via the interface object (via the `(instance)` message), not through `@c(get)`, and no additional interface objects for this interface will be available.
-    * `proto`: Object. A JavaScript prototype object to be attached to all instances of this interface. The runtime creates an anonymous subclass of `MsjsObject` with the provided prototype, enabling efficient method access and better JS engine optimization. See [V4 Prototype Approach](#v4-prototype-approach) below.
+    * `proto`: Object or Class. A JavaScript prototype object or `MsjsObject` subclass to be used for instances of this interface. When a plain object is provided, the runtime creates an anonymous subclass of `MsjsObject` with the provided prototype. When a class extending `MsjsObject` is provided, it is used directly, enabling ES2022 private fields and custom constructors. See [V4 Prototype Approach](#v4-prototype-approach) below.
     * `singleton`: Boolean. If true, only one instance of the interface can exist.
   * Throws `TypeError` if:
     * Configuring a @-prefixed interface after runtime initialization
@@ -48,32 +48,74 @@ The interface is used internally by the Mesgjs runtime system to manage interfac
 
 In Mesgjs v4, all objects are `MsjsObject` class instances. The `proto` option provides an ultra-efficient way to attach JavaScript methods and properties to all instances of an interface.
 
-When `proto` is supplied during interface configuration, the runtime:
+### Plain Object Prototype
+
+When `proto` is a plain object, the runtime:
 1. Creates an anonymous subclass of `MsjsObject` named `M.<interfaceName>`
 2. Copies all properties from the provided `proto` object to the subclass prototype (excluding `constructor`)
 3. Uses this subclass for all future instance creation
 
 This approach is more performant than the v3 pattern of using `Object.setPrototypeOf(d.rr, jsProto)` after object creation, as it allows the JS engine to optimize the prototype chain from the start.
 
-### Example: Using `proto` in Mesgjs + JavaScript
+### Class Prototype with Private Fields
 
-```mesgjs
-// Define interface with JavaScript prototype methods
-@js{
-d.t.set('proto', {
-    // JavaScript methods available on all instances
-    greetJS (name) { return $c.sm(this, 'greet', [name]); }
-    get valueOf () { return this; }
+When `proto` is a class that extends `MsjsObject`, the runtime uses the class directly for instance creation. This enables:
+
+- **ES2022 private fields** (`#fieldName`) for truly private JavaScript state
+- **Custom constructors** that receive the per-instance instantiation key
+- **Direct access** to Mesgjs internal state via static methods `MsjsObject.getJS`, `MsjsObject.setJS`, and `MsjsObject.getNullDispatch`
+
+The constructor receives two arguments: `key` (a unique Symbol for this instance) and `type` (the interface name). The `key` must be passed to `super(key, type)`.
+
+#### Typical Usage Pattern
+
+In typical usage, the `@init` handler initializes `d.js` with the object's JavaScript state, and the constructor captures this state into private fields immediately after calling `super()`:
+
+```javascript
+class MyWidget extends MsjsObject {
+    #state; // Private field for JS state
+
+    constructor (key, type) {
+        super(key, type);
+        // Capture d.js state into private field immediately after super()
+        this.#state = MsjsObject.getJS(this, key);
+    }
+
+    // JS-side methods can now access private state directly
+    get label () { return this.#state?.label; }
+    set label (v) { this.#state.label = v; }
+}
+
+const iface = getInterface('myWidget');
+iface.set({
+    handlers: {
+        '@init': (d) => {
+            // Initialize JS state (accessible via d.js in handlers)
+            d.js = { label: d.mp.at('label') || 'default', count: 0 };
+        },
+        'getLabel': (d) => d.js.label,
+        'setLabel': (d) => { d.js.label = d.mp.at(0); },
+    },
+    proto: MyWidget,
 });
-@}
-@c(interface myInterface)(set
-    handlers=[
-        @init={ ... }
-        greet={ 'Hello, '(join !0) !}
-    ]
-    proto=#proto
-)
+
+// Usage:
+const widget = getInstance('myWidget', { label: 'My Widget' });
+widget.label; // 'My Widget' (via JS private field)
+$c.sm(widget, 'getLabel'); // 'My Widget' (via Mesgjs handler)
 ```
+
+The instantiation key is typically not stored beyond the constructor—it is used once to initialize the private state, after which the private fields hold the state directly.
+
+#### Static Access Methods
+
+When using a class prototype, the following static methods on `MsjsObject` provide authenticated access to per-instance state:
+
+- `MsjsObject.getJS(obj, key)` — Returns the JS state (`d.js` equivalent) for `obj`. Throws `TypeError` if `key` does not match the instance's instantiation key.
+- `MsjsObject.setJS(obj, key, value)` — Sets the JS state for `obj`. Throws `TypeError` if `key` does not match.
+- `MsjsObject.getNullDispatch(obj, key)` — Returns a "null" dispatch object for `obj`, providing access to dispatch properties (`.js`, `.p`, `.rr`, `.rt`, etc.) without an active message. Throws `TypeError` if `key` does not match.
+
+These methods enable bilingual state sharing: Mesgjs handlers can use `d.js` and `d.p`, while JS-side methods can access the same state via private fields initialized in the constructor.
 
 ### Example: Using `proto` in JavaScript
 

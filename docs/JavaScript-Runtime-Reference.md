@@ -218,6 +218,119 @@ const result = d.sm(receiver, 'operation', params);
 
 **Note:** The `sm` method is also available as an instance method on `MsjsDispatch` objects. When called as an instance method (via `d.sm`), it creates an attributed message where the sender context is preserved.
 
+#### Static Access Methods for Private State
+
+When using a class that extends `MsjsObject` as the `proto` for an interface, the following static methods provide authenticated access to per-instance state. These methods require the per-instance instantiation key, which is passed to the constructor and typically used immediately to initialize private fields.
+
+##### `MsjsObject.getJS(obj, key)` (Static Method)
+
+Returns the JS state (`d.js` equivalent) for the specified object.
+
+**Parameters:**
+- `obj`: The `MsjsObject` instance
+- `key`: The instantiation key (Symbol) for the object
+
+**Returns:** The JS state object, or `undefined` if not set
+
+**Throws:** `TypeError` if `key` is falsy or does not match the object's instantiation key
+
+**Usage:**
+```javascript
+class MyWidget extends MsjsObject {
+    #state;
+    constructor (key, type) {
+        super(key, type);
+        this.#state = MsjsObject.getJS(this, key);
+    }
+}
+```
+
+##### `MsjsObject.setJS(obj, key, value)` (Static Method)
+
+Sets the JS state for the specified object.
+
+**Parameters:**
+- `obj`: The `MsjsObject` instance
+- `key`: The instantiation key (Symbol) for the object
+- `value`: The new JS state value
+
+**Throws:** `TypeError` if `key` is falsy or does not match the object's instantiation key
+
+**Usage:**
+```javascript
+// Within a handler
+'updateState': (d) => {
+    MsjsObject.setJS(d.rr, key, newState);
+}
+```
+
+##### `MsjsObject.getNullDispatch(obj, key)` (Static Method)
+
+Returns a "null" dispatch object for the specified object, providing access to dispatch properties without an active message. This is useful for accessing `.js`, `.p`, `.rr`, `.rt`, and other dispatch properties from JavaScript code outside of a message handler.
+
+**Parameters:**
+- `obj`: The `MsjsObject` instance
+- `key`: The instantiation key (Symbol) for the object
+
+**Returns:** A `MsjsDispatch` object with properties bound to the specified object
+
+**Throws:** `TypeError` if `key` is falsy or does not match the object's instantiation key
+
+**Usage:**
+```javascript
+class MyWidget extends MsjsObject {
+    #dispatch;
+    constructor (key, type) {
+        super(key, type);
+        this.#dispatch = MsjsObject.getNullDispatch(this, key);
+    }
+
+    // Access persistent storage from JS
+    get persistentData () {
+        return this.#dispatch.p.at('myKey');
+    }
+}
+```
+
+> **Notes:**\
+> `getJS` is more efficient and recommended for most scenarios. Use `getPS` when you need access to Mesgjs' persistent storage (`d.p` equivalent) from JS. Use `getNullDispatch` only when you need to send attributed messages from JS.
+>
+> The null dispatch object is cached per instance, so repeated calls to `getNullDispatch` with the same key return the same object.
+
+##### `MsjsObject.getPS(obj, key)` (Static Method)
+
+Returns the persistent storage (`d.p` equivalent, a `NANOS` instance) for the specified object. JIT allocates the storage if it doesn't exist yet.
+
+**Parameters:**
+- `obj`: The `MsjsObject` instance
+- `key`: The instantiation key (Symbol) for the object
+
+**Returns:** The persistent storage `NANOS` instance
+
+**Throws:** `TypeError` if `key` is falsy or does not match the object's instantiation key
+
+**Usage:**
+```javascript
+class MyWidget extends MsjsObject {
+    #persistent;
+    constructor (key, type) {
+        super(key, type);
+        this.#persistent = MsjsObject.getPS(this, key);
+    }
+
+    // Access persistent storage from JS
+    get counter () {
+        return this.#persistent.at('counter') || 0;
+    }
+
+    set counter (v) {
+        this.#persistent.set('counter', v);
+    }
+}
+```
+
+> **Note:** `getPS` is more efficient than `getNullDispatch` when you only need persistent storage access. The storage is JIT allocated on first access and shared with `d.p` in message handlers.
+
 #### Instance Methods
 
 `MsjsObject` instances may have type-specific methods depending on their interface. For example, `@function` objects have `.call()`, `.fn()`, and `.jsfn()` methods, while `@code` objects have `.run()` and `.fn()` methods.
