@@ -4,7 +4,7 @@ import {
 	assertThrows,
 } from "https://deno.land/std@0.152.0/testing/asserts.ts";
 import "../../src/runtime/mesgjs.esm.js";
-import { getInterface, getInstance, typeAccepts, typeChains } from "../../src/runtime/runtime.esm.js";
+import { getInterface, getInstance, MsjsObject, typeAccepts, typeChains } from "../../src/runtime/runtime.esm.js";
 
 Deno.test("Interface System", async (t) => {
 	const supertypeName = "supertype";
@@ -257,5 +257,61 @@ Deno.test("Interface proto validation", async (t) => {
 			TypeError,
 			`Interface ${badProtoName3} proto must be object or MsjsObject subclass`,
 		);
+	});
+});
+
+Deno.test("Interface (proto) message and .proto getter", async (t) => {
+	await t.step("should return undefined when no proto is configured", () => {
+		const noProtoName = "noProtoType";
+		const noProtoType = getInterface(noProtoName);
+		noProtoType.set({ handlers: {} });
+		assertEquals(noProtoType.proto, undefined);
+	});
+
+	await t.step("should return class when configured with plain object proto", () => {
+		const objProtoName = "objProtoType";
+		const objProtoType = getInterface(objProtoName);
+		const jsProto = {
+			greetJS(name) { return $c.sm(this, 'greet', [name]); },
+		};
+		objProtoType.set({
+			handlers: {
+				greet: (d) => 'Hello, ' + d.mp.at(0),
+			},
+			proto: jsProto,
+		});
+		const protoClass = objProtoType.proto;
+		assert(typeof protoClass === 'function', "proto should be a class (function)");
+		assert(protoClass.prototype instanceof MsjsObject, "proto should be instanceof MsjsObject");
+		// Verify the class has the methods from the plain object proto
+		assert(typeof protoClass.prototype.greetJS === 'function', "proto class should have greetJS method");
+	});
+
+	await t.step("should return the same class when configured with MsjsObject subclass", () => {
+		const classProtoName = "classProtoType";
+		const classProtoType = getInterface(classProtoName);
+		class MyWidget extends MsjsObject {} // Simplified for test
+		classProtoType.set({
+			handlers: {},
+			proto: MyWidget,
+		});
+		assertEquals(classProtoType.proto, MyWidget);
+	});
+
+	await t.step("(proto) message should return same value as .proto getter", () => {
+		const msgProtoName = "msgProtoType";
+		const msgProtoType = getInterface(msgProtoName);
+		const jsProto = {
+			testMethod() { return 'test'; },
+		};
+		msgProtoType.set({
+			handlers: {},
+			proto: jsProto,
+		});
+		// Get via .proto getter
+		const getterProto = msgProtoType.proto;
+		// Get via (proto) message
+		const messageProto = $c.sm(msgProtoType, 'proto');
+		assertEquals(messageProto, getterProto, "(proto) message should return same class as .proto getter");
 	});
 });

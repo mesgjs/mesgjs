@@ -898,6 +898,9 @@ export class MsjsObject {
 		case 'name':
 			mc.value = this.#core1;
 			return true;
+		case 'proto':
+			mc.value = interfaces[this.#core1].protoClass;
+			return true;
 		case 'set':
 			MsjsObject.#setInterface(this.#core1, mp, this.#core2);
 			mc.value = this;
@@ -913,6 +916,9 @@ export class MsjsObject {
 			instance (mp) {
 				if (this.#type !== TYPE_IF) this.#notFun('@interface.instance');
 				return MsjsObject.getInstance(this.#core1, mp, OBJ_KEY);
+			},
+			get proto () {
+				return interfaces[this.#core1].protoClass;
 			},
 			set (mp) {
 				if (this.#type !== TYPE_IF) this.#notFun('@interface.set');

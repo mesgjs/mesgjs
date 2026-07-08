@@ -16,7 +16,12 @@ In addition to providing your own interface name, you can create *anonymous* int
     * `(instance)` message attribution (`sr`, `st`, and/or `smi`, as available) is forwarded to the instance's `(init)` message.
 
 * `(name)`
-  * Synopsis: Returns the name of the interface (useful for anonymous interfaces).
+   * Synopsis: Returns the name of the interface (useful for anonymous interfaces).
+
+* `(proto)`
+   * Synopsis: Returns the class (constructor) used for instances of this interface if the `proto` interface property has been configured (or `@u`/`undefined` otherwise).
+   * Returns a *class* extending `MsjsObject` even if the interface was configured with an *object* `proto`. When an object is provided to `proto`, the runtime creates an anonymous subclass of `MsjsObject` with that object's properties as the prototype.
+   * Useful for sub-classing on the JS side in parallel with interface chaining on the Mesgjs side. Make sure the interface is ready before access (e.g. via `fwait` on an associated feature).
 
 * `(set options)`
   * Synopsis: Configures the interface with the specified options.
@@ -152,6 +157,8 @@ Equivalent to the `(name)` message in Mesgjs. Returns the name of the interface 
 Configures the interface like the `(set)` message in Mesgjs. `options` may be a plain JavaScript object or a `NANOS` instance.
 * `interface.instance(optInitParams)`\
 Returns an instance (or *the* instance, for singletons) of the interface. Unlike `@c(get interface)`, this works even for private interfaces. If `optInitParams` is supplied, it is passed as the message parameters for the `@init` constructor message handler of the interface. Message attribution is not available from JavaScript.
+* `interface.proto`\
+Returns the class (constructor) used for instances of this interface if the `proto` interface property has been configured (or `undefined` otherwise). Always returns a *class* extending `MsjsObject`, even if the interface was configured with a plain object `proto`. Useful for interface chaining to sub-class on the JS side.
 
 ## Examples
 
