@@ -108,7 +108,7 @@ function onSet  (n, k, v) { // On NANOS set
 }
 
 function rio (r) {
-	if (!r) r = reactive();
+	if (!r?.$reactive) r = reactive();
 	return {
 		// Basic (reactive packaging)
 		batch: reactive.batch,

@@ -57,7 +57,7 @@ function opRIO (d) {
 
 	if (mp.has(0)) {
 		let rio = mp.at(0);
-		if (rio === true) rio = getInstance('@reactive')('rio');
+		if (rio === true) rio = $c.sm(getInstance('@reactive'), 'rio');
 		orr.rio = rio;			// NANOS will validate
 		return d.rr;
 	}
@@ -68,7 +68,7 @@ function opRIO (d) {
 function opRxt (d) {
 	const { orr } = d;
 
-	if (!orr.rio) orr.rio = getInstance('@reactive')('rio');
+	if (!orr.rio) orr.rio = $c.sm(getInstance('@reactive'), 'rio');
 
 	const rio = orr.rio;
 
