@@ -57,6 +57,7 @@ export function lex (input, loc = {}) {
 
 	let match = input.match(/^(#![^\n]*\n)?(\[\(.*?\)\])?/s);
 	const shebang = match[1] || '', configSLID = match[2] || '';
+
 	match = undefined;
 	if (shebang || configSLID) {
 		input = input.slice(shebang.length + configSLID.length);
@@ -66,6 +67,7 @@ export function lex (input, loc = {}) {
 
 	return { shebang, configSLID, tokens: input.split(MsjsRE).map(text => {
 		const loc = { src, line, col };
+
 		adv(text);
 
 		switch (text) {					// Standalone, full-match cases
@@ -97,10 +99,11 @@ export function lex (input, loc = {}) {
 		switch (text[0]) {				// Single-char-prefix cases
 		case "'":						// Quoted strings
 		case '"':
-			{
+		{
 			const uesl = unescapeJSString(text.slice(1, -1));
+
 			return { type: 'txt', loc, text: uesl };
-			}
+		}
 		}
 
 		if (/^\s/.test(text)) return false; // White space
@@ -141,6 +144,7 @@ export function parse (tokens) {
 	// Check for a previously-parsed node at the current position
 	function lookup (type) {
 		const hit = cache[read]?.[type];
+
 		if (hit) {
 			read = hit.readNext;
 			return hit.node;
@@ -153,9 +157,13 @@ export function parse (tokens) {
 	function parseBlock (allow = '{') {
 		// { block }
 		const type = tokens[read]?.type;
+
 		if (type !== allow) return null;
+
 		const hit = lookup(type);
+
 		if (hit) return hit;
+
 		const statements = [], read0 = read++, cur = tokens[read0];
 		const node = { type, loc: cur.loc, statements };
 
@@ -183,10 +191,15 @@ export function parse (tokens) {
 	function parseChain () {
 		// base ( message-and-optional-params ) ...
 		const hit = lookup('chn');
+
 		if (hit) return hit;
+
 		const read0 = read, base = parseVar() || parseLiteral();
+
 		if (!base) return null;
+
 		const messages = [], node = { type: 'chn', loc: base.loc, base, messages };
+
 		// deno-lint-ignore no-cond-assign
 		for (let message; message = parseMessage(); ) messages.push(message);
 		if (messages.length) return save(read0, node);
@@ -196,6 +209,7 @@ export function parse (tokens) {
 
 	function parseJS () {
 		const cur = tokens[read];
+
 		if (cur?.type === 'js') {
 			++read;
 			return cur;
@@ -206,10 +220,12 @@ export function parse (tokens) {
 	function parseList () {
 		// [ name=value value ... ]
 		if (tokens[read]?.type !== '[') return null;
+
 		const hit = lookup('[');
+
 		if (hit) return hit;
-		const read0 = read++, cur = tokens[read0], items = [],
-			node = { type: '[', loc: cur.loc, items };
+
+		const read0 = read++, cur = tokens[read0], items = [], node = { type: '[', loc: cur.loc, items };
 
 		++lstDep;
 		// deno-lint-ignore no-cond-assign
@@ -219,7 +235,9 @@ export function parse (tokens) {
 				return save(read0, node);
 			}
 			if ((msgDep && cur.type === ')') || (blkDep && cur.type === '}')) break;
+
 			const item = parseNamedValue() || parseValue();
+
 			if (item) items.push(item);
 			else {
 				error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
@@ -234,6 +252,7 @@ export function parse (tokens) {
 	function parseLiteral () {
 		// Text, word, number, list, or block
 		const cur = tokens[read];
+
 		switch (cur?.type) {
 		case 'num':
 		case 'txt':
@@ -246,8 +265,11 @@ export function parse (tokens) {
 	function parseMessage () {
 		// ( message params )
 		if (tokens[read]?.type !== '(') return null;
+
 		const hit = lookup('(');
+
 		if (hit) return hit;
+
 		const read0 = read, cur = tokens[read++];
 		const message = parseValue(), params = [], node = {
 			type: '(', loc: cur.loc, message, params
@@ -261,7 +283,9 @@ export function parse (tokens) {
 				return save(read0, node);
 			}
 			if ((lstDep && cur.type === ']') || (blkDep && cur.type === '}')) break;
+
 			const param = parseNamedValue() || parseValue();
+
 			if (param) params.push(param);
 			else {
 				error(`Syntax error: Unexpected ${showToken(cur)} at ${tls()}`);
@@ -274,10 +298,18 @@ export function parse (tokens) {
 	}
 
 	function parseName () {
-		// Chain, number, text, or word
+		// Chain, number, text, word, or varReqName
 		const chain = parseChain();
+
 		if (chain) return chain;
+
+		// Check for <namespace> <list> or <namespace> <name>
+		const v = parseVar(true);
+
+		if (v) return v;
+
 		const cur = tokens[read];
+
 		switch (cur?.type) {
 		case 'num':
 		case 'txt':
@@ -290,13 +322,22 @@ export function parse (tokens) {
 	function parseNamedValue () {
 		// name=value
 		const hit = lookup('=');
+
 		if (hit) return hit;
+
 		const read0 = read, name = parseName(), cur = tokens[read];
+
 		if (!name || cur?.type !== 'wrd' || cur.text != '=') {
 			read = read0;
 			return null;
 		}
+
+		if (name.type === 'var' && name.name.type !== '[') {
+			error(`Use list-key syntax (${name.space}[...]=) at ${tls(name)} if a dynamically-named value is intentional`);
+		}
+
 		const eq = tokens[read++], value = parseValue();
+
 		if (!value) {
 			error(`Missing value in named value at ${tls(eq)}`);
 			return null;
@@ -308,8 +349,11 @@ export function parse (tokens) {
 
 	function parseStatement () {
 		const js = parseJS();
+
 		if (js) return js;
+
 		const node = parseValue() || parseBlock('dbg');
+
 		if (node) return { type: 'stm', loc: node.loc, node };
 	}
 
@@ -321,12 +365,15 @@ export function parse (tokens) {
 	function parseVar (reqName = false) {
 		// % / %name / %?name, etc
 		const read0 = read, hit = lookup('var');
+
 		if (hit) {
 			if (hit.name || !reqName) return hit;
 			read = read0;
 			return null;
 		}
+
 		const ns = tokens[read], space = ns?.text;
+
 		if (ns?.type !== 'wrd') return null;
 		switch (space) {
 		case '%': case '%?':			// Object persistent properties ("protected")
@@ -339,15 +386,20 @@ export function parse (tokens) {
 		default:
 			return null;
 		}
+
 		const name = tokens[++read], nType = name?.type;
+
 		if (nType === 'txt' || nType === 'wrd' || (nType === 'num' && Number.isInteger(name.value))) {
 			++read;
 			return save(read0, { type: 'var', loc: ns.loc, space, name });
 		}
+
 		const list = parseList();
+
 		if (list) {
 			return save(read0, { type: 'var', loc: ns.loc, space, name: list });
 		}
+		// No name or list; if we required a namespace *with name*, then unread the namespace too
 		if (reqName) --read;
 		return (reqName ? null : save(read0, { type: 'var', loc: ns.loc, space }));
 	}
@@ -356,9 +408,11 @@ export function parse (tokens) {
 
 	while (read < end) {
 		const res = parseStatement();
+
 		if (res) output.push(res);
 		else {
 			const cur = tokens[read];
+
 			if (cur?.type === 'utq') {
 				error(`Unterminated ${cur.text} at ${tls()}`);
 				break;
@@ -373,6 +427,7 @@ export function parse (tokens) {
 // Return a token's location string
 export function tokenLocStr (token) {
 	const loc = token?.loc;
+
 	return (loc ? `${loc.src || 'unknown'}:${loc.line + 1}:${loc.col + 1}` : 'end of input');
 }
 

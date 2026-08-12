@@ -13,7 +13,8 @@
 import { assertEquals, assertExists, assert } from 'jsr:@std/assert';
 import '../src/runtime/mesgjs.esm.js';
 // Being foundational to the language, NANOS is added to globalThis when the runtime is loaded
-import { loadMesgjsModuleSource, transpileMesgjs } from "../harness.esm.js";
+import { loadMesgjsModuleSource, transpileMesgjs } from "./harness.esm.js";
+import { lex, parse } from "../src/lexparse.esm.js";
 
 Deno.test('Mesgjs Syntax Coverage', async (t) => {
 	const $gss = globalThis.$gss;
@@ -714,5 +715,22 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		assertEquals($gss.at('numericResult'), 20, 'List-key with numeric index %*[list sub 1]');
+	});
+
+	await t.step('should handle dynamic name syntax and error handling', async () => {
+		// 1. Valid dynamic name #[name]=#value
+		await loadMesgjsModuleSource(`
+			#(nset name=dynamicKey value=dynamicValue)
+			%*(nset #[name]=#value)
+			#(nset dynSet={ %*(nset ![0]=!1) }(fn))
+			#dynSet(call dynKey2 dynVal2)
+		`);
+		assertEquals($gss.at('dynamicKey'), 'dynamicValue', 'Dynamic name #[name]=#value');
+		assertEquals($gss.at('dynKey2'), 'dynVal2', 'Dynamic set fn ![0]=!1');
+
+		// 2. Invalid dynamic name #name=#value should generate an error
+		const { errors } = parse(lex("%*(nset #name=#value)").tokens);
+		assert(errors.length > 0, 'Should have parsing errors');
+		assert(errors[0].includes('Use list-key syntax (#[...]=)'), `Expected error message, got: ${errors[0]}`);
 	});
 });

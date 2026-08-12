@@ -85,13 +85,13 @@ The `@list` interface is a **receiver singleton** — all `NANOS` list values sh
   * Existing index items with an index greater than or equal to the new index will be removed from the list.
 * `(nset key1=value1 ... keyN=valueN)`\
 `(== key1=value1 ... keyN=valueN)`
-  * Synopsis: "Named" set/multiple set. Equivalent to `(set key to=value)` repeated for each key/value pair.  
-  * Named set only works for top-level keys (there are no key paths).  
+  * Synopsis: "Named" set/multiple set. Equivalent to `(set key to=value)` repeated for each key/value pair.
+  * Named set only works for top-level keys (there are no key paths).
   * **IMPORTANT:** `key1=value1`, etc. *are NOT assignments* - they're key/value message parameters\! The actual assignments (to storage) are performed within the `(nset)` message handler, which does not execute until after all of the parameters are evaluated. Of particular consequence is that subsequent key-value pairs cannot depend on earlier key-value pairs within the same `(nset)`.\
     `#(nset a=1 b=#a(mul 2)) // Error! #a is not yet set when computing the value for key b`\
     `#(nset a=1) #(nset b=#a(mul 2)) // OK - #a is set before the second (nset) message`
-  * Keep in mind that positional values ("without keys") have implied, consecutive index keys, and these will be set too\!  
-    `(nset x=5 well hello) // means nset(x=5 0=well 1=hello)`
+  * Dynamically-named values can be set using the `#[name]=value` syntax (see [Mesgjs Syntax](../Mesgjs-Syntax.md) for details).
+  * **IMPORTANT:** Only named entries (non-numeric keys) are set by `(nset)`. Indexed entries (numeric keys, e.g., `5=five` or `'6'=six`) and positional values (which are assigned consecutive numeric index keys) are completely ignored. A dynamic/computed "name" that evaluates to an index will likewise result in the corresponding value not being assigned. Use `(set)` instead if index key support is required.
 * `(options)`
   * Synopsis: Gets the underlying NANOS options. See the [NANOS documentation](https://github.com/mesgjs/nanos) for details.
 * `(pairs num=@f)`

@@ -47,10 +47,10 @@ Numeric literals create objects that are manipulated using `@number` interface o
 ## List Literals
 
 * `[ zero-or-more ordered items ]`
-* Every item in a list has an associated key.  
-* If an item appears as a single value, its key is the next zero-origin index position available at the end of the list.  
+* Every item in a list has an associated key.
+* If an item appears as a single value, its key is the next zero-origin index position available at the end of the list.
 * If a single value is the word-literal `@e`, it leaves an empty hole at that location in the list.
-* If an item appears as two values separated by "`=`", the first value is the key for the second value. The key may be either a whole number (an index key) or some other value (a named key).
+* If an item appears as two values separated by "`=`", the first value is the key for the second value. The key may be either a whole number (an index key) or some other value (a named key). Keys can also be dynamic using the "list-key" syntax (e.g. `#[name]`) or computed using a message chain (see [Mesgjs Syntax](Mesgjs-Syntax.md) for details).
 * Example: `[ 'Hello, world' second x=2 y=4 'my name'=Brian ]`
 * Note that indexed (positional) items are appended at the latest position that preserves ascending index order. For example, the (rather contrived) literal `[ a=1 1=b 0=c ]` actually generates `[ a=1 c b ]` because `c` with index `0` must come before `b` with index `1`, both of which were added after the a-named (non-indexed) value of `1`.
 

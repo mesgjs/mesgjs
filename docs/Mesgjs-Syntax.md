@@ -17,7 +17,7 @@ mind, source syntax begins with symbol `<SOURCE>`.
 <listItem>   = <namedValue> | <value>
 <literal>    = number | <qtext> | <word> | <list> | <block>
 <message>    = '(' <value> <listItem>* ')'
-<name>       = <chain> | <qtext> | <word> | number
+<name>       = <chain> | <qtext> | <word> | number | <namespace> <list>
 <namespace>  = '!' | '!?' | '#' | '#?' | '%' | '%?' | '%%' | '%%?' | '%*' | '%*?' | '%/' | '%/?' // Storage-related opWords
 <namedValue> = <name> '=' <value>
 <shebang>    = '#!' singleLine // For *NIX executable scripts
@@ -36,4 +36,6 @@ mind, source syntax begins with symbol `<SOURCE>`.
 - Namespace-retrieval `opWords` all also correspond to live, messageable objects (see `<varOptName>` (no-`<varName>` case) and `<chain>`).
 - "Dangling" namespace-retrieval `opWords` (not followed by a message (`<chain>`) or an operand (`<varReqName>`)) have no special meaning and just evaluate to their literal textual value, e.g. the list `[#]` is equivalent to `['#']`.
 - The `=` operator is strictly for key/value *association* (*assignments* happen as a *side effect* of *executing messages* like `(nset)` or `(set)`; *there are no assignment operators in Mesgjs*).
+- Dynamically-named values are supported using the `<namespace> <list>` ("list-key") syntax for `<name>`, e.g., `#[name]=#value` (which is equivalent to the message chain `#(at name)=#value`).
+- Syntax restrictions strictly disallow `#name=#value` as a named value. This restriction helps prevent accidental usage of e.g. `#(nset #name=value)` when `#(nset name=value)` was likely what was intended (especially for users new to the language).
 - Code-block literals (`<block>`) are templates that create `@code` object instances when referenced. The `!}` token is atomic and indicates a "returning" block (returns the last expression value when `(run)`), while `}` alone indicates a "non-returning" block (returns `@u` when `(run)`).
