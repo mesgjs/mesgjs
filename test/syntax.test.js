@@ -717,6 +717,18 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		assertEquals($gss.at('numericResult'), 20, 'List-key with numeric index %*[list sub 1]');
 	});
 
+	await t.step('should handle list-keys with else (both RIC and static values)', async () => {
+		await loadMesgjsModuleSource(`
+			%*(nset
+				staticResult=#[absent else=static-value]
+				ricResult=#[absent else={ RIC-value !}]
+			)
+		`);
+
+		assertEquals($gss.at('staticResult'), 'static-value', 'List-key with static else value');
+		assertEquals($gss.at('ricResult'), 'RIC-value', 'List-key with RIC else value');
+	});
+
 	await t.step('should handle dynamic name syntax and error handling', async () => {
 		// 1. Valid dynamic name #[name]=#value
 		await loadMesgjsModuleSource(`

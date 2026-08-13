@@ -11,7 +11,7 @@ Deno.test("@list Interface", async (t) => {
 	const { getInstance } = $c;
 	const listBox = getInstance('@list');
 
-	const newList = (initParams = ls()) => $c.sm(listBox, "new", { from: initParams });
+	const newList = (list = ls()) => list;
 
 	await t.step("consistent receivers", () => {
 		const n = getInstance('@list');

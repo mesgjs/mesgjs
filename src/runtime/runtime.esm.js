@@ -1232,7 +1232,7 @@ export function namespaceAt	 (namespace, key, opt) {
 		const value = namespace.at(path, { default: NOT_FOUND });
 
 		if (value !== NOT_FOUND) return value;
-		if (key.has('else')) return key.at('else');
+		if (key.has('else')) return MsjsObject.runIfCode(key.at('else'));
 		if (opt) return;
 		throw new ReferenceError(`Required key [${path.join(' ')}] not found`);
 	}

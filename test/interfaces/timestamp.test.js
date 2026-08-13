@@ -125,7 +125,7 @@ Deno.test('@timestamp Interface', async (t) => {
 		let blockRan = false;
 		const slowCode = codeBlock(() => {
 			blockRan = true;
-			while (Date.now() - start < 50); // busy-loop for synchronous delay
+			while ((Date.now() - start) < 55); // busy-loop for synchronous delay
 		});
 
 		const elapsed = $c.sm(ts, 'elapsed', ls([, slowCode]));
