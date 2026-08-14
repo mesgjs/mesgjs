@@ -1,0 +1,59 @@
+/*
+https://rosettacode.org/wiki/Polymorphism
+
+Create class Point(x, y) and subclass Circle(x, y, r) with copy constructor, accessors, assignment, and overridden print method.
+*/
+
+@c(interface Point)(set handlers=[
+	// init=[otherPoint]
+	// init=[x y]
+	@init={
+		#(nset type=@c(type !0))
+		@c(if
+			@c(typeChains #type Point) { %(nset x=!0(getX) y=!0(getY)) } // Copy existing Point
+			else={ %(nset x=!0 y=!1) } // Init from x and y positionals
+		)
+	}
+	// (assign otherPoint)
+	assign={ %(nset x=!0(getX) y=!0(getY)) }
+	getX={ %x !}
+	getY={ %y !}
+	setX={ %(nset x=!0) }
+	setY={ %(nset y=!0) }
+	print={ @c(log Point %x %y) }
+])
+
+@c(interface Circle)(set handlers=[
+	// init=[otherCircle]
+	// init=[point r]
+	// init=[x y r]
+	@init={
+		@d(redis) // Redispatch to initialize Point
+		#(nset type=@c(type !0))
+		@c(if
+			@c(typeChains #type Circle) { %(nset r=!0(getR)) } // Copy existing Circle
+			{ @c(typeChains #type Point) !} { %(nset r=!1) } // Point + r positionals
+			else={ %(nset r=!2) } // x + y + r positionals
+		)
+	}
+	// (assign otherCircle)
+	assign={
+		// Not really worth redispatch here, but we could
+		%(nset x=!0(getX) y=!0(getY) r=!0(getR))
+	}
+	getR={ %r !}
+	setR={ %(nset r=!0) }
+	print={ @c(log Circle %x %y %r) }
+] chain=[Point])
+
+#(nset point1=@c(get Point init=[1 2]))
+#point1(print) // Point 1 2
+#(nset point2=@c(get Point init=[#point1]))
+#point2(print) // Point 1 2
+
+#(nset circle1=@c(get Circle init=[2 3 4]))
+#circle1(print) // Circle 2 3 4
+#(nset circle2=@c(get Circle init=[#circle1]))
+#circle2(print) // Circle 2 3 4
+#(nset circle3=@c(get Circle init=[#point1 5]))
+#circle3(print) // Circle 1 2 5

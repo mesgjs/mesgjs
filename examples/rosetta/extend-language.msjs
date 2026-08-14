@@ -1,0 +1,40 @@
+/*
+https://rosettacode.org/wiki/Extend_your_language
+
+Create a two-condition if ("if2") that efficiently handles the possible outcomes
+
+----
+
+Mesgjs has essentially no native control structures.
+
+The @dispatch interface, which is part of the runtime and can't be removed, supports redis (redispatch) and return messages, but they use the standard messaging syntax.
+
+The "standard if" is just a message handler on a standard extension (interface "@core", global instance "@c": "@c(if ...)"). We can build "if2" in Mesgjs by leveraging "@c(if ..)" and the same underlying mechanisms it uses.
+*/
+
+// For security, @core can't be updated from within Mesgjs.
+// Create an "extended core" singleton interface called "extCore" to contain the handler.
+@c(interface extCore)(set
+	singleton=@t
+	handlers=[
+		// (if2 cond1 cond2 first=first? second=second? both=both? neither=neither?)
+		// All values except cond1 are RIC (run-if-code) values; outcomes optional
+		if2={
+			@c(if
+				// if cond1 then if run cond2 then run/return both else r/r first
+				!0 { @c(if @c(run !1) { @c(run !?both) !} else={ @c(run !?first) !}) !}
+				// else if run cond2 then r/r second
+				{ @c(run !1) !} { @c(run !?second) !}
+				// else r/r neither
+				else={ @c(run !?neither) !}
+			)
+		!}
+	]
+)
+// Expose the singleton as global %*xc.
+%*(nset xc=@c(get extCore))
+
+@c(log %*xc(if2 @t @t both=both first=first second=second neither=neither)) // both
+@c(log %*xc(if2 @t @f both=both first=first second=second neither=neither)) // first
+@c(log %*xc(if2 @f @t both=both first=first second=second neither=neither)) // second
+@c(log %*xc(if2 @f @f both=both first=first second=second neither=neither)) // neither

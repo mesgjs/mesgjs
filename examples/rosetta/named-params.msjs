@@ -1,0 +1,36 @@
+/*
+https://rosettacode.org/wiki/Named_parameters
+
+If the language supports functions that interchangeably accept positional or named parameters, show the syntax and whether named parameters can be reordered.
+
+Example: function f (x, y) accepts f(1, 2) or f(y=2, x=1)
+
+----
+
+Mesgjs does not have any specific syntax for method-handler or function declarations or formal parameters. Instead, code simply accesses the ! storage object (list instance) containing the current message parameters. These may include any combination of positional and named parameters.
+
+There is no pre-defined relationship between positional and named parameters, but you can simulate one at reference time by defining a fallback (else) value to use if the requested one has not been provided.
+
+Two separate sets of message parameters are involved in the case of functions: one set when the function is created from a code block using the (fn param...) message and another set is created when the function is called by sending the (call param...) message. The set from the (fn) message becomes the function object's persistent storage (%).
+*/
+
+// Create global function %*linear
+%*(nset linear={
+	#(nset
+		x=![x else={ !0 !}] // #x: call's x or first positional
+		// #m: call's m or second positional or fn's m or first positional
+		m=![m else={ ![1 else={ %[m else={ %0 !}] !}] !}]
+		// #b: call's b or third positional or fn's b or second positional
+		b=![b else={ ![2 else={ %[b else={ %1 !}] !}] !}]
+	)
+	#m(* #x)(+ #b)
+!}(fn))
+
+// Global functions %*slope2 and %*slope3 share %*linear's implementation but nothing else.
+// They are not wrappers. They each have their own persistent state.
+%*(nset slope2=%*linear(fn 2 /*%m*/) slope3=%*linear(fn m=3))
+
+@c(log 'linear 1:' %*linear(call 3 /*!x*/ 2 /*!m*/ 5 /*!b*/)) // linear 1: 11
+@c(log 'linear 2:' %*linear(call b=5 m=2 3 /*!x*/)) // linear 2: 11
+@c(log slope2: %*slope2(call 3 /*!x*/ b=4)) // slope2: 10
+@c(log slope3: %*slope3(call b=4 x=5)) // slope3: 19

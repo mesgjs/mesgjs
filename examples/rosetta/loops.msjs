@@ -1,0 +1,164 @@
+////////////////////////////////////////
+// BREAK
+
+/*
+https://rosettacode.org/wiki/Loops/Break
+
+In an infinite loop:
+Generate and print a random number between 0 and 19 inclusive.
+If equal to 10, break out of the loop.
+Generate and print another random number between 0 and 19.
+*/
+
+#(nset loop=@c(get @loop)) // Get loop iterator instance
+// loop(while pre=preTestBlock mainBlock mid=midTestBlock betweenBlock post=postTestBlock)
+#loop(while pre={ @t !} { // pre-test permanently true
+	#(nset n=20(random)(int)) // Range will be [0, 19]
+	@c(log #n)
+	@c(if #n(= 10) { #loop(stop) })
+	@c(log 20(random)(int))
+})
+
+////////////////////////////////////////
+// CONTINUE
+
+/*
+https://rosettacode.org/wiki/Loops/Continue
+
+Use a single loop employing a conditional "continue" to generate the output:
+1, 2, 3, 4, 5
+6, 7, 8, 9, 10
+*/
+
+#(nset output='' loop=@c(get @loop)) // Output and loop iterator instance
+#loop(run {
+	// loop(num): 0-based iteration; loop(num1): 1-based iteration
+	#(nset output=#output(+ #loop(num1)(toString)))
+	@c(if #loop(num)(/+ 5)(= 4) {
+		@c(log #output)
+		#(nset output='')
+		#loop(next)
+	})
+	#(nset output=#output(+ ', '))
+} times=10)
+
+////////////////////////////////////////
+// DO WHILE
+
+/*
+https://rosettacode.org/wiki/Loops/Do-while
+
+Using a "do-while" loop and a starting value of 0,
+add 1 to the value and print it, while the updated value mod 6 is not 0
+*/
+
+#(nset value=0 loop=@c(get @loop)) // Current value, loop iterator instance
+// loop(while pre=preTestBlock mainBlock mid=midTestBlock betweenBlock post=postTestBlock)
+#loop(while {
+	#(nset value=#value(+ 1))
+	@c(log #value)
+} post={ #value(/+ 6)(!= 0) !})
+
+////////////////////////////////////////
+// FOR
+
+/*
+https://rosettacode.org/wiki/Loops/For
+
+Using nested "for"-style loops, generate the output:
+  
+*
+**
+***
+****
+*****
+
+*/
+
+#(nset outer=@c(get @loop))
+#outer(run {
+	#(nset output='')
+	@c(get @loop)(run {
+		#(nset output=#output(+ *))
+	} times=#outer(num1))
+	@c(log #output)
+} times=5)
+
+////////////////////////////////////////
+// FOREACH
+
+/*
+https://rosettacode.org/wiki/Loops/Foreach
+
+Loop through, and print, each element in a collection
+*/
+
+#(nset whileParts=[while-op pre=pre-test main-block mid=mid-test between-block post=post-test] iter=@c(get @kvIter))
+#iter(for #whileParts
+	index={ @c(log index #iter(key)(toString)(+ :)) }
+	named={ @c(log name #iter(key)(+ :)) }
+	{ @c(log '  value:' #iter(value) isIndex: #iter(isIndex)) }
+)
+
+/*
+Output:
+
+index 0:
+  value: while-op isIndex: true
+name pre:
+  value: pre-test isIndex: false
+index 1:
+  value: main-block isIndex: true
+name mid:
+  value: mid-test isIndex: false
+index 2:
+  value: between-block isIndex: true
+name post:
+  value: post-test isIndex: false
+*/
+
+////////////////////////////////////////
+// NESTED
+
+/*
+https://rosettacode.org/wiki/Loops/Nested
+
+Create a 10 x 10 matrix of random integers in the range [1, 20].
+Use nested loops to traverse the rows and columns. Output each value along the way.
+Stop early (after output) if the value 20 is encountered.
+*/
+
+#(nset outer=@c(get @loop) inner=@c(get @loop))
+// Matrix initialization
+#outer(run {
+	#inner(run {
+		#(set matrix #outer(num) #inner(num) to=20(random)(int)(+ 1))
+	} times=10)
+} times=10)
+// Matrix search for 20
+#outer(run {
+	#(nset output='')
+	#inner(run {
+		#(nset value=#[matrix #outer(num) #inner(num)])
+		#(nset output=#output(+ ' ' #value(toString)))
+		@c(if #value(= 20) { @c(log #output) #outer(stop) })
+	} times=10)
+	@c(log #output)
+} times=10)
+
+////////////////////////////////////////
+// WHILE
+
+/*
+https://rosettacode.org/wiki/Loops/While
+
+Using a "while" loop and starting with a value of 1024:
+while the value is not equal to zero, print the current value and then replace it with int(value / 2)
+*/
+
+#(nset value=1024 loop=@c(get @loop))
+// loop(while pre=preTestBlock mainBlock mid=midTestBlock betweenBlock post=postTestBlock)
+#loop(while pre={ #value(> 0) !} {
+	@c(log #value)
+	#(nset value=#value(/ 2)(int))
+})
