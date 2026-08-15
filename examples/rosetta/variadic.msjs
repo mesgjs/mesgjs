@@ -1,0 +1,27 @@
+/*
+https://rosettacode.org/wiki/Variadic_function
+
+Demonstrate a varidic function that prints each argument, one per line.
+Also demonstrate programmatic creation of arguemtns if supported.
+*/
+
+// All message handlers and function in Mesgjs are variadic.
+// There are no parameter declarations.
+// Message parameters are available via the ! storage object.
+
+%*(nset variadic={
+	#(nset iter=@c(get @kvIter))
+	#iter(for !(self) // !(self) passes ! object; ! would pass '!' string
+		index={ @c(log index #iter(key) value #iter(value)) }
+		named={ @c(log name #iter(key) value #iter(value)) }
+	)
+}(fn))
+#(nset params=[first computed=1(+ 2)]) // computed parameters
+#params(push next=pushed last)
+%*variadic([call params=#params]) // "list-op" syntax (message operation is a list)
+
+// Output:
+// index 0 value first
+// name computed value 3
+// name next value pushed
+// index 1 value last
