@@ -1,0 +1,48 @@
+/*
+https://rosettacode.org/wiki/Inheritance/Multiple
+
+Create a CameraPhone from a Camera and a MobilePhone
+*/
+
+@c(interface Camera)(set handlers=[
+	@init={
+		%(nset types=%[types else=[]])
+		%types(push Camera)
+		%%(nset types=[Camera])
+		@c(log Camera @init)
+	}
+	printTypes={
+		@c(log Camera '%types' %types(toSLID))
+		@c(log Camera '%%types' %%types(toSLID))
+	}
+	takePicture={ @c(log 'Click!') }
+]
+)
+@c(interface MobilePhone)(set handlers=[
+	@init={
+		%(nset types=%[types else=[]])
+		%types(push MobilePhone)
+		%%(nset types=[MobilePhone])
+		@c(log MobilePhone @init)
+	}
+	makeCall={ @c(log 'Ring!') }
+])
+@c(interface CameraPhone)(set handlers=[
+	@init={
+		%(nset types=%[types else=[]])
+		%types(push CameraPhone)
+		%%(nset types=[CameraPhone])
+		@d(redis) // redispatch to Camera @init (first chained)
+		@d(redis type=MobilePhone) // redispatch to MobilePhone @init
+		@c(log CameraPhone @init)
+	}
+] chain=[Camera MobilePhone])
+#(nset phone=@c(get CameraPhone))
+// Camera @init
+// MobilePhone @init
+// CameraPhone @init
+#phone(takePicture) // Click!
+#phone(makeCall) // Ring!
+#phone(printTypes)
+// Camera %types [(CameraPhone Camera MobilePhone)]
+// Camera %%types [(Camera)]
