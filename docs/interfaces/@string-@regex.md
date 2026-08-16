@@ -83,7 +83,8 @@ RIC (run-if-code) values are only used where explicitly indicated.
 * `(re flags)`
   * Synopsis: Returns an `@regex` instance based on the string and optional flags.
   * This is the preferred equivalent of `@c(get @regex init=[`_`receiver`_ `flags])`.
-* `(repeat count)`
+* `(repeat count)`\
+`(* count)`
   * Synopsis: Returns a new string composed of the original string repeated count times.
 * `(replace pattern replacement)`\
 `(replaceAll pattern replacement)`

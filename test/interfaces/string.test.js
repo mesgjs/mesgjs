@@ -122,6 +122,7 @@ Deno.test("@string Interface", async (t) => {
 		assertEquals(padded("trimStart"), "hi  ");
 		assertEquals(padded("trimEnd"), "  hi");
 		assertEquals(mString("repeat", 2), "hellohello");
+		assertEquals(mString("*", 2), "hellohello"); // repeat alias
 		assertEquals(mString("padStart", ls([, 8, , "."])), "...hello");
 		assertEquals(mString("padEnd", ls([, 8, , "."])), "hello...");
 		assertEquals(mString("replace", ls([, "l", , "x"])), "hexlo");

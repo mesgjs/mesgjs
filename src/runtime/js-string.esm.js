@@ -91,6 +91,7 @@ export function install () {
 			'>': (d) => d.orr > d.mp.at(0), // gt
 			'+': opJoin,
 			'-': opJoining,
+			'*': (d) => d.orr.repeat(d.mp.at(0, 0)),
 			'<=': (d) => d.orr <= d.mp.at(0), // le
 			'<': (d) => d.orr < d.mp.at(0), // lt
 			'!=': (d) => !opEq(d), // ne
