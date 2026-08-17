@@ -294,7 +294,7 @@ function getHandler (mc, type0, dop, next, isInit) {
 				const accDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP, amc);
 
 				amc.mop = amc.dop = amc.hop = '@defacc';
-				amc.mp = { op: dop, type: defType };
+				amc.mp = new NANOS({ op: dop, type: defType });
 				amc.ht = accType;
 				useDef = accCode(accDisp);
 			}
