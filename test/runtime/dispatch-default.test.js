@@ -124,12 +124,16 @@ Deno.test("Dispatch Default and Defacc Requirements", async (t) => {
 	await t.step("@default with @defacc - @defacc's dispatch dop / mop / hop should be @defacc", () => {
 		const aif = getInterface(":?");
 		let defaccDop, defaccMop, defaccHop;
+		let defaccDopMsg, defaccMopMsg, defaccHopMsg;
 		aif.set({
 			handlers: {
 				"@defacc": (d) => {
 					defaccDop = d.dop;
 					defaccMop = d.mop;
 					defaccHop = d.hop;
+					defaccDopMsg = d.sm(d, 'dop');
+					defaccMopMsg = d.sm(d, 'mop');
+					defaccHopMsg = d.sm(d, 'hop');
 					return true;
 				},
 				"@default": () => "default-val",
@@ -140,6 +144,9 @@ Deno.test("Dispatch Default and Defacc Requirements", async (t) => {
 		assertEquals(defaccDop, "@defacc");
 		assertEquals(defaccMop, "@defacc");
 		assertEquals(defaccHop, "@defacc");
+		assertEquals(defaccDopMsg, "@defacc");
+		assertEquals(defaccMopMsg, "@defacc");
+		assertEquals(defaccHopMsg, "@defacc");
 	});
 
 	await t.step("@default with @defacc - !op and !type should be requested op and interface type", () => {

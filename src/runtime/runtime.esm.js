@@ -289,10 +289,11 @@ function getHandler (mc, type0, dop, next, isInit) {
 
 			if (accCode) {
 				// If @defacc is also present, it moderates what @default accepts
-				// (@defacc requires interrupting the dispatch in progress and then resuming it)
 				const amc = new MsgCtx();
 				const accDisp = new MsjsDispatch(OBJ_KEY, TYPE_DISP, amc);
 
+				amc.sr = amc.rr = accDisp;
+				amc.st = amc.rt = TYPE_DISP;
 				amc.mop = amc.dop = amc.hop = '@defacc';
 				amc.mp = new NANOS({ op: dop, type: defType });
 				amc.ht = accType;
