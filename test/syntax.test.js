@@ -72,6 +72,29 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		assertEquals($gss.at('empty'), '', 'Empty string');
 	});
 
+	await t.step('should handle code point escapes and transpile to proper surrogate pairs', async () => {
+		const source = `
+			%*(nset
+				hex_cp='\\u{1F600}'
+				dec_cp='\\u{0d128512}'
+				dec_cp_upper='\\u{0D128512}'
+				bmp_cp='\\u{41}'
+			)
+		`;
+
+		// 1. Verify transpilation output contains proper surrogate pairs
+		const transpiled = transpileMesgjs(source);
+		assert(transpiled.includes("'\\ud83d\\ude00'"), "Transpiled JS should contain surrogate pair for hex code point escape");
+		assert(transpiled.includes("'A'"), "Transpiled JS should contain 'A' for BMP code point escape");
+
+		// 2. Load and verify runtime values
+		await loadMesgjsModuleSource(source);
+		assertEquals($gss.at('hex_cp'), '\uD83D\uDE00', 'Hexadecimal Unicode code point escape');
+		assertEquals($gss.at('dec_cp'), '\uD83D\uDE00', 'Decimal Unicode code point escape (lowercase d)');
+		assertEquals($gss.at('dec_cp_upper'), '\uD83D\uDE00', 'Decimal Unicode code point escape (uppercase D)');
+		assertEquals($gss.at('bmp_cp'), 'A', 'BMP Unicode code point escape');
+	});
+
 	await t.step('should handle word literals (regularWord and opWord)', async () => {
 		await loadMesgjsModuleSource(`
 			%*(nset

@@ -117,6 +117,8 @@ Counter-Examples:
 - `\r` \- carriage return
 - `\t` \- horizontal tab
 - `\u`_`HHHH`_ \- character codes up to 16 bits as four hexadecimal digits
+- `\u{`_`HHHH...`_`}` \- hexadecimal Unicode code point escape (e.g. `\u{1F600}`)
+- `\u{0d`_`DDDD...`_`}` or `\u{0D`_`DDDD...`_`}` \- decimal Unicode code point escape (e.g. `\u{0d128512}`)
 - `\x`_`HH`_ \- character codes up to 8 bits as two hexadecimal digits
 - `\'` \- single quote
 - `\"` \- double quote
