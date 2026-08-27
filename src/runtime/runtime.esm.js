@@ -406,7 +406,7 @@ export async function loadModule (module) {
 			console.error(err.message);
 			return err;
 		}
-		console.warn(`loadModule WARNING: Module "${module}" is unverified`);
+		if (!modMeta.at('testMode') || !modMeta.at('suppressUnverifiedModuleWarning')) console.warn(`loadModule WARNING: Module "${module}" is unverified`);
 	}
 
 	const fetchURL = remapModURL(module, meta);
@@ -716,7 +716,7 @@ export class MsjsObject {
 			get mp () { return (this.#type === TYPE_DISP) ? this.#core1.mp : undefined; }, // Current message parameters
 			get orr () { return (this.#type === TYPE_DISP) ? this.#core1.orr : undefined; }, // Current message parameters
 			get p () { // Receiver's persistent storage (%)
-				if (this.#type !== TYPE_DISP) return;
+				if (this.#type !== TYPE_DISP) return undefined;
 
 				const rr = this.#core1.rr;
 
@@ -730,17 +730,17 @@ export class MsjsObject {
 			get smi () { return (this.#type === TYPE_DISP) ? this.#core1.smi : undefined; }, // Sending module identifier
 			get sr () { return (this.#type === TYPE_DISP) ? this.#core1.sr : undefined; }, // Sender
 			get st () { // Sender type
-				if (this.#type !== TYPE_DISP) return;
+				if (this.#type !== TYPE_DISP) return undefined;
 				if (this.#core1.sr) this.#core1.st ||= MsjsObject.typeOf(this.#core1.sr);
 				return this.#core1.st;
 			},
 			get t () { // Dispatch transient storage (#)
-				if (this.#type !== TYPE_DISP) return;
+				if (this.#type !== TYPE_DISP) return undefined;
 				this._ts ||= new NANOS();
 				return this._ts;
 			},
 			get x () { // Exclusive private persistent storage (%%)
-				if (this.#type !== TYPE_DISP) return;
+				if (this.#type !== TYPE_DISP) return undefined;
 				if (!this._xs) {
 					const ht = this.#core1.ht, rr = this.#core1.rr;
 					let htex = exclusive[ht];

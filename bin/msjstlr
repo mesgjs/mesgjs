@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# bin/msjstlr
+# Mesgjs Transpile-Load-Run Launcher
+# Copyright 2026 by Kappa Computer Solutions, LLC and Brian Katzung
+# Author: Brian Katzung <briank@kappacs.com>
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+DENO_FLAGS=()
+MSJSTLR_ARGS=()
+CLI_RUNTIME=""
+in_deno=0
+
+while [ $# -gt 0 ]; do
+  arg="$1"
+  shift
+
+  if [ $in_deno -eq 1 ]; then
+    if [ "$arg" = "--" ]; then
+      in_deno=0
+    else
+      DENO_FLAGS+=("$arg")
+    fi
+    continue
+  fi
+
+  case "$arg" in
+    -d|--deno)
+      in_deno=1
+      ;;
+    -r|--runtime)
+      if [ $# -gt 0 ]; then
+        CLI_RUNTIME="$1"
+        shift
+      else
+        echo "Error: $arg requires an argument" >&2
+        exit 1
+      fi
+      ;;
+    -r=*)
+      CLI_RUNTIME="${arg#-r=}"
+      ;;
+    --runtime=*)
+      CLI_RUNTIME="${arg#--runtime=}"
+      ;;
+    --)
+      MSJSTLR_ARGS+=("--" "$@")
+      break
+      ;;
+    *)
+      MSJSTLR_ARGS+=("$arg")
+      ;;
+  esac
+done
+
+if [ -n "$CLI_RUNTIME" ]; then
+  RUNTIME_DIR="$CLI_RUNTIME"
+elif [ -n "$MESGJS_RUNTIME" ]; then
+  RUNTIME_DIR="$MESGJS_RUNTIME"
+else
+  RUNTIME_DIR="$( cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd )"
+fi
+
+RUNTIME_DIR="$( cd -P "$RUNTIME_DIR" >/dev/null 2>&1 && pwd || echo "$RUNTIME_DIR" )"
+RUNTIME_DIR="${RUNTIME_DIR%/}"
+
+IMPORT_MAP="{\"imports\":{\"mesgjs/\":\"file://${RUNTIME_DIR}/\",\"@escape-js\":\"https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.1.0/src/escape.esm.js\",\"@nanos\":\"https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.5.1/src/nanos.esm.js\",\"@reactive\":\"https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/src/reactive.esm.js\"}}"
+IMPORT_MAP_DATA_URL="data:application/json;charset=utf-8,${IMPORT_MAP}"
+
+# Default permissions (--allow-read, --allow-env) are dropped individually if
+# explicitly present (scoped or unscoped) in the caller's -d/--deno flags, or
+# entirely if -A/--allow-all is present.
+ALLOW_READ='--allow-read'
+ALLOW_ENV='--allow-env'
+
+for flag in "${DENO_FLAGS[@]}"; do
+  case "$flag" in
+    -A|--allow-all)
+      ALLOW_READ=''
+      ALLOW_ENV=''
+      ;;
+    --allow-read|--allow-read=*)
+      ALLOW_READ=''
+      ;;
+    --allow-env|--allow-env=*)
+      ALLOW_ENV=''
+      ;;
+  esac
+done
+
+exec deno run --import-map="$IMPORT_MAP_DATA_URL" $ALLOW_READ $ALLOW_ENV "${DENO_FLAGS[@]}" "$RUNTIME_DIR/cli/msjstlr-startup.esm.js" "${MSJSTLR_ARGS[@]}"

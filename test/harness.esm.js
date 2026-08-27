@@ -50,7 +50,8 @@ export function transpileMesgjs (source, module = 'anonymous', options = {}) {
 
 // Dynamically load a Mesgjs module's transpiled JavaScript code.
 export async function loadMesgjsModuleJS (code) {
-	const mod = await import(`data:application/javascript;base64,${btoa(code)}`);
+	const b64Code = new TextEncoder().encode(code).toBase64();
+	const mod = await import(`data:application/javascript;base64,${b64Code}`);
 	if (globalThis.msjsHasModMeta && typeof mod?.loadMsjs === 'function') {
 		await mod.loadMsjs('test'); // Call the module's loadMsjs function
 	}

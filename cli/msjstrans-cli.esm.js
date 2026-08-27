@@ -7,6 +7,7 @@
  * --cat - The module catalog database
  * --enable-debug - Enable @debug{...} debuggin blocks
  * --enable-js - Enable @js{...@} JavaScript embeds
+ * --inc-slid - Embed in-file config-SLID into transpiled JavaScript output
  * --mod - Use configSLID module path
  * --no-js - Do not generate JavaScript or source map
  * --no-strip-jsec - Do not strip comments from JavaScript embeds
@@ -26,11 +27,11 @@ import { transpileTree, mappingGenerator } from 'mesgjs/src/transpile.esm.js';
 import { addModule, checkTables } from 'mesgjs/src/module-catalog-lite.esm.js';
 import { calcDigest } from 'mesgjs/src/runtime/calc-digest.esm.js';
 import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
-import { parseSLID } from 'nanos/src/nanos.esm.js';
+import { parseSLID } from '@nanos';
 
 const flags = parseArgs(Deno.args, {
-	boolean: [ 'add-space', 'enable-debug', 'enable-js', 'mod', 'no-js', 'no-strip-jsec', 'tokens', 'tree', 'upcat', 'ver' ],
-	string: [ 'cat', 'root' ],
+ boolean: [ 'add-space', 'enable-debug', 'enable-js', 'inc-slid', 'mod', 'no-js', 'no-strip-jsec', 'tokens', 'tree', 'upcat', 'ver' ],
+ string: [ 'cat', 'root' ],
 });
 const upcat = flags.upcat;
 // console.log(flags);
@@ -136,7 +137,8 @@ async function process (srcPath) {
 	mapping.file = dir + file;
 	mapping.sourcesContent = [ source ];
 	const mapJSON = JSON.stringify(mapping);
-	const codePlus = (code || '') + `\n//# sourceMappingURL=${file}.map\n`;
+	const slidHeader = (flags['inc-slid'] && config) ? `/*${config.toSLID()}*/\n` : '';
+	const codePlus = slidHeader + (code || '') + `\n//# sourceMappingURL=${file}.map\n`;
 
 	const version = config && config.at('version'), modPath = config && config.at('modpath');
 	const { major, minor, patch, extver } = pmv(version);
