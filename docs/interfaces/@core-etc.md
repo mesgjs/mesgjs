@@ -168,6 +168,12 @@ const chains = $c.typeChains('@true', '@boolean');
   * RIC values: all
   * Returns the first true value if any are JS-true.
   * Returns the last false value if all are JS-false (default: `@f`).
+* `(output level=log sep=' ' value...)`
+  * Synopsis: Outputs stringified values joined by a separator to the console.
+  * Alternative to `(log)` that provides simple, consistent/portable output by avoiding `console.log` formatting footguns and implementation-specific variations.
+  * Always presents a single joined string argument to the underlying console method.
+  * `level`: Target console output method (`debug`, `info`, `log`, `warn`, `error`). Defaults to `log` (and falls back to `log` if an unrecognized level is specified).
+  * `sep`: Separator string between values (default: `' '`).
 * `(qjson string)`
   * Synopsis: Creates (possibly-nested) lists from relaxed, quasi-JSON string (accepts JSON and more).
   * Allows double-quoted or unquoted keys/values; bigints; ":" or "\=" between keys and values; commas are optional when whitespace is present.

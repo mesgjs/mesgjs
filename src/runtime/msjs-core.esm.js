@@ -105,6 +105,32 @@ function opOr (d) {
 	return result;
 }
 
+// (output level=log sep=' ' value...)
+// Alternative to @c(log) that attempts to provide simple, consistent/portable
+// output by avoiding console.log's formatting footguns and implementation-
+// specific variations.
+// Values are stringified. Default separator between values is a space.
+// level = debug | info | log (default) | warn | error
+function opOutput (d) {
+	const mp = d.mp, sep = mp.at('sep', ' ');
+	let level = mp.at('level', 'log');
+	const values = [...mp.values()].map(v => String(v));
+
+	switch (level) {
+	case 'log':
+	case 'debug':
+	case 'error':
+	case 'info':
+	case 'warn':
+		break;
+	default:
+		level = 'log';
+		break;
+	}
+
+	console[level](values.join(sep));
+}
+
 // (run {block!}... repeat=@f collect=@f)
 function opRun (d) {
 	const { mp } = d, collect = mp.at('collect');
@@ -173,6 +199,7 @@ export function install (name) {
 			ne: (d) => !opEq(d),
 			not: (d) => !runIfCode(d.mp.at(0)),
 			or: opOr,
+			output: opOutput,
 			qjson: (d) => parseQJSON(d.mp.at(0, '')),
 			run: opRun,
 			same: (d) => d.mp.at(0) === d.mp.at(1),
