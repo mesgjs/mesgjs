@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bin/msjstlr
-# Mesgjs Transpile-Load-Run Launcher
+# Mesgjs Transpile-Load-Run Cross-Engine Launcher
 # Copyright 2026 by Kappa Computer Solutions, LLC and Brian Katzung
 # Author: Brian Katzung <briank@kappacs.com>
 
@@ -15,6 +15,7 @@ SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 DENO_FLAGS=()
 MSJSTLR_ARGS=()
 CLI_RUNTIME=""
+CLI_CONFIG=""
 in_deno=0
 
 while [ $# -gt 0 ]; do
@@ -33,6 +34,21 @@ while [ $# -gt 0 ]; do
   case "$arg" in
     -d|--deno)
       in_deno=1
+      ;;
+    -c|--config)
+      if [ $# -gt 0 ]; then
+        CLI_CONFIG="$1"
+        shift
+      else
+        echo "Error: $arg requires an argument" >&2
+        exit 1
+      fi
+      ;;
+    -c=*)
+      CLI_CONFIG="${arg#-c=}"
+      ;;
+    --config=*)
+      CLI_CONFIG="${arg#--config=}"
       ;;
     -r|--runtime)
       if [ $# -gt 0 ]; then
@@ -70,12 +86,15 @@ fi
 RUNTIME_DIR="$( cd -P "$RUNTIME_DIR" >/dev/null 2>&1 && pwd || echo "$RUNTIME_DIR" )"
 RUNTIME_DIR="${RUNTIME_DIR%/}"
 
-IMPORT_MAP="{\"imports\":{\"mesgjs/\":\"file://${RUNTIME_DIR}/\",\"@escape-js\":\"https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.1.0/src/escape.esm.js\",\"@nanos\":\"https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.5.1/src/nanos.esm.js\",\"@reactive\":\"https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/src/reactive.esm.js\"}}"
-IMPORT_MAP_DATA_URL="data:application/json;charset=utf-8,${IMPORT_MAP}"
+if [ -n "$CLI_CONFIG" ]; then
+  CONFIG="$CLI_CONFIG"
+else
+  CONFIG="$RUNTIME_DIR/webload.json"
+fi
 
-# Default permissions (--allow-read, --allow-env) are dropped individually if
-# explicitly present (scoped or unscoped) in the caller's -d/--deno flags, or
-# entirely if -A/--allow-all is present.
+CLI_TARGET="$RUNTIME_DIR/cli/msjstlr-startup.esm.js"
+
+# Deno permission defaults calculation
 ALLOW_READ='--allow-read'
 ALLOW_ENV='--allow-env'
 
@@ -94,4 +113,33 @@ for flag in "${DENO_FLAGS[@]}"; do
   esac
 done
 
-exec deno run --import-map="$IMPORT_MAP_DATA_URL" $ALLOW_READ $ALLOW_ENV "${DENO_FLAGS[@]}" "$RUNTIME_DIR/cli/msjstlr-startup.esm.js" "${MSJSTLR_ARGS[@]}"
+# 1. Explicit Engine Override
+case "$MESGJS_ENGINE" in
+  "") ;;
+  deno)
+    exec deno run --config "$CONFIG" $ALLOW_READ $ALLOW_ENV "${DENO_FLAGS[@]}" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+    ;;
+  bun)
+    exec wicbun --config "$CONFIG" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+    ;;
+  node)
+    exec wicnode --config "$CONFIG" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+    ;;
+  *)
+    echo "Error: Unknown MESGJS_ENGINE '$MESGJS_ENGINE'. Expected 'deno', 'bun', or 'node'." >&2
+    exit 1
+    ;;
+esac
+
+# 2. Automated Probe Ladder (Deno -> Bun/wicbun -> Node/wicnode)
+if command -v deno >/dev/null 2>&1; then
+  exec deno run --config "$CONFIG" $ALLOW_READ $ALLOW_ENV "${DENO_FLAGS[@]}" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+elif command -v wicbun >/dev/null 2>&1 && command -v bun >/dev/null 2>&1; then
+  exec wicbun --config "$CONFIG" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+elif command -v wicnode >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  exec wicnode --config "$CONFIG" "$CLI_TARGET" "${MSJSTLR_ARGS[@]}"
+else
+  echo "Error: msjstlr requires Deno, wicbun (from @bkatzung/webload) and bun, or wicnode (from @bkatzung/webload) and node." >&2
+  echo "Install Deno (https://deno.land) or install WebLoad (npm i -g @bkatzung/webload) with node and/or bun." >&2
+  exit 1
+fi

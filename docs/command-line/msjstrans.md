@@ -7,7 +7,7 @@
 ## SYNOPSIS
 
 ```
-msjstrans [--add-space] [--cat <catalog>] [--enable-debug] [--enable-js] [--mod] [--no-js] [--no-strip-jsec] [--root <dir>] [--tokens] [--tree] [--upcat] [--ver] *.msjs
+msjstrans [--add-space] [--cat <catalog>] [--enable-debug] [--enable-js] [--inc-slid] [--mod] [--no-js] [--no-strip-jsec] [--root <dir>] [--tokens] [--tree] [--upcat] [--ver] *.msjs
 ```
 
 ## DESCRIPTION
@@ -27,6 +27,9 @@ The `msjstrans` tool transpiles Mesgjs source files (`.msjs`) to JavaScript, gen
 
 - `--enable-js`
   Enable `@js{...@}` embedded-JavaScript blocks, which are normally prohibited (resulting in an error message if encountered) for security reasons.
+
+- `--inc-slid`
+  Embed the module's in-file config-SLID header as a leading JavaScript comment block `/*[( ... )]*/` in the transpiled output.
 
 - `--mod`
   Use the `modpath` from configSLID for output pathing.
@@ -52,6 +55,11 @@ The `msjstrans` tool transpiles Mesgjs source files (`.msjs`) to JavaScript, gen
 
 - `--ver`  
   Use the `version` from configSLID for output pathing.
+
+## ENVIRONMENT VARIABLES
+
+- `MESGJS_ENGINE`
+  Explicitly specify the JavaScript runtime engine used to execute `msjstrans` (`deno`, `bun`, or `node`). When unset, `msjstrans` automatically probes for `deno`, then `wicbun` / `bun`, then `wicnode` / `node`.
 
 ## ARGUMENTS
 
@@ -98,4 +106,4 @@ The `msjstrans` tool transpiles Mesgjs source files (`.msjs`) to JavaScript, gen
 ## AUTHOR
 
 Brian Katzung <briank@kappacs.com>  
-Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung

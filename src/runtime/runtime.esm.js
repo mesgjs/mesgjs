@@ -415,15 +415,19 @@ export async function loadModule (module) {
 
 	modMidToName.set(mid, module);
 	try {
+		const isNode = globalThis.process?.versions?.node;
+
 		code = await fetchModule(fetchURL, { integrity: expect });
 		if (meta) {
 			if (expect) modMap.set(expect, meta);
 			modMap.set(mid, meta);
 		}
 
-		const importURL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') ?
-			URL.createObjectURL(new Blob([ new TextEncoder().encode(code) ], { type: 'application/javascript' })) :
-			`data:application/javascript;base64,${btoa(code)}`;
+		const encoded = new TextEncoder().encode(code);
+
+		importURL = (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function' && !isNode) ?
+			URL.createObjectURL(new Blob([ encoded ], { type: 'application/javascript' })) :
+			`data:application/javascript;base64,${encoded.toBase64()}`;
 		const mod = await import(importURL);
 
 		if (globalThis.msjsHasModMeta && typeof mod.loadMsjs === 'function') mod.loadMsjs(mid);

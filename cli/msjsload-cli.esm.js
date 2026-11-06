@@ -1,6 +1,6 @@
 /*
  * msjsloader - Mesgjs module linker/loader
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  *
  * --cat - Module catalog database

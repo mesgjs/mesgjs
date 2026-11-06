@@ -1,6 +1,6 @@
 /*
  * SQLite Module Catalog Utilities
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
@@ -14,7 +14,10 @@ export const catalogExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
 export const escapeLike = s => s.replace(/[%_\\]/g, '\\$1');
 
 // Return trimmed string with normalized spacing
-function normalSpace (str) {
+export function normalSpace (str) {
+	if (typeof str?.values === 'function') {
+		return [...str.values()].join(' ');
+	}
 	str = (str || '').replace(/\s\s+/g, ' ');
 	return str.trim();
 }

@@ -4,24 +4,46 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { parseArgs } from 'jsr:@std/cli/parse-args';
+import fs from 'node:fs';
+import process from 'node:process';
+import { parseArgs } from 'node:util';
+import { Buffer } from 'node:buffer';
+
 import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
 import { transpileTree } from 'mesgjs/src/transpile.esm.js';
 import { NANOS, parseSLID } from '@nanos';
 import 'mesgjs/src/runtime/mesgjs.esm.js';
 
-const flags = parseArgs(Deno.args, {
-	boolean: ['a', 'all', 'deps-only', 'disable-js', 'disable-debug', 'enable-debug'],
-	alias: { a: 'all' },
-	'--': true,
-});
+const rawArgs = (typeof process !== 'undefined' && process.argv ? process.argv.slice(2) : []) || globalThis.Deno?.args || [];
 
-if (!flags._.length) {
-	console.error('Usage: msjstlr [options] <files...> [-- <script-args...>]');
-	Deno.exit(1);
+let scriptArgs = [];
+let tlrArgs = rawArgs;
+const doubleDashIdx = rawArgs.indexOf('--');
+if (doubleDashIdx !== -1) {
+	scriptArgs = rawArgs.slice(doubleDashIdx + 1);
+	tlrArgs = rawArgs.slice(0, doubleDashIdx);
 }
 
-const defaultDebug = Deno.env.get('MESGJS_DEFAULT_DEBUG') !== 'false';
+const { values: flags, positionals } = parseArgs({
+	args: tlrArgs,
+	options: {
+		'all': { type: 'boolean', short: 'a', default: false },
+		'deps-only': { type: 'boolean', default: false },
+		'disable-debug': { type: 'boolean', default: false },
+		'disable-js': { type: 'boolean', default: false },
+		'enable-debug': { type: 'boolean', default: false },
+	},
+	allowPositionals: true,
+	strict: false,
+});
+
+if (!positionals.length) {
+	console.error('Usage: msjstlr [options] <files...> [-- <script-args...>]');
+	process.exit(1);
+}
+
+const envDebug = (process.env?.MESGJS_DEFAULT_DEBUG ?? globalThis.Deno?.env?.get?.('MESGJS_DEFAULT_DEBUG'));
+const defaultDebug = envDebug !== 'false';
 let debugBlocks = defaultDebug;
 if (flags['enable-debug']) debugBlocks = true;
 else if (flags['disable-debug']) debugBlocks = false;
@@ -33,14 +55,14 @@ const txpOpts = {
 
 function extractJsSLID (filePath) {
 	const decoder = new TextDecoder();
-	let file;
+	let fd = null;
 
 	try {
-		file = Deno.openSync(filePath, { read: true });
+		fd = fs.openSync(filePath, 'r');
 
 		const chunkSize = 4096;
 		const buf = new Uint8Array(chunkSize);
-		let bytesRead = file.readSync(buf);
+		let bytesRead = fs.readSync(fd, buf, 0, chunkSize, null);
 
 		if (!bytesRead) return null;
 
@@ -48,7 +70,7 @@ function extractJsSLID (filePath) {
 
 		if (!text.includes('[(')) return null;
 		while (!text.includes(')]')) {
-			bytesRead = file.readSync(buf);
+			bytesRead = fs.readSync(fd, buf, 0, chunkSize, null);
 			if (!bytesRead) break;
 			text += decoder.decode(buf.subarray(0, bytesRead));
 		}
@@ -56,8 +78,8 @@ function extractJsSLID (filePath) {
 	} catch (_err) {
 		return null;
 	} finally {
-		if (file) {
-			try { file.close(); } catch (_) {}
+		if (fd !== null) {
+			try { fs.closeSync(fd); } catch (_) {}
 		}
 	}
 }
@@ -77,15 +99,15 @@ function extractValues (val) {
 
 function extractMetadata (filePath) {
 	try {
-		const stat = Deno.statSync(filePath);
+		const stat = fs.statSync(filePath);
 
-		if (!stat.isFile) {
+		if (!stat.isFile()) {
 			console.error(`Error: "${filePath}" is not a regular file`);
-			Deno.exit(1);
+			process.exit(1);
 		}
 	} catch (_err) {
 		console.error(`Error: File not found: "${filePath}"`);
-		Deno.exit(1);
+		process.exit(1);
 	}
 
 	const isMsjs = filePath.endsWith('.msjs');
@@ -93,7 +115,7 @@ function extractMetadata (filePath) {
 	let tokens = null;
 
 	if (isMsjs) {
-		const source = Deno.readTextFileSync(filePath);
+		const source = fs.readFileSync(filePath, 'utf8');
 		const lexResult = lex(source, { src: filePath });
 
 		tokens = lexResult.tokens;
@@ -102,7 +124,7 @@ function extractMetadata (filePath) {
 				config = parseSLID(lexResult.configSLID);
 			} catch (err) {
 				console.error(`Error: Failed to parse configuration SLID in "${filePath}": ${err.message}`);
-				Deno.exit(1);
+				process.exit(1);
 			}
 		}
 	} else {
@@ -131,7 +153,7 @@ function extractMetadata (filePath) {
 	};
 }
 
-const allFileMetas = flags._.map(extractMetadata);
+const allFileMetas = positionals.map(extractMetadata);
 const entrypoint = allFileMetas[0];
 
 // Map feature -> array of provider files
@@ -230,17 +252,17 @@ if (flags['deps-only']) {
 	if (errors.length) {
 		console.error('\nDependency Errors:');
 		for (const err of errors) console.error(`  - ${err}`);
-		Deno.exit(1);
+		process.exit(1);
 	} else {
 		console.log('\nDependencies successfully resolved.');
-		Deno.exit(0);
+		process.exit(0);
 	}
 }
 
 if (errors.length) {
 	console.error('Dependency resolution failed:');
 	for (const err of errors) console.error(`  - ${err}`);
-	Deno.exit(1);
+	process.exit(1);
 }
 
 // In-memory transpilation
@@ -250,20 +272,22 @@ for (const fileMeta of includedFiles) {
 
 		if (parseErrors?.length) {
 			console.error(`Parse errors in "${fileMeta.path}":\n${parseErrors.join('\n')}`);
-			Deno.exit(1);
+			process.exit(1);
 		}
 
 		const { code, errors: txpErrors, fatal } = transpileTree(tree, txpOpts);
 
 		if (txpErrors?.length) console.error(`Transpilation errors in "${fileMeta.path}":\n${txpErrors.join('\n')}`);
 		if (fatal) console.error(`Transpilation fatal error in "${fileMeta.path}": ${fatal}`);
-		if (txpErrors?.length || fatal) Deno.exit(1);
+		if (txpErrors?.length || fatal) process.exit(1);
 
-		const b64Code = new TextEncoder().encode(code).toBase64();
+		const b64Code = Buffer.from(code, 'utf8').toString('base64');
 
 		fileMeta.url = `data:application/javascript;base64,${b64Code}`;
 	} else {
-		fileMeta.url = fileMeta.path;
+		const jsCode = fs.readFileSync(fileMeta.path, 'utf8');
+		const b64Code = Buffer.from(jsCode, 'utf8').toString('base64');
+		fileMeta.url = `data:application/javascript;base64,${b64Code}`;
 	}
 }
 
@@ -287,13 +311,18 @@ for (const fileMeta of includedFiles) {
 	modMeta.modules[fileMeta.modPath] = modEntry;
 }
 
-if (flags['--']) {
-	Object.defineProperty(Deno, 'args', {
-		value: flags['--'],
-		configurable: true,
-		writable: true,
-		enumerable: true,
-	});
+if (doubleDashIdx !== -1) {
+	if (globalThis.Deno) {
+		Object.defineProperty(globalThis.Deno, 'args', {
+			value: scriptArgs,
+			configurable: true,
+			writable: true,
+			enumerable: true,
+		});
+	}
+	if (globalThis.process?.argv) {
+		process.argv = [process.argv[0], positionals[0] || '', ...scriptArgs];
+	}
 }
 
 const { setModMeta, fwait } = globalThis.$c;

@@ -57,4 +57,4 @@ The `msjserrmap` tool helps map JavaScript error locations (line and column numb
 ## AUTHOR
 
 Brian Katzung <briank@kappacs.com>  
-Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung

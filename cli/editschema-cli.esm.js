@@ -1,6 +1,6 @@
 /*
  * editschema - Mesgjs SQLite schema editor
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
@@ -10,12 +10,14 @@ import { parseSLID } from '@nanos';
 
 // --- Main ---
 
-const flags = parseArgs(Deno.args, {});
+const gt = globalThis;
+const args = gt.Deno?.args || gt.process?.argv?.slice(2);
+const flags = parseArgs(args, {});
 
 // Show help if no arguments are provided.
 if (flags._.length < 2) {
 	showHelp();
-	Deno.exit(flags._.length ? 1 : 0);
+	(gt.Deno || gt.process).exit(flags._.length ? 1 : 0);
 }
 
 // Get the database and SLID file paths from the command-line arguments.
@@ -37,9 +39,11 @@ try {
 
 	console.log('Schema update complete.');
 } catch (err) {
-	if (Deno.env.has('DEBUG')) throw err;
+	const debug = gt.Deno?.env?.has('DEBUG') || Object.hasOwn(gt.process?.env || {}, 'DEBUG');
+
+	if (debug) throw err;
 	console.error(`Error: ${err.message}`);
-	Deno.exit(1);
+	(gt.Deno || gt.process).exit(1);
 }
 
 // --- Functions ---

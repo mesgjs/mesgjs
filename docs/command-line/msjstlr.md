@@ -7,7 +7,8 @@
 ## SYNOPSIS
 
 ```
-msjstlr [-r <path> | --runtime <path>] [-d <deno-flags...> -- | --deno <deno-flags...> --]
+msjstlr [-c <config> | --config <config>] [-r <path> | --runtime <path>]
+        [-d <deno-flags...> -- | --deno <deno-flags...> --]
         [-a | --all] [--deps-only] [--disable-js] [--disable-debug] [--enable-debug]
         <files...> [-- <script-args...>]
 ```
@@ -22,13 +23,16 @@ Dependency resolution performed by `msjstlr` is **non-versioned** — there is n
 
 `msjstlr` is implemented as two parts:
 
-- [`bin/msjstlr`](../../bin/msjstlr) — a shell launcher that resolves the runtime location, builds an import map, and invokes Deno.
-- [`cli/msjstlr-startup.esm.js`](../../cli/msjstlr-startup.esm.js) — the Deno/Mesgjs startup engine that performs metadata extraction, dependency resolution, in-memory transpilation, and execution.
+- [`bin/msjstlr`](../../bin/msjstlr) — a shell launcher that resolves the runtime location, automatically probes for an installed JavaScript runtime (`deno` -> `wicbun` / `bun` -> `wicnode` / `node`) or respects `MESGJS_ENGINE`, and dispatches execution.
+- [`cli/msjstlr-startup.esm.js`](../../cli/msjstlr-startup.esm.js) — the portable Mesgjs startup engine that performs metadata extraction, dependency resolution, in-memory transpilation, and execution across Deno, Bun, and Node.js.
 
 ## OPTIONS
 
 - `-a`, `--all`
   Bypass dependency-tree pruning and transpile/load **every** file supplied on the command line, regardless of whether it is reachable from the entrypoint's `featreq`. Duplicate `featpro` providers are still reported as errors.
+
+- `-c <config>`, `--config <config>`
+  Specify a custom import map / WebLoad configuration file for complex script dependencies. By default, `msjstlr` uses the Mesgjs runtime's `webload.json`. When supplying a custom config file, it must minimally include the standard Mesgjs mapping entries (see [Configuration & Mappings](#configuration--mappings) below).
 
 - `-d <deno-flags...> --`, `--deno <deno-flags...> --`
   Pass additional flags directly to the underlying `deno run` invocation (e.g., extra permissions). All arguments between `-d`/`--deno` and the terminating `--` are forwarded verbatim to Deno. By default, `msjstlr` runs Deno with `--allow-read --allow-env`; use this option to add permissions such as `--allow-net`. See [Default Permissions](#default-permissions) below for how these defaults interact with permissions you specify explicitly.
@@ -54,16 +58,41 @@ Dependency resolution performed by `msjstlr` is **non-versioned** — there is n
   One or more `.msjs` and/or `.js` files to consider for the program. The **first** file listed is the primary entrypoint; its `featreq` seeds dependency resolution (unless `-a`/`--all` is given).
 
 - `-- <script-args...>`
-  Everything following a bare `--` (that is not part of a `-d`/`--deno ... --` block) is forwarded to the running program and is accessible via `Deno.args`.
+  Everything following a bare `--` (that is not part of a `-d`/`--deno ... --` block) is forwarded to the running program and is accessible via `Deno.args` (under Deno) or `process.argv` (under Bun and Node.js).
 
-## DEFAULT PERMISSIONS
+## DEFAULT PERMISSIONS (DENO)
 
-By default, [`bin/msjstlr`](../../bin/msjstlr) runs Deno with `--allow-read --allow-env`. These defaults are applied intelligently alongside any flags supplied via `-d`/`--deno`:
+When executing under Deno, [`bin/msjstlr`](../../bin/msjstlr) runs Deno with `--allow-read --allow-env` by default. These defaults are applied intelligently alongside any flags supplied via `-d`/`--deno`:
 
 - If `-A`/`--allow-all` is present among the `-d`/`--deno` flags, **neither** default (`--allow-read` nor `--allow-env`) is added — `--allow-all` already grants every permission, so the defaults would be redundant (and would cause Deno to abort with an error).
 - Otherwise, each default is added **unless** the caller has already specified that same permission explicitly (scoped or unscoped) via `-d`/`--deno`. For example, supplying `--allow-read=./data` suppresses the default unscoped `--allow-read`, but the default `--allow-env` is still added. Supplying `--allow-env` (in any form) suppresses the default `--allow-env` but not `--allow-read`.
 
 This avoids conflicting or redundant duplicate permission flags being passed to `deno run` when the caller wants to scope down (or otherwise customize) one of the default permissions.
+
+## CONFIGURATION & MAPPINGS
+
+By default, [`bin/msjstlr`](../../bin/msjstlr) uses `$RUNTIME_DIR/webload.json` as its configuration and import map, which provides the default bare-specifier mappings required for Mesgjs execution.
+
+For more complex scripts requiring custom import maps, origin allowances (`script-src`), or external module specifiers, a custom configuration file can be specified via `-c <config>` or `--config <config>`.
+
+When providing a custom configuration file, it must **minimally** include the following core mapping entries so that Mesgjs and its runtime modules can resolve their dependencies:
+
+```json
+{
+  "imports": {
+    "@nanos": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.5.1/src/nanos.esm.js",
+    "@reactive": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/src/reactive.esm.js",
+    "@escape-js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.1.0/src/escape.esm.js",
+    "mesgjs/": "<path-to-mesgjs-runtime>/"
+  },
+  "script-src": [
+    "https://cdn.jsdelivr.net/gh/mesgjs/",
+    "https://esm.sh/"
+  ]
+}
+```
+
+Any additional imports or script sources required by the transpiled script can then be added alongside these baseline entries.
 
 ## RUNTIME RESOLUTION
 
@@ -75,7 +104,10 @@ The Mesgjs runtime root directory is resolved in the following order of preceden
 
 Because [`bin/msjstlr`](../../bin/msjstlr) resolves its own canonical location before computing the default runtime directory, it can be safely invoked via a symlink placed anywhere on `$PATH` (e.g. `ln -s /path/to/mesgjs/bin/msjstlr ~/bin/msjstlr`) and will still locate the correct runtime sources, even when run from an unrelated working directory.
 
-## ENVIRONMENT
+## ENVIRONMENT VARIABLES
+
+- `MESGJS_ENGINE`
+  Explicitly specify the JavaScript runtime engine used to execute `msjstlr` (`deno`, `bun`, or `node`). When unset, `msjstlr` automatically probes for `deno`, then `wicbun` / `bun`, then `wicnode` / `node`.
 
 - `MESGJS_RUNTIME`
   Default runtime root directory, used when `-r`/`--runtime` is not given. See [Runtime Resolution](#runtime-resolution).
@@ -171,6 +203,19 @@ chmod +x myscript.msjs
   ```
   msjstlr -r /path/to/mesgjs main.msjs
   MESGJS_RUNTIME=/path/to/mesgjs msjstlr main.msjs
+  ```
+
+- To explicitly select a JavaScript runtime engine:
+  ```
+  MESGJS_ENGINE=bun msjstlr main.msjs
+  MESGJS_ENGINE=node msjstlr main.msjs
+  MESGJS_ENGINE=deno msjstlr main.msjs
+  ```
+
+- To use a custom configuration file for script dependencies:
+  ```
+  msjstlr -c ./custom-webload.json app.msjs
+  msjstlr --config=./custom-webload.json app.msjs
   ```
 
 ## EXAMPLES

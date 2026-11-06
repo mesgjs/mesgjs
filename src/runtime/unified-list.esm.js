@@ -5,7 +5,7 @@
  * objects, and other native JS values as message parameter lists with
  * consistent semantics. NANOS is the reference interface.
  *
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  */
 

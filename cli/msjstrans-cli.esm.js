@@ -1,6 +1,6 @@
 /*
  * msjstrans - Mesgjs-to-JavaScript transpiler
- * Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+ * Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
  * Author: Brian Katzung <briank@kappacs.com>
  *
  * --add-space - Add extra white space to the output for development/debugging
@@ -20,32 +20,89 @@
  * *.slid - Matching extra-meta-data (e.g. for modreq)
  */
 
-import { parseArgs } from 'jsr:@std/cli/parse-args';
-import { DB } from 'https://deno.land/x/sqlite/mod.ts';
+import fs from 'node:fs';
+import process from 'node:process';
+import { parseArgs } from 'node:util';
+
 import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/src/transpile.esm.js';
-import { addModule, checkTables } from 'mesgjs/src/module-catalog-lite.esm.js';
+import { addModule, checkTables, normalSpace } from 'mesgjs/src/module-catalog-lite.esm.js';
 import { calcDigest } from 'mesgjs/src/runtime/calc-digest.esm.js';
 import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
 import { parseSLID } from '@nanos';
 
-const flags = parseArgs(Deno.args, {
- boolean: [ 'add-space', 'enable-debug', 'enable-js', 'inc-slid', 'mod', 'no-js', 'no-strip-jsec', 'tokens', 'tree', 'upcat', 'ver' ],
- string: [ 'cat', 'root' ],
+async function openDatabase (dbFile) {
+	if (globalThis.Bun) {
+		const { Database } = await import('bun:sqlite');
+		const db = new Database(dbFile);
+		return {
+			query: (sql, params = []) => db.query(sql).values(...params),
+			execute: (sql) => db.run(sql),
+			close: () => db.close()
+		};
+	}
+	if (globalThis.Deno) {
+		const { DB } = await import('https://deno.land/x/sqlite/mod.ts');
+		const db = new DB(dbFile, { mode: 'write' });
+		return {
+			query: (sql, params = []) => db.query(sql, params),
+			execute: (sql) => db.execute(sql),
+			close: () => db.close()
+		};
+	}
+	// Node.js (node:sqlite DatabaseSync)
+	try {
+		const { DatabaseSync } = await import('node:sqlite');
+		const db = new DatabaseSync(dbFile);
+		return {
+			query: (sql, params = []) => {
+				const stmt = db.prepare(sql);
+				if (/^\s*(select|pragma)/i.test(sql)) {
+					return stmt.all(...params).map(row => Object.values(row));
+				}
+				stmt.run(...params);
+				return [];
+			},
+			execute: (sql) => db.exec(sql),
+			close: () => db.close()
+		};
+	} catch (err) {
+		throw new Error(`SQLite driver not available in this runtime: ${err.message}`);
+	}
+}
+
+const rawArgs = globalThis.Deno?.args || globalThis.process?.argv?.slice(2) || [];
+const { values: flags, positionals } = parseArgs({
+	args: rawArgs,
+	options: {
+		'add-space': { type: 'boolean', default: false },
+		'enable-debug': { type: 'boolean', default: false },
+		'enable-js': { type: 'boolean', default: false },
+		'inc-slid': { type: 'boolean', default: false },
+		'mod': { type: 'boolean', default: false },
+		'no-js': { type: 'boolean', default: false },
+		'no-strip-jsec': { type: 'boolean', default: false },
+		'tokens': { type: 'boolean', default: false },
+		'tree': { type: 'boolean', default: false },
+		'upcat': { type: 'boolean', default: false },
+		'ver': { type: 'boolean', default: false },
+		'cat': { type: 'string' },
+		'root': { type: 'string' }
+	},
+	allowPositionals: true
 });
 const upcat = flags.upcat;
-// console.log(flags);
 
 let root = flags.root || '';
 if (root && root.slice(-1) !== '/') root += '/';
-if (root && !Deno.lstatSync(root)?.isDirectory) throw new Error(`Directory ${root} not found`);
+if (root && (!fs.existsSync(root) || !fs.statSync(root).isDirectory())) throw new Error(`Directory ${root} not found`);
 
 let db;
 if (flags.cat) {
 	// Check module-catalog existence and contents if supplied
 	const dbFile = flags.cat.endsWith('.msjcat') ? flags.cat : (flags.cat + '.msjcat');
-	if (!Deno.lstatSync(dbFile).isFile) throw new Error(`Module catalog ${dbFile} not found`);
-	db = new DB(dbFile, { mode: 'write' });
+	if (!fs.existsSync(dbFile) || !fs.statSync(dbFile).isFile()) throw new Error(`Module catalog ${dbFile} not found`);
+	db = await openDatabase(dbFile);
 	checkTables(db, dbFile);
 }
 
@@ -83,9 +140,9 @@ function outPath (srcPath, config) {
 }
 
 // Process one Mesgjs source file
-async function process (srcPath) {
+async function processFile (srcPath) {
 	console.log(`Processing file ${srcPath}...`);
-	const source = Deno.readTextFileSync(srcPath);
+	const source = fs.readFileSync(srcPath, 'utf8');
 
 	// Split out the final (file) component of the srcPath
 	const [ _, inFile ] = srcPath.match(/(?:.*\/)?(.*)/);
@@ -100,7 +157,7 @@ async function process (srcPath) {
 	const { tree, errors: parseErrors } = upcat ? {} : parse(tokens);
 	if (parseErrors?.length) {
 		console.log(parseErrors.join('\n'));
-		Deno.exit(1);
+		process.exit(1);
 	}
 	if (flags.tree && !upcat) {		  // Show parsed abstract syntax tree (AST)
 		console.log('PARSE TREE');
@@ -112,7 +169,7 @@ async function process (srcPath) {
 	let meta = { at: (_, def = '') => def };
 	try {
 		const slidPath = srcPath.replace(/\.msjs$/, '.slid');
-		const slid = Deno.readTextFileSync(slidPath);
+		const slid = fs.readFileSync(slidPath, 'utf8');
 		if (slid) meta = parseSLID(slid);
 	} catch (_err) {
 		console.log('Note: .slid meta-data is absent or unreadable.');
@@ -128,7 +185,7 @@ async function process (srcPath) {
 	const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
 	if (txpErrors?.length) console.log(txpErrors.join('\n'));
 	if (fatal) console.log(fatal);
-	if (txpErrors?.length || fatal) Deno.exit(1);
+	if (txpErrors?.length || fatal) process.exit(1);
 
 	const { dir, file } = outPath(srcPath, config);
 	const finalDir = root + dir;
@@ -161,29 +218,29 @@ async function process (srcPath) {
 
 	if (!upcat) {
 		console.log(`Writing ${finalPath} and map...`);
-		if (finalDir) Deno.mkdirSync(finalDir, { recursive: true });
-		Deno.writeTextFileSync(finalPath, codePlus, { encoding: 'utf8' });
-		Deno.writeTextFileSync(finalPath + '.map', mapJSON, { encoding: 'utf8' });
+		if (finalDir) fs.mkdirSync(finalDir, { recursive: true });
+		fs.writeFileSync(finalPath, codePlus, 'utf8');
+		fs.writeFileSync(finalPath + '.map', mapJSON, 'utf8');
 	}
 
 	// If we have the appropriate info, add or update this module in the module catalog
 	if (db && !([ major, minor, patch ].includes(undefined)) && modPath) {
 		const sha512 = await calcDigest(codePlus, 'SHA-512');
-		const modreq = meta.at('modreq', '');
-		const moddefer = meta.at('deferLoad', '');
+		const modreq = normalSpace(meta.at('modreq', ''));
+		const moddefer = normalSpace(meta.at('deferLoad', ''));
 		if (upcat) {
 			console.log(`Updating dependencies for ${modPath}@${major}.${minor}.${patch}${extver}...`);
 			db.query(`update modules set modreq = ?, moddefer = ? where path = ? and major = ? and minor = ? and patch = ? and extver = ?`, [ modreq, moddefer, modPath, major, minor, patch, extver ?? '' ]);
 		} else {
 			const featpro = config.at('featpro', ''), featreq = config.at('featreq', ''), modcaps = config.at('modcaps', '');
-			console.log(`Updating module catalog for ${modPath}@${major}.${minor}.${patch}${extver ?? ''}...`);
+			console.log(`Updating module catalog for ${modPath}@${version}...`);
 			addModule(db, `${modPath}@${version}`, { integrity: sha512, featpro, featreq, modreq, moddefer, modcaps });
 		}
 	}
 }
 
-for (const file of flags._) {
-	if (/\.msjs$/.test(file)) await process(file);
+for (const file of positionals) {
+	if (/\.msjs$/.test(file)) await processFile(file);
 	else console.log(`Expected file extension .msjs: ${file}`);
 }
 console.log('Done');

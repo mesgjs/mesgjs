@@ -116,4 +116,4 @@ If a forced module version falls outside the declared compatible version range r
 ## AUTHOR
 
 Brian Katzung <briank@kappacs.com>  
-Copyright 2025 by Kappa Computer Solutions, LLC and Brian Katzung
+Copyright 2025-2026 by Kappa Computer Solutions, LLC and Brian Katzung
