@@ -1,114 +1,109 @@
-import {
-	assert,
-	assertEquals,
-	assertStrictEquals,
-	assertThrows,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
-import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "@nanos";
+import { describe, it } from '@compat/test';
+import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
+import { NANOS } from '@nanos';
 
-Deno.test("@jsObject Interface", async (t) => {
-	const { $c } = globalThis;
-	const { getInstance } = $c;
+describe('@jsObject Interface', () => {
+	const { $c, $msjsReceiver, $toMsjs } = globalThis;
 
 	const newTestObject = () => ({ a: 1, b: { c: 2 }, d: [3, 4] });
 
-	await t.step("consistent receiver", () => {
+	it('consistent receiver', () => {
 		const o = { key: 'value' };
 		assertStrictEquals($msjsReceiver(o), $msjsReceiver(o));
 	});
 
-	await t.step("(new) should return a JS object", () => {
+	it('(new) should return a JS object', () => {
 		const testObj = $c.sm({}, 'new');
-		assertEquals(typeof testObj, 'object')
-		assertEquals(testObj.constructor, undefined);
+		assertStrictEquals(typeof testObj, 'object');
+		assertStrictEquals(testObj.constructor, undefined);
 	});
 
-	await t.step("(@jsv) should return the underlying JS object", () => {
+	it('(@jsv) should return the underlying JS object', () => {
 		const testObj = { y: 2 };
 		const result = $c.sm(testObj, '@jsv');
-		assertEquals(result, testObj);
+		assertStrictEquals(result, testObj);
 	});
 
-	await t.step("(at)/(get)/(@) should retrieve a value by key path", () => {
+	it('(at)/(get)/(@) should retrieve a value by key path', () => {
 		const mo = $toMsjs(newTestObject());
-		assertEquals(mo("at", ['a']), 1);
-		assertEquals(mo("get", ['b', 'c']), 2);
-		assertEquals(mo("@", ['d', 0]), 3);
+		assertStrictEquals(mo('at', ['a']), 1);
+		assertStrictEquals(mo('get', ['b', 'c']), 2);
+		assertStrictEquals(mo('@', ['d', 0]), 3);
 	});
 
-	await t.step("(set)/(=) should modify a fresh (r/w) object", () => {
+	it('(set)/(=) should modify a fresh (r/w) object', () => {
 		const mo = $toMsjs($c.sm({}, 'new'));
 		const testObj = mo.jsv;
-		mo("set", new NANOS('e', { to: 5 }));
-		assertEquals(testObj.e, 5);
-		mo("=", new NANOS('a', { to: 'A' }));
-		assertEquals(testObj.a, 'A');
+		mo('set', new NANOS('e', { to: 5 }));
+		assertStrictEquals(testObj.e, 5);
+		mo('=', new NANOS('a', { to: 'A' }));
+		assertStrictEquals(testObj.a, 'A');
 	});
 
-	await t.step("(nset)/(==) should set multiple keys on a fresh (r/w) object", () => {
+	it('(nset)/(==) should set multiple keys on a fresh (r/w) object', () => {
 		const mo = $toMsjs($c.sm({}, 'new'));
 		const testObj = mo.jsv;
-		mo("nset", new NANOS({ x: 10, y: 20 }));
-		assertEquals(testObj.x, 10);
-		assertEquals(testObj.y, 20);
-		mo("==", new NANOS({ p: 'hello', q: 'world' }));
-		assertEquals(testObj.p, 'hello');
-		assertEquals(testObj.q, 'world');
+		mo('nset', new NANOS({ x: 10, y: 20 }));
+		assertStrictEquals(testObj.x, 10);
+		assertStrictEquals(testObj.y, 20);
+		mo('==', new NANOS({ p: 'hello', q: 'world' }));
+		assertStrictEquals(testObj.p, 'hello');
+		assertStrictEquals(testObj.q, 'world');
 	});
 
-	await t.step("(set)/(=) should throw TypeError on a BYO (r/o) object", () => {
+	it('(set)/(=) should throw TypeError on a BYO (r/o) object', () => {
 		const byoObj = { a: 1 };
 		const mo = $toMsjs(byoObj);
-		assertThrows(() => mo("set", new NANOS('a', { to: 99 })), TypeError);
-		assertThrows(() => mo("=",   new NANOS('a', { to: 99 })), TypeError);
+		assertThrows(() => mo('set', new NANOS('a', { to: 99 })), TypeError);
+		assertThrows(() => mo('=',   new NANOS('a', { to: 99 })), TypeError);
 	});
 
-	await t.step("(nset)/(==) should throw TypeError on a BYO (r/o) object", () => {
+	it('(nset)/(==) should throw TypeError on a BYO (r/o) object', () => {
 		const byoObj = { a: 1 };
 		const mo = $toMsjs(byoObj);
-		assertThrows(() => mo("nset", new NANOS({ a: 99 })), TypeError);
-		assertThrows(() => mo("==",   new NANOS({ a: 99 })), TypeError);
+		assertThrows(() => mo('nset', new NANOS({ a: 99 })), TypeError);
+		assertThrows(() => mo('==',   new NANOS({ a: 99 })), TypeError);
 	});
 
-	await t.step("(entries) should return object entries", () => {
+	it('(entries) should return object entries', () => {
 		const testObj = { a: 1, b: 2 };
 		const mo = $toMsjs(testObj);
-		const entries = mo("entries");
+		const entries = mo('entries');
 		assertEquals(entries, [['a', 1], ['b', 2]]);
 	});
 
-	await t.step("(keys) should return object keys", () => {
+	it('(keys) should return object keys', () => {
 		const testObj = { a: 1, b: 2 };
 		const mo = $toMsjs(testObj);
-		assertEquals(mo("keys"), ['a', 'b']);
+		assertEquals(mo('keys'), ['a', 'b']);
 	});
 
-	await t.step("(keyIter) should return a key iterator", () => {
+	it('(keyIter) should return a key iterator', () => {
 		const testObj = { a: 1, b: 2 };
 		const mo = $toMsjs(testObj);
-		const iter = mo("keyIter");
-		assertEquals(iter.next().value, 'a');
-		assertEquals(iter.next().value, 'b');
+		const iter = mo('keyIter');
+		assertStrictEquals(iter.next().value, 'a');
+		assertStrictEquals(iter.next().value, 'b');
 		assert(iter.next().done);
 	});
 
-	await t.step("(size) should return the number of keys", () => {
+	it('(size) should return the number of keys', () => {
 		const mo = $toMsjs(newTestObject());
-		assertEquals(mo("size"), 3);
+		assertStrictEquals(mo('size'), 3);
 	});
 
-	await t.step("(toList) should convert to a Mesgjs @list (NANOS)", () => {
+	it('(toList) should convert to a Mesgjs @list (NANOS)', () => {
 		const mo = $toMsjs({ a: 1, b: 2 });
-		const list = mo("toList");
-		assert(list instanceof NANOS, "Result should be a NANOS instance");
-		assertEquals(list.at('a'), 1);
-		assertEquals(list.at('b'), 2);
+		const list = mo('toList');
+		assert(list instanceof NANOS, 'Result should be a NANOS instance');
+		assertStrictEquals(list.at('a'), 1);
+		assertStrictEquals(list.at('b'), 2);
 	});
 
-	await t.step("(values) should return object values", () => {
+	it('(values) should return object values', () => {
 		const testObj = { a: 1, b: 2 };
 		const mo = $toMsjs(testObj);
-		assertEquals(mo("values"), [1, 2]);
+		assertEquals(mo('values'), [1, 2]);
 	});
 });

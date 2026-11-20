@@ -1,96 +1,92 @@
-import {
-  assert,
-  assertEquals,
-  assertNotEquals,
-  assertThrows,
-} from "https://deno.land/std@0.177.0/testing/asserts.ts";
-
-import "../../src/runtime/mesgjs.esm.js";
-import { listFromPairs as ls } from "../../src/runtime/runtime.esm.js";
+import { describe, it } from '@compat/test';
+import { assertStrictEquals, assertThrows } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
+import { listFromPairs as ls } from '../../src/runtime/runtime.esm.js';
 import { codeBlock } from '../harness.esm.js';
 
-Deno.test("@try Interface", async (t) => {
-	const mTry = $c.getInstance("@try");
+describe('@try Interface', () => {
+	const { $c } = globalThis;
+	const mTry = $c.getInstance('@try');
 
-	await t.step("Successful execution", () => {
-		const main = codeBlock(() => "success");
-		const result = $c.sm(mTry, "try", ls([, main]));
-		assertEquals(result, "success");
+	it('Successful execution', () => {
+		const main = codeBlock(() => 'success');
+		const result = $c.sm(mTry, 'try', ls([, main]));
+		assertStrictEquals(result, 'success');
 	});
 
-	await t.step("Catch block", () => {
+	it('Catch block', () => {
 		const main = codeBlock(() => {
-			throw new Error("test error");
+			throw new Error('test error');
 		});
 		let caught = false;
 		const catchBlock = codeBlock(() => {
 			caught = true;
-			assertEquals($c.sm(mTry, "error").message, "test error");
-			assertEquals($c.sm(mTry, "name"), "Error");
-			assertEquals($c.sm(mTry, "message"), "test error");
+			assertStrictEquals($c.sm(mTry, 'error').message, 'test error');
+			assertStrictEquals($c.sm(mTry, 'name'), 'Error');
+			assertStrictEquals($c.sm(mTry, 'message'), 'test error');
 		});
-		$c.sm(mTry, "try", ls([, main, "catch", catchBlock]));
-		assertEquals(caught, true);
+		$c.sm(mTry, 'try', ls([, main, 'catch', catchBlock]));
+		assertStrictEquals(caught, true);
 	});
 
-	await t.step("Catchers block", () => {
+	it('Catchers block', () => {
 		const main = codeBlock(() => {
-			throw new TypeError("type error");
+			throw new TypeError('type error');
 		});
 		let caught = false;
 		const catchers = ls([
 			'TypeError',
 			codeBlock(() => {
 				caught = true;
-				assertEquals($c.sm(mTry, "name"), "TypeError");
+				assertStrictEquals($c.sm(mTry, 'name'), 'TypeError');
 			}),
 		]);
-		$c.sm(mTry, "try", ls([, main, "catchers", catchers]));
-		assertEquals(caught, true);
+		$c.sm(mTry, 'try', ls([, main, 'catchers', catchers]));
+		assertStrictEquals(caught, true);
 	});
 
-	await t.step("Always block", () => {
+	it('Always block', () => {
 		let always = false;
-		const main = codeBlock(() => "success");
+		const main = codeBlock(() => 'success');
 		const alwaysBlock = codeBlock(() => {
 			always = true;
 		});
-		$c.sm(mTry, "try", ls([, main, "always", alwaysBlock]));
-		assertEquals(always, true);
+		$c.sm(mTry, 'try', ls([, main, 'always', alwaysBlock]));
+		assertStrictEquals(always, true);
 
 		always = false;
 		const errorMain = codeBlock(() => {
-			throw new Error("fail");
+			throw new Error('fail');
 		});
-		assertThrows(() => $c.sm(mTry, "try", ls([, errorMain, "always", alwaysBlock])), Error);
-		assertEquals(always, true);
+		assertThrows(() => $c.sm(mTry, 'try', ls([, errorMain, 'always', alwaysBlock])), Error);
+		assertStrictEquals(always, true);
 	});
 
-	await t.step("Unhandled exception", () => {
+	it('Unhandled exception', () => {
 		const main = codeBlock(() => {
-			throw new Error("unhandled");
+			throw new Error('unhandled');
 		});
-		assertThrows(() => $c.sm(mTry, "try", main), Error, "unhandled");
+		assertThrows(() => $c.sm(mTry, 'try', main), Error, 'unhandled');
 	});
 
-	await t.step("Flow control", () => {
+	it('Flow control', () => {
 		let secondBlockRun = false;
 		const first = codeBlock(() => {
-			$c.sm(mTry, "next");
+			$c.sm(mTry, 'next');
 		});
 		const second = codeBlock(() => {
 			secondBlockRun = true;
-			return "second";
+			return 'second';
 		});
-		const result = $c.sm(mTry, "try", ls([, first, , second]));
-		assertEquals(secondBlockRun, true);
-		assertEquals(result, "second");
+		const result = $c.sm(mTry, 'try', ls([, first, , second]));
+		assertStrictEquals(secondBlockRun, true);
+		assertStrictEquals(result, 'second');
 
 		const stopBlock = codeBlock(() => {
-			$c.sm(mTry, "stop", ls(["result", "stopped"]));
-			return "not stopped";
+			$c.sm(mTry, 'stop', ls(['result', 'stopped']));
+			return 'not stopped';
 		});
-		const stopResult = $c.sm(mTry, "try", [stopBlock]);
-		assertEquals(stopResult, "stopped");
+		const stopResult = $c.sm(mTry, 'try', [stopBlock]);
+		assertStrictEquals(stopResult, 'stopped');
 	});
 });

@@ -1,47 +1,41 @@
-import {
-  assert,
-  assertEquals,
-  assertStrictEquals,
-  assertNotEquals,
-} from "https://deno.land/std@0.177.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assertEquals, assertStrictEquals } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
 
-import "../../src/runtime/mesgjs.esm.js";
-
-const { $c, $toMsjs } = globalThis;
-
-Deno.test("@set Interface", async (t) => {
+describe('@set Interface', () => {
+	const { $c, $msjsReceiver } = globalThis;
 	const mSet = new Set([1, 'hello']);
 
-	await t.step("Consistent Receivers", () => {
+	it('Consistent Receivers', () => {
 		const set = new Set();
 		assertStrictEquals($msjsReceiver(set), $msjsReceiver(set));
 	});
 
-	await t.step("Initialization and State", () => {
-		assertEquals($msjsReceiver(mSet).msjsType, "@set");
-		assertEquals($c.sm(mSet, "size"), 2);
-		assertEquals($c.sm(mSet, "has", 1), true);
-		assertEquals($c.sm(mSet, "has", "world"), false);
+	it('Initialization and State', () => {
+		assertStrictEquals($msjsReceiver(mSet).msjsType, '@set');
+		assertStrictEquals($c.sm(mSet, 'size'), 2);
+		assertStrictEquals($c.sm(mSet, 'has', 1), true);
+		assertStrictEquals($c.sm(mSet, 'has', 'world'), false);
 	});
 
-	await t.step("Manipulation", () => {
-		assertEquals($c.sm(mSet, "delete", 2), false);
-		assertEquals($c.sm(mSet, "delete", 1), true);
-		assertEquals($c.sm(mSet, "size"), 1);
-		$c.sm(mSet, "clear");
-		assertEquals($c.sm(mSet, "size"), 0);
+	it('Manipulation', () => {
+		assertStrictEquals($c.sm(mSet, 'delete', 2), false);
+		assertStrictEquals($c.sm(mSet, 'delete', 1), true);
+		assertStrictEquals($c.sm(mSet, 'size'), 1);
+		$c.sm(mSet, 'clear');
+		assertStrictEquals($c.sm(mSet, 'size'), 0);
 	});
 
-	await t.step("Iteration", () => {
-		$c.sm(mSet, "add", 1);
-		$c.sm(mSet, "add", 2);
-		$c.sm(mSet, "add", 3);
-		const keys = $c.sm(mSet, "keys");
-		assertEquals(keys.length, 3);
-		assertEquals(keys[0], 1);
-		const values = $c.sm(mSet, "values");
-		assertEquals(values[2], 3);
-		const entries = $c.sm(mSet, "entries");
+	it('Iteration', () => {
+		$c.sm(mSet, 'add', 1);
+		$c.sm(mSet, 'add', 2);
+		$c.sm(mSet, 'add', 3);
+		const keys = $c.sm(mSet, 'keys');
+		assertStrictEquals(keys.length, 3);
+		assertStrictEquals(keys[0], 1);
+		const values = $c.sm(mSet, 'values');
+		assertStrictEquals(values[2], 3);
+		const entries = $c.sm(mSet, 'entries');
 		assertEquals(entries[0], [1, 1]);
 	});
 });
