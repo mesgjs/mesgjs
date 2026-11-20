@@ -1,8 +1,19 @@
-all: runtime-min vendor
+all: runtime-min
 
 runtime-min:
 	deno task runtime-min
 
-vendor:
-	sed -e '/#SDEV#/,/#EDEV/d' -e '/#DEV#/d' src/runtime/vendor.esm.js > dist/runtime-min/vendor.esm.js
-	rm -f dist/runtime-min/vendor.esm.js.map
+test-deno:
+	deno test -A --config webload.json test/
+
+test-bun:
+	wicbun --test --isolate ./test/
+
+test-node:
+	wicnode --test ./test/
+
+test: test-deno
+
+test-all: test-deno test-bun test-node
+
+.PHONY: all runtime-min test test-deno test-bun test-node test-all

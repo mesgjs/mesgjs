@@ -20,9 +20,11 @@
  * *.slid - Matching extra-meta-data (e.g. for modreq)
  */
 
-import fs from 'node:fs';
-import process from 'node:process';
-import { parseArgs } from 'node:util';
+import { exit } from '@compat/runtime';
+import { args as getArgs } from '@compat/cli';
+import { parseArgs } from '@parseargs';
+import { makeDirSync, readTextFileSync, statSync, writeTextFileSync } from '@compat/file';
+import { openDatabase } from '@compat/sqlite';
 
 import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
 import { transpileTree, mappingGenerator } from 'mesgjs/src/transpile.esm.js';
@@ -31,47 +33,7 @@ import { calcDigest } from 'mesgjs/src/runtime/calc-digest.esm.js';
 import { parseModVer as pmv } from 'mesgjs/src/semver.esm.js';
 import { parseSLID } from '@nanos';
 
-async function openDatabase (dbFile) {
-	if (globalThis.Bun) {
-		const { Database } = await import('bun:sqlite');
-		const db = new Database(dbFile);
-		return {
-			query: (sql, params = []) => db.query(sql).values(...params),
-			execute: (sql) => db.run(sql),
-			close: () => db.close()
-		};
-	}
-	if (globalThis.Deno) {
-		const { DB } = await import('https://deno.land/x/sqlite/mod.ts');
-		const db = new DB(dbFile, { mode: 'write' });
-		return {
-			query: (sql, params = []) => db.query(sql, params),
-			execute: (sql) => db.execute(sql),
-			close: () => db.close()
-		};
-	}
-	// Node.js (node:sqlite DatabaseSync)
-	try {
-		const { DatabaseSync } = await import('node:sqlite');
-		const db = new DatabaseSync(dbFile);
-		return {
-			query: (sql, params = []) => {
-				const stmt = db.prepare(sql);
-				if (/^\s*(select|pragma)/i.test(sql)) {
-					return stmt.all(...params).map(row => Object.values(row));
-				}
-				stmt.run(...params);
-				return [];
-			},
-			execute: (sql) => db.exec(sql),
-			close: () => db.close()
-		};
-	} catch (err) {
-		throw new Error(`SQLite driver not available in this runtime: ${err.message}`);
-	}
-}
-
-const rawArgs = globalThis.Deno?.args || globalThis.process?.argv?.slice(2) || [];
+const rawArgs = getArgs();
 const { values: flags, positionals } = parseArgs({
 	args: rawArgs,
 	options: {
@@ -95,13 +57,25 @@ const upcat = flags.upcat;
 
 let root = flags.root || '';
 if (root && root.slice(-1) !== '/') root += '/';
-if (root && (!fs.existsSync(root) || !fs.statSync(root).isDirectory())) throw new Error(`Directory ${root} not found`);
+if (root) {
+	try {
+		const stat = statSync(root);
+		if (!stat.isDirectory) throw new Error();
+	} catch (_err) {
+		throw new Error(`Directory ${root} not found`);
+	}
+}
 
 let db;
 if (flags.cat) {
 	// Check module-catalog existence and contents if supplied
 	const dbFile = flags.cat.endsWith('.msjcat') ? flags.cat : (flags.cat + '.msjcat');
-	if (!fs.existsSync(dbFile) || !fs.statSync(dbFile).isFile()) throw new Error(`Module catalog ${dbFile} not found`);
+	try {
+		const stat = statSync(dbFile);
+		if (!stat.isFile) throw new Error();
+	} catch (_err) {
+		throw new Error(`Module catalog ${dbFile} not found`);
+	}
 	db = await openDatabase(dbFile);
 	checkTables(db, dbFile);
 }
@@ -142,7 +116,7 @@ function outPath (srcPath, config) {
 // Process one Mesgjs source file
 async function processFile (srcPath) {
 	console.log(`Processing file ${srcPath}...`);
-	const source = fs.readFileSync(srcPath, 'utf8');
+	const source = readTextFileSync(srcPath);
 
 	// Split out the final (file) component of the srcPath
 	const [ _, inFile ] = srcPath.match(/(?:.*\/)?(.*)/);
@@ -157,7 +131,7 @@ async function processFile (srcPath) {
 	const { tree, errors: parseErrors } = upcat ? {} : parse(tokens);
 	if (parseErrors?.length) {
 		console.log(parseErrors.join('\n'));
-		process.exit(1);
+		exit(1);
 	}
 	if (flags.tree && !upcat) {		  // Show parsed abstract syntax tree (AST)
 		console.log('PARSE TREE');
@@ -169,7 +143,7 @@ async function processFile (srcPath) {
 	let meta = { at: (_, def = '') => def };
 	try {
 		const slidPath = srcPath.replace(/\.msjs$/, '.slid');
-		const slid = fs.readFileSync(slidPath, 'utf8');
+		const slid = readTextFileSync(slidPath);
 		if (slid) meta = parseSLID(slid);
 	} catch (_err) {
 		console.log('Note: .slid meta-data is absent or unreadable.');
@@ -185,7 +159,7 @@ async function processFile (srcPath) {
 	const { code, errors: txpErrors, fatal, segments } = upcat ? {} : transpileTree(tree, txpOpts);
 	if (txpErrors?.length) console.log(txpErrors.join('\n'));
 	if (fatal) console.log(fatal);
-	if (txpErrors?.length || fatal) process.exit(1);
+	if (txpErrors?.length || fatal) exit(1);
 
 	const { dir, file } = outPath(srcPath, config);
 	const finalDir = root + dir;
@@ -218,9 +192,9 @@ async function processFile (srcPath) {
 
 	if (!upcat) {
 		console.log(`Writing ${finalPath} and map...`);
-		if (finalDir) fs.mkdirSync(finalDir, { recursive: true });
-		fs.writeFileSync(finalPath, codePlus, 'utf8');
-		fs.writeFileSync(finalPath + '.map', mapJSON, 'utf8');
+		if (finalDir) makeDirSync(finalDir, { recursive: true });
+		writeTextFileSync(finalPath, codePlus);
+		writeTextFileSync(finalPath + '.map', mapJSON);
 	}
 
 	// If we have the appropriate info, add or update this module in the module catalog
@@ -243,6 +217,7 @@ for (const file of positionals) {
 	if (/\.msjs$/.test(file)) await processFile(file);
 	else console.log(`Expected file extension .msjs: ${file}`);
 }
+if (db) db.close();
 console.log('Done');
 
 // END

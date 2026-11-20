@@ -1,14 +1,10 @@
-import test, { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { describe, it, beforeEach, afterEach } from '@compat/test';
+import { assertMatch, assertNotStrictEquals, assertStrictEquals } from '@std/assert';
+import { chmod, fromFileUrl, makeDir, makeTempDir, readTextFile, removeDir, symlink, writeTextFile } from '@compat/file';
+import { spawn } from '@compat/subprocess';
+import * as path from '@compat/path';
 
-const execFileAsync = promisify(execFile);
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fromFileUrl(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const MSJSTLR_BIN = path.join(REPO_ROOT, 'bin/msjstlr');
@@ -18,16 +14,21 @@ let currentTempDir = null;
 
 async function runCommand (cmd, args = [], options = {}) {
 	try {
-		const { stdout, stderr } = await execFileAsync(cmd, args, {
+		const proc = spawn(cmd, args, {
 			cwd: options.cwd || currentTempDir || REPO_ROOT,
-			env: { ...process.env, ...options.env }
+			env: options.env,
 		});
-		return { code: 0, stdout, stderr };
+		const res = await proc.text();
+		return {
+			code: res.code,
+			stdout: res.stdout,
+			stderr: res.stderr,
+		};
 	} catch (err) {
 		return {
 			code: err.code ?? 1,
 			stdout: err.stdout ?? '',
-			stderr: err.stderr ?? err.message
+			stderr: err.stderr ?? err.message,
 		};
 	}
 }
@@ -35,15 +36,15 @@ async function runCommand (cmd, args = [], options = {}) {
 describe('msjstlr CLI Portability Suite', () => {
 	let tempDir;
 
-	test.beforeEach(async () => {
-		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'msjstlr-test-'));
+	beforeEach(async () => {
+		tempDir = await makeTempDir({ prefix:'msjstlr-test-' });
 		currentTempDir = tempDir;
 	});
 
-	test.afterEach(async () => {
+	afterEach(async () => {
 		currentTempDir = null;
 		if (tempDir) {
-			await fs.rm(tempDir, { recursive: true, force: true });
+			await removeDir(tempDir, { recursive: true, force: true });
 		}
 	});
 
@@ -60,18 +61,18 @@ describe('msjstlr CLI Portability Suite', () => {
 			}
 			`;
 			const msjsPath = path.join(tempDir, 'testMod.msjs');
-			await fs.writeFile(msjsPath, msjsWithComments, 'utf8');
+			await writeTextFile(msjsPath, msjsWithComments);
 
 			const res = await runCommand(MSJSTRANS_BIN, ['--inc-slid', '--root', tempDir, msjsPath]);
-			assert.strictEqual(res.code, 0, res.stderr);
+			assertStrictEquals(res.code, 0, res.stderr);
 
 			const jsPath = path.join(tempDir, 'testMod.esm.js');
-			const jsContent = await fs.readFile(jsPath, 'utf8');
+			const jsContent = await readTextFile(jsPath);
 
-			assert.match(jsContent, /\/\*\[\(/);
-			assert.match(jsContent, /modpath=testMod/);
-			assert.match(jsContent, /version='1.0.0'/);
-			assert.strictEqual(jsContent.includes('This is an inner comment'), false);
+			assertMatch(jsContent, /\/\*\[\(/);
+			assertMatch(jsContent, /modpath=testMod/);
+			assertMatch(jsContent, /version='1.0.0'/);
+			assertStrictEquals(jsContent.includes('This is an inner comment'), false);
 		});
 	});
 
@@ -82,51 +83,51 @@ describe('msjstlr CLI Portability Suite', () => {
 @js{ console.log("shebang run"); @}
 `;
 			const shebangPath = path.join(tempDir, 'shebang.msjs');
-			await fs.writeFile(shebangPath, shebangMsjs, 'utf8');
+			await writeTextFile(shebangPath, shebangMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--deps-only', shebangPath]);
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Provides: shebangFeat/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Provides: shebangFeat/);
 		});
 
 		it('extracts metadata when msjs has no SLID', async () => {
 			const noSlidMsjs = `@js{ console.log("no slid"); @}`;
 			const noSlidPath = path.join(tempDir, 'noslid.msjs');
-			await fs.writeFile(noSlidPath, noSlidMsjs, 'utf8');
+			await writeTextFile(noSlidPath, noSlidMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--deps-only', noSlidPath]);
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Primary entrypoint:/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Primary entrypoint:/);
 		});
 
 		it('extracts SLID from .js file in first 4KB', async () => {
 			const slidJs = `/*[( featpro=[ jsFeat ] )]*/\nconsole.log("js run");`;
 			const jsPath = path.join(tempDir, 'module.js');
-			await fs.writeFile(jsPath, slidJs, 'utf8');
+			await writeTextFile(jsPath, slidJs);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--deps-only', jsPath]);
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Provides: jsFeat/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Provides: jsFeat/);
 		});
 
 		it('extracts SLID from .js file spanning >4KB', async () => {
 			const padding = 'x'.repeat(5000);
 			const largeSlidJs = `/*[( featpro=[ largeFeat ] comment='${padding}' )]*/\nconsole.log("large slid js");`;
 			const largePath = path.join(tempDir, 'large.js');
-			await fs.writeFile(largePath, largeSlidJs, 'utf8');
+			await writeTextFile(largePath, largeSlidJs);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--deps-only', largePath]);
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Provides: largeFeat/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Provides: largeFeat/);
 		});
 	});
 
 	describe('Dependency Resolution Algorithm', () => {
 		it('resolves linear dependency chain (A -> B -> C)', async () => {
-			await fs.writeFile(path.join(tempDir, 'a.msjs'), `[( featreq=[ bFeat ] )]\n@js{ console.log("A"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'b.msjs'), `[( featpro=[ bFeat ] featreq=[ cFeat ] )]\n@js{ console.log("B"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'c.msjs'), `[( featpro=[ cFeat ] )]\n@js{ console.log("C"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'unused.msjs'), `[( featpro=[ unusedFeat ] )]\n@js{ console.log("Unused"); @}`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'a.msjs'), `[( featreq=[ bFeat ] )]\n@js{ console.log("A"); @}`);
+			await writeTextFile(path.join(tempDir, 'b.msjs'), `[( featpro=[ bFeat ] featreq=[ cFeat ] )]\n@js{ console.log("B"); @}`);
+			await writeTextFile(path.join(tempDir, 'c.msjs'), `[( featpro=[ cFeat ] )]\n@js{ console.log("C"); @}`);
+			await writeTextFile(path.join(tempDir, 'unused.msjs'), `[( featpro=[ unusedFeat ] )]\n@js{ console.log("Unused"); @}`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -136,17 +137,17 @@ describe('msjstlr CLI Portability Suite', () => {
 				path.join(tempDir, 'unused.msjs'),
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Resolved Files \(3\):/);
-			assert.match(res.stdout, /a\.msjs/);
-			assert.match(res.stdout, /b\.msjs/);
-			assert.match(res.stdout, /c\.msjs/);
-			assert.strictEqual(res.stdout.includes('unused.msjs'), false);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Resolved Files \(3\):/);
+			assertMatch(res.stdout, /a\.msjs/);
+			assertMatch(res.stdout, /b\.msjs/);
+			assertMatch(res.stdout, /c\.msjs/);
+			assertStrictEquals(res.stdout.includes('unused.msjs'), false);
 		});
 
 		it('resolves circular dependencies gracefully', async () => {
-			await fs.writeFile(path.join(tempDir, 'c1.msjs'), `[( featpro=[ c1Feat ] featreq=[ c2Feat ] )]\n@js{ console.log("C1"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'c2.msjs'), `[( featpro=[ c2Feat ] featreq=[ c1Feat ] )]\n@js{ console.log("C2"); @}`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'c1.msjs'), `[( featpro=[ c1Feat ] featreq=[ c2Feat ] )]\n@js{ console.log("C1"); @}`);
+			await writeTextFile(path.join(tempDir, 'c2.msjs'), `[( featpro=[ c2Feat ] featreq=[ c1Feat ] )]\n@js{ console.log("C2"); @}`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -154,17 +155,17 @@ describe('msjstlr CLI Portability Suite', () => {
 				path.join(tempDir, 'c2.msjs'),
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Resolved Files \(2\):/);
-			assert.match(res.stdout, /c1\.msjs/);
-			assert.match(res.stdout, /c2\.msjs/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Resolved Files \(2\):/);
+			assertMatch(res.stdout, /c1\.msjs/);
+			assertMatch(res.stdout, /c2\.msjs/);
 		});
 
 		it('resolves diamond dependency graphs', async () => {
-			await fs.writeFile(path.join(tempDir, 'dEntry.msjs'), `[( featreq=[ d1Feat d2Feat ] )]\n@js{ console.log("DEntry"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'd1.msjs'), `[( featpro=[ d1Feat ] featreq=[ dBottomFeat ] )]\n@js{ console.log("D1"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'd2.msjs'), `[( featpro=[ d2Feat ] featreq=[ dBottomFeat ] )]\n@js{ console.log("D2"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'dBottom.msjs'), `[( featpro=[ dBottomFeat ] )]\n@js{ console.log("DBottom"); @}`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'dEntry.msjs'), `[( featreq=[ d1Feat d2Feat ] )]\n@js{ console.log("DEntry"); @}`);
+			await writeTextFile(path.join(tempDir, 'd1.msjs'), `[( featpro=[ d1Feat ] featreq=[ dBottomFeat ] )]\n@js{ console.log("D1"); @}`);
+			await writeTextFile(path.join(tempDir, 'd2.msjs'), `[( featpro=[ d2Feat ] featreq=[ dBottomFeat ] )]\n@js{ console.log("D2"); @}`);
+			await writeTextFile(path.join(tempDir, 'dBottom.msjs'), `[( featpro=[ dBottomFeat ] )]\n@js{ console.log("DBottom"); @}`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -174,26 +175,26 @@ describe('msjstlr CLI Portability Suite', () => {
 				path.join(tempDir, 'dBottom.msjs'),
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Resolved Files \(4\):/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Resolved Files \(4\):/);
 		});
 
 		it('reports error for unresolved feature requirement', async () => {
-			await fs.writeFile(path.join(tempDir, 'missing.msjs'), `[( featreq=[ nonExistentFeat ] )]\n`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'missing.msjs'), `[( featreq=[ nonExistentFeat ] )]\n`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
 				path.join(tempDir, 'missing.msjs'),
 			]);
 
-			assert.notStrictEqual(res.code, 0);
-			assert.match(res.stderr, /Unresolved feature requirement: "nonExistentFeat"/);
+			assertNotStrictEquals(res.code, 0);
+			assertMatch(res.stderr, /Unresolved feature requirement: "nonExistentFeat"/);
 		});
 
 		it('reports error for duplicate feature provider', async () => {
-			await fs.writeFile(path.join(tempDir, 'dup1.msjs'), `[( featpro=[ sharedFeat ] )]\n`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'dup2.msjs'), `[( featpro=[ sharedFeat ] )]\n`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'dupEntry.msjs'), `[( featreq=[ sharedFeat ] )]\n`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'dup1.msjs'), `[( featpro=[ sharedFeat ] )]\n`);
+			await writeTextFile(path.join(tempDir, 'dup2.msjs'), `[( featpro=[ sharedFeat ] )]\n`);
+			await writeTextFile(path.join(tempDir, 'dupEntry.msjs'), `[( featreq=[ sharedFeat ] )]\n`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -202,15 +203,15 @@ describe('msjstlr CLI Portability Suite', () => {
 				path.join(tempDir, 'dup2.msjs'),
 			]);
 
-			assert.notStrictEqual(res.code, 0);
-			assert.match(res.stderr, /Duplicate feature provider for "sharedFeat"/);
+			assertNotStrictEquals(res.code, 0);
+			assertMatch(res.stderr, /Duplicate feature provider for "sharedFeat"/);
 		});
 
 		it('-a / --all flag includes all files', async () => {
-			await fs.writeFile(path.join(tempDir, 'a.msjs'), `[( featreq=[ bFeat ] )]\n@js{ console.log("A"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'b.msjs'), `[( featpro=[ bFeat ] featreq=[ cFeat ] )]\n@js{ console.log("B"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'c.msjs'), `[( featpro=[ cFeat ] )]\n@js{ console.log("C"); @}`, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'unused.msjs'), `[( featpro=[ unusedFeat ] )]\n@js{ console.log("Unused"); @}`, 'utf8');
+			await writeTextFile(path.join(tempDir, 'a.msjs'), `[( featreq=[ bFeat ] )]\n@js{ console.log("A"); @}`);
+			await writeTextFile(path.join(tempDir, 'b.msjs'), `[( featpro=[ bFeat ] featreq=[ cFeat ] )]\n@js{ console.log("B"); @}`);
+			await writeTextFile(path.join(tempDir, 'c.msjs'), `[( featpro=[ cFeat ] )]\n@js{ console.log("C"); @}`);
+			await writeTextFile(path.join(tempDir, 'unused.msjs'), `[( featpro=[ unusedFeat ] )]\n@js{ console.log("Unused"); @}`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'-a',
@@ -221,9 +222,9 @@ describe('msjstlr CLI Portability Suite', () => {
 				path.join(tempDir, 'unused.msjs'),
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Resolved Files \(4\):/);
-			assert.match(res.stdout, /unused\.msjs/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Resolved Files \(4\):/);
+			assertMatch(res.stdout, /unused\.msjs/);
 		});
 	});
 
@@ -238,17 +239,17 @@ describe('msjstlr CLI Portability Suite', () => {
 			`;
 			const calcJs = `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`;
 
-			await fs.writeFile(path.join(tempDir, 'main.msjs'), mainMsjs, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'calc.js'), calcJs, 'utf8');
+			await writeTextFile(path.join(tempDir, 'main.msjs'), mainMsjs);
+			await writeTextFile(path.join(tempDir, 'calc.js'), calcJs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				path.join(tempDir, 'main.msjs'),
 				path.join(tempDir, 'calc.js'),
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Calc module initialized/);
-			assert.match(res.stdout, /Main executing with args:/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Calc module initialized/);
+			assertMatch(res.stdout, /Main executing with args:/);
 		});
 
 		it('forwards script arguments after -- into process/runtime args', async () => {
@@ -261,8 +262,8 @@ describe('msjstlr CLI Portability Suite', () => {
 			`;
 			const calcJs = `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`;
 
-			await fs.writeFile(path.join(tempDir, 'main.msjs'), mainMsjs, 'utf8');
-			await fs.writeFile(path.join(tempDir, 'calc.js'), calcJs, 'utf8');
+			await writeTextFile(path.join(tempDir, 'main.msjs'), mainMsjs);
+			await writeTextFile(path.join(tempDir, 'calc.js'), calcJs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				path.join(tempDir, 'main.msjs'),
@@ -272,8 +273,8 @@ describe('msjstlr CLI Portability Suite', () => {
 				'arg 2',
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /SCRIPT_ARGS:\["arg1","arg 2"\]/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /SCRIPT_ARGS:\["arg1","arg 2"\]/);
 		});
 
 		it('forwards Deno flags via -d ... --', async () => {
@@ -281,7 +282,7 @@ describe('msjstlr CLI Portability Suite', () => {
 				console.log("Deno permissions test");
 			@}`;
 			const netPath = path.join(tempDir, 'net.msjs');
-			await fs.writeFile(netPath, netMsjs, 'utf8');
+			await writeTextFile(netPath, netMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'-d',
@@ -290,36 +291,36 @@ describe('msjstlr CLI Portability Suite', () => {
 				netPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Deno permissions test/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Deno permissions test/);
 		});
 
 		it('executes from outside repository directory via symlink', async () => {
 			const symlinkPath = path.join(tempDir, 'sym_msjstlr');
-			await fs.symlink(MSJSTLR_BIN, symlinkPath);
+			await symlink(MSJSTLR_BIN, symlinkPath);
 
 			const extWorkingDir = path.join(tempDir, 'subwork');
-			await fs.mkdir(extWorkingDir);
+			await makeDir(extWorkingDir);
 
 			const mainPath = path.join(tempDir, 'main.msjs');
 			const calcPath = path.join(tempDir, 'calc.js');
-			await fs.writeFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`, 'utf8');
-			await fs.writeFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`, 'utf8');
+			await writeTextFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`);
+			await writeTextFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`);
 
 			const res = await runCommand(symlinkPath, [
 				mainPath,
 				calcPath,
 			], { cwd: extWorkingDir });
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Calc module initialized/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Calc module initialized/);
 		});
 
 		it('supports runtime path override via -r', async () => {
 			const mainPath = path.join(tempDir, 'main.msjs');
 			const calcPath = path.join(tempDir, 'calc.js');
-			await fs.writeFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`, 'utf8');
-			await fs.writeFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`, 'utf8');
+			await writeTextFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`);
+			await writeTextFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'-r',
@@ -328,44 +329,44 @@ describe('msjstlr CLI Portability Suite', () => {
 				calcPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Calc module initialized/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Calc module initialized/);
 		});
 
 		it('supports runtime path override via MESGJS_RUNTIME env var', async () => {
 			const mainPath = path.join(tempDir, 'main.msjs');
 			const calcPath = path.join(tempDir, 'calc.js');
-			await fs.writeFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`, 'utf8');
-			await fs.writeFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`, 'utf8');
+			await writeTextFile(mainPath, `[( featreq=[ calcFeat ] )]\n@js{ console.log("Main run"); @}`);
+			await writeTextFile(calcPath, `/*[( featpro=[ calcFeat ] )]*/\nconsole.log("Calc module initialized");`);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				mainPath,
 				calcPath,
 			], { env: { MESGJS_RUNTIME: REPO_ROOT } });
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Calc module initialized/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Calc module initialized/);
 		});
 
 		it('supports config path override via -c and --config', async () => {
 			const mainPath = path.join(tempDir, 'main.msjs');
 			const configPath = path.join(REPO_ROOT, 'webload.json');
-			await fs.writeFile(mainPath, '@js{ console.log("Config override run"); @}', 'utf8');
+			await writeTextFile(mainPath, '@js{ console.log("Config override run"); @}');
 
 			const resShort = await runCommand(MSJSTLR_BIN, [
 				'-c',
 				configPath,
 				mainPath,
 			]);
-			assert.strictEqual(resShort.code, 0, resShort.stderr);
-			assert.match(resShort.stdout, /Config override run/);
+			assertStrictEquals(resShort.code, 0, resShort.stderr);
+			assertMatch(resShort.stdout, /Config override run/);
 
 			const resLong = await runCommand(MSJSTLR_BIN, [
 				`--config=${configPath}`,
 				mainPath,
 			]);
-			assert.strictEqual(resLong.code, 0, resLong.stderr);
-			assert.match(resLong.stdout, /Config override run/);
+			assertStrictEquals(resLong.code, 0, resLong.stderr);
+			assertMatch(resLong.stdout, /Config override run/);
 		});
 
 		it('executes directly with shebang when executable', async () => {
@@ -375,13 +376,13 @@ describe('msjstlr CLI Portability Suite', () => {
 	console.log("Shebang executed successfully!");
 @}
 `;
-			await fs.writeFile(scriptPath, scriptContent, 'utf8');
-			await fs.chmod(scriptPath, 0o755);
+			await writeTextFile(scriptPath, scriptContent);
+			await chmod(scriptPath, 0o755);
 
 			const res = await runCommand(scriptPath, []);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /Shebang executed successfully!/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /Shebang executed successfully!/);
 		});
 	});
 
@@ -393,13 +394,13 @@ describe('msjstlr CLI Portability Suite', () => {
 @c(log 'MAIN_ACTIVE')
 `;
 			const debugPath = path.join(tempDir, 'debug.msjs');
-			await fs.writeFile(debugPath, debugScript, 'utf8');
+			await writeTextFile(debugPath, debugScript);
 
 			const res = await runCommand(MSJSTLR_BIN, [debugPath]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /DEBUG_ACTIVE/);
-			assert.match(res.stdout, /MAIN_ACTIVE/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /DEBUG_ACTIVE/);
+			assertMatch(res.stdout, /MAIN_ACTIVE/);
 		});
 
 		it('--disable-debug disables debug blocks', async () => {
@@ -409,13 +410,13 @@ describe('msjstlr CLI Portability Suite', () => {
 @c(log 'MAIN_ACTIVE')
 `;
 			const debugPath = path.join(tempDir, 'debug.msjs');
-			await fs.writeFile(debugPath, debugScript, 'utf8');
+			await writeTextFile(debugPath, debugScript);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--disable-debug', debugPath]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.strictEqual(res.stdout.includes('DEBUG_ACTIVE'), false);
-			assert.match(res.stdout, /MAIN_ACTIVE/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertStrictEquals(res.stdout.includes('DEBUG_ACTIVE'), false);
+			assertMatch(res.stdout, /MAIN_ACTIVE/);
 		});
 
 		it('MESGJS_DEFAULT_DEBUG=false disables debug blocks by default', async () => {
@@ -425,15 +426,15 @@ describe('msjstlr CLI Portability Suite', () => {
 @c(log 'MAIN_ACTIVE')
 `;
 			const debugPath = path.join(tempDir, 'debug.msjs');
-			await fs.writeFile(debugPath, debugScript, 'utf8');
+			await writeTextFile(debugPath, debugScript);
 
 			const res = await runCommand(MSJSTLR_BIN, [debugPath], {
 				env: { MESGJS_DEFAULT_DEBUG: 'false' },
 			});
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.strictEqual(res.stdout.includes('DEBUG_ACTIVE'), false);
-			assert.match(res.stdout, /MAIN_ACTIVE/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertStrictEquals(res.stdout.includes('DEBUG_ACTIVE'), false);
+			assertMatch(res.stdout, /MAIN_ACTIVE/);
 		});
 
 		it('--enable-debug overrides MESGJS_DEFAULT_DEBUG=false', async () => {
@@ -443,15 +444,15 @@ describe('msjstlr CLI Portability Suite', () => {
 @c(log 'MAIN_ACTIVE')
 `;
 			const debugPath = path.join(tempDir, 'debug.msjs');
-			await fs.writeFile(debugPath, debugScript, 'utf8');
+			await writeTextFile(debugPath, debugScript);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--enable-debug', debugPath], {
 				env: { MESGJS_DEFAULT_DEBUG: 'false' },
 			});
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /DEBUG_ACTIVE/);
-			assert.match(res.stdout, /MAIN_ACTIVE/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /DEBUG_ACTIVE/);
+			assertMatch(res.stdout, /MAIN_ACTIVE/);
 		});
 
 		it('--disable-js rejects @js blocks during transpilation', async () => {
@@ -460,12 +461,12 @@ describe('msjstlr CLI Portability Suite', () => {
 @}
 `;
 			const jsPath = path.join(tempDir, 'js.msjs');
-			await fs.writeFile(jsPath, jsScript, 'utf8');
+			await writeTextFile(jsPath, jsScript);
 
 			const res = await runCommand(MSJSTLR_BIN, ['--disable-js', jsPath]);
 
-			assert.notStrictEqual(res.code, 0);
-			assert.match(res.stderr, /Transpilation errors/);
+			assertNotStrictEquals(res.code, 0);
+			assertMatch(res.stderr, /Transpilation errors/);
 		});
 	});
 
@@ -497,9 +498,9 @@ describe('msjstlr CLI Portability Suite', () => {
 			const modAPath = path.join(tempDir, 'modA.msjs');
 			const modBPath = path.join(tempDir, 'modB.msjs');
 
-			await fs.writeFile(mainPath, mainMsjs, 'utf8');
-			await fs.writeFile(modAPath, modAMsjs, 'utf8');
-			await fs.writeFile(modBPath, modBMsjs, 'utf8');
+			await writeTextFile(mainPath, mainMsjs);
+			await writeTextFile(modAPath, modAMsjs);
+			await writeTextFile(modBPath, modBMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -508,10 +509,10 @@ describe('msjstlr CLI Portability Suite', () => {
 				modBPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /modA\.msjs \[modpath: modA\] \(deferred\)/);
-			assert.match(res.stdout, /modB\.msjs \[modpath: modB\]/);
-			assert.strictEqual(res.stdout.includes('modB.msjs [modpath: modB] (deferred)'), false);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /modA\.msjs \[modpath: modA\] \(deferred\)/);
+			assertMatch(res.stdout, /modB\.msjs \[modpath: modB\]/);
+			assertStrictEquals(res.stdout.includes('modB.msjs [modpath: modB] (deferred)'), false);
 		});
 
 		it('deferred module loads on demand via fwait at runtime', async () => {
@@ -541,9 +542,9 @@ describe('msjstlr CLI Portability Suite', () => {
 			const modAPath = path.join(tempDir, 'modA.msjs');
 			const modBPath = path.join(tempDir, 'modB.msjs');
 
-			await fs.writeFile(mainPath, mainMsjs, 'utf8');
-			await fs.writeFile(modAPath, modAMsjs, 'utf8');
-			await fs.writeFile(modBPath, modBMsjs, 'utf8');
+			await writeTextFile(mainPath, mainMsjs);
+			await writeTextFile(modAPath, modAMsjs);
+			await writeTextFile(modBPath, modBMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				mainPath,
@@ -551,15 +552,15 @@ describe('msjstlr CLI Portability Suite', () => {
 				modBPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
+			assertStrictEquals(res.code, 0, res.stderr);
 			const modBIndex = res.stdout.indexOf('MODB_LOADED');
 			const mainStartIndex = res.stdout.indexOf('MAIN_START');
 			const modAIndex = res.stdout.indexOf('MODA_LOADED');
 			const mainEndIndex = res.stdout.indexOf('MAIN_END');
 
-			assert.strictEqual(mainStartIndex < modAIndex, true);
-			assert.strictEqual(modAIndex < mainEndIndex, true);
-			assert.strictEqual(modBIndex < mainEndIndex, true);
+			assertStrictEquals(mainStartIndex < modAIndex, true);
+			assertStrictEquals(modAIndex < mainEndIndex, true);
+			assertStrictEquals(modBIndex < mainEndIndex, true);
 		});
 
 		it('util is deferred when all requirers vote to defer', async () => {
@@ -589,9 +590,9 @@ describe('msjstlr CLI Portability Suite', () => {
 			const helperPath = path.join(tempDir, 'helperDefer.msjs');
 			const utilPath = path.join(tempDir, 'util.msjs');
 
-			await fs.writeFile(mainPath, voteMainMsjs, 'utf8');
-			await fs.writeFile(helperPath, helperDeferMsjs, 'utf8');
-			await fs.writeFile(utilPath, utilMsjs, 'utf8');
+			await writeTextFile(mainPath, voteMainMsjs);
+			await writeTextFile(helperPath, helperDeferMsjs);
+			await writeTextFile(utilPath, utilMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -600,8 +601,8 @@ describe('msjstlr CLI Portability Suite', () => {
 				utilPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /util\.msjs \[modpath: util\] \(deferred\)/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /util\.msjs \[modpath: util\] \(deferred\)/);
 		});
 
 		it('util is eager when any requirer does not vote to defer', async () => {
@@ -630,9 +631,9 @@ describe('msjstlr CLI Portability Suite', () => {
 			const helperPath = path.join(tempDir, 'helperEager.msjs');
 			const utilPath = path.join(tempDir, 'util.msjs');
 
-			await fs.writeFile(mainPath, voteMainMsjs, 'utf8');
-			await fs.writeFile(helperPath, helperEagerMsjs, 'utf8');
-			await fs.writeFile(utilPath, utilMsjs, 'utf8');
+			await writeTextFile(mainPath, voteMainMsjs);
+			await writeTextFile(helperPath, helperEagerMsjs);
+			await writeTextFile(utilPath, utilMsjs);
 
 			const res = await runCommand(MSJSTLR_BIN, [
 				'--deps-only',
@@ -641,61 +642,61 @@ describe('msjstlr CLI Portability Suite', () => {
 				utilPath,
 			]);
 
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /util\.msjs \[modpath: util\]/);
-			assert.strictEqual(res.stdout.includes('util.msjs [modpath: util] (deferred)'), false);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /util\.msjs \[modpath: util\]/);
+			assertStrictEquals(res.stdout.includes('util.msjs [modpath: util] (deferred)'), false);
 		});
 	});
 
 	describe('Cross-Engine Execution Matrix', () => {
-		it('executes via MESGJS_ENGINE=deno', async (t) => {
-			const hasDeno = await execFileAsync('which', ['deno']).then(() => true).catch(() => false);
+		it('executes via MESGJS_ENGINE=deno', async () => {
+			const hasDeno = await spawn('which', ['deno']).status.then((st) => st.success).catch(() => false);
 			if (!hasDeno) {
-				t?.skip?.('Deno engine not found');
+				it.skip?.('Deno engine not found');
 				return;
 			}
 			const scriptPath = path.join(tempDir, 'engine_deno.msjs');
-			await fs.writeFile(scriptPath, `@c(log "ENGINE_DENO_OK")\n`, 'utf8');
+			await writeTextFile(scriptPath, `@c(log "ENGINE_DENO_OK")\n`);
 
 			const res = await runCommand(MSJSTLR_BIN, [scriptPath], {
 				env: { MESGJS_ENGINE: 'deno' }
 			});
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /ENGINE_DENO_OK/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /ENGINE_DENO_OK/);
 		});
 
-		it('executes via MESGJS_ENGINE=bun', async (t) => {
-			const hasBun = await execFileAsync('which', ['bun']).then(() => true).catch(() => false);
-			const hasWicbun = await execFileAsync('which', ['wicbun']).then(() => true).catch(() => false);
+		it('executes via MESGJS_ENGINE=bun', async () => {
+			const hasBun = await spawn('which', ['bun']).status.then((st) => st.success).catch(() => false);
+			const hasWicbun = await spawn('which', ['wicbun']).status.then((st) => st.success).catch(() => false);
 			if (!hasBun || !hasWicbun) {
-				t?.skip?.('Bun or wicbun not found');
+				it.skip?.('Bun or wicbun not found');
 				return;
 			}
 			const scriptPath = path.join(tempDir, 'engine_bun.msjs');
-			await fs.writeFile(scriptPath, `@c(log "ENGINE_BUN_OK")\n`, 'utf8');
+			await writeTextFile(scriptPath, `@c(log "ENGINE_BUN_OK")\n`);
 
 			const res = await runCommand(MSJSTLR_BIN, [scriptPath], {
 				env: { MESGJS_ENGINE: 'bun' }
 			});
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /ENGINE_BUN_OK/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /ENGINE_BUN_OK/);
 		});
 
-		it('executes via MESGJS_ENGINE=node', async (t) => {
-			const hasNode = await execFileAsync('which', ['node']).then(() => true).catch(() => false);
-			const hasWicnode = await execFileAsync('which', ['wicnode']).then(() => true).catch(() => false);
+		it('executes via MESGJS_ENGINE=node', async () => {
+			const hasNode = await spawn('which', ['node']).status.then((st) => st.success).catch(() => false);
+			const hasWicnode = await spawn('which', ['wicnode']).status.then((st) => st.success).catch(() => false);
 			if (!hasNode || !hasWicnode) {
-				t?.skip?.('Node or wicnode not found');
+				it.skip?.('Node or wicnode not found');
 				return;
 			}
 			const scriptPath = path.join(tempDir, 'engine_node.msjs');
-			await fs.writeFile(scriptPath, `@c(log "ENGINE_NODE_OK")\n`, 'utf8');
+			await writeTextFile(scriptPath, `@c(log "ENGINE_NODE_OK")\n`);
 
 			const res = await runCommand(MSJSTLR_BIN, [scriptPath], {
 				env: { MESGJS_ENGINE: 'node' }
 			});
-			assert.strictEqual(res.code, 0, res.stderr);
-			assert.match(res.stdout, /ENGINE_NODE_OK/);
+			assertStrictEquals(res.code, 0, res.stderr);
+			assertMatch(res.stdout, /ENGINE_NODE_OK/);
 		});
 	});
 });

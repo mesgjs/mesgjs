@@ -8,17 +8,27 @@
  * --out - Output file
  */
 
-import { parseArgs } from 'jsr:@std/cli/parse-args';
-import { DB } from 'https://deno.land/x/sqlite/mod.ts';
+import { exit, getEnv } from '@compat/runtime';
+import { args as getArgs } from '@compat/cli';
+import { parseArgs } from '@parseargs';
+import { readTextFileSync, writeTextFileSync } from '@compat/file';
+import { openDatabase } from '@compat/sqlite';
 import { checkTables, getModule, getVersions, mapPath } from 'mesgjs/src/module-catalog-lite.esm.js';
 import { compareModVer, parseModVer as pmv, SemVerRanges } from 'mesgjs/src/semver.esm.js';
 import { escapeJSString as escJSStr } from '@escape-js';
 import { NANOS, parseSLID } from '@nanos';
-import Logic from 'npm:logic-solver';
+import Logic from 'logic-solver';
 
-const flags = parseArgs(Deno.args, {
-	boolean: [ 'ext', 'html' ],
-	string: [ 'cat', 'out' ],
+const rawArgs = getArgs();
+const { values: flags, positionals } = parseArgs({
+	args: rawArgs,
+	options: {
+		ext: { type: 'boolean' },
+		html: { type: 'boolean' },
+		cat: { type: 'string' },
+		out: { type: 'string' }
+	},
+	allowPositionals: true
 });
 
 const dbExt = s => s.endsWith('.msjcat') ? s : (s + '.msjcat');
@@ -274,7 +284,7 @@ function link (mainSpec, clientSpec, mainJsIn) {
 
 	if (flags.html) output(`</script>`);
 
-	if (flags.out) Deno.writeTextFileSync(flags.out, outbuf.join(''));
+	if (flags.out) writeTextFileSync(flags.out, outbuf.join(''));
 	else console.log(outbuf.join(''));
 }
 
@@ -334,23 +344,23 @@ function checkFeatures (finalMods) {
 
 function parseEntryPoint (path) {
 	if (path.endsWith('.slid')) {
-		return parseSLID(Deno.readTextFileSync(path));
+		return parseSLID(readTextFileSync(path));
 	}
 	return path;
 }
 
 try {
-	db = new DB(dbFile, { mode: 'read' });
+	db = await openDatabase(dbFile);
 	checkTables(db, dbFile);
 
-	const main = flags._[0];
+	const main = positionals[0];
 	if (!main) throw new Error('Entry point module or .esm.js/.msjs/.slid file required');
 
 	let mainSpec, clientSpec, mainJsIn;
 
-	if (flags._[1]) {
+	if (positionals[1]) {
 		// Dual entry-point mode (server+client)
-		const clientEntryPoint = flags._[1];
+		const clientEntryPoint = positionals[1];
 		if (clientEntryPoint.endsWith('.msjs') || clientEntryPoint.endsWith('.esm.js')) {
 			throw new Error('The client entry point must be a .slid file or module path.');
 		}
@@ -359,10 +369,10 @@ try {
 		clientSpec = parseEntryPoint(clientEntryPoint);
 
 		if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
-			mainJsIn = Deno.readTextFileSync(main.replace(/\.msjs$/, '.esm.js')).trim();
+			mainJsIn = readTextFileSync(main.replace(/\.msjs$/, '.esm.js')).trim();
 		}
 	} else if (main.endsWith('.slid')) {
-		const nanosSpec = parseSLID(Deno.readTextFileSync(main));
+		const nanosSpec = parseSLID(readTextFileSync(main));
 		const serverOverlay = nanosSpec.at('server');
 		const clientOverlay = nanosSpec.at('client');
 
@@ -375,18 +385,26 @@ try {
 	} else if (main.endsWith('.msjs') || main.endsWith('.esm.js')) {
 		const jsFile = main.replace(/\.msjs$/, '.esm.js');
 		const slidFile = main.replace(/\.esm\.js$|\.msjs$/, '.slid');
-		mainSpec = parseSLID(Deno.readTextFileSync(slidFile));
-		mainJsIn = Deno.readTextFileSync(jsFile).trim();
+		mainSpec = parseSLID(readTextFileSync(slidFile));
+		mainJsIn = readTextFileSync(jsFile).trim();
 	} else {
 		mainSpec = main;
 	}
 
 	link(mainSpec, clientSpec, mainJsIn);
+	db.close();
 
 } catch (err) {
-	if (Deno.env.has('DEBUG')) throw err;
+	let debug = false;
+	try {
+		debug = Boolean(getEnv()?.DEBUG);
+	} catch {
+		// Ignore if env permission is not granted
+	}
+
+	if (debug) throw err;
 	console.error('Error:', err.message);
-	Deno.exit(1);
+	exit(1);
 }
 
 // END

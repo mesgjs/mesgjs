@@ -1,5 +1,6 @@
-import { lex, parse } from "mesgjs/src/lexparse.esm.js";
-import { transpileTree } from "mesgjs/src/transpile.esm.js";
+import { readTextFile } from '@compat/file';
+import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
+import { transpileTree } from 'mesgjs/src/transpile.esm.js';
 
 // Set up the Mesgjs runtime. May only be called once per process.
 // Previously transpiled modules will be loaded normally by the runtime.
@@ -67,13 +68,13 @@ export async function loadMesgjsModuleSource (source, module = 'anonymous', opti
 // Load a Mesgjs module from an actual .msjs file.
 // (Any internal or external SLID configuration is ignored.)
 export async function loadMesgjsModulePath (path, module = path, options = {}) {
-	const source = await Deno.readTextFile(path);
+	const source = await readTextFile(path);
 	return loadMesgjsModuleSource(source, module, options);
 }
 
-let module;
+let moduleScope;
 
 export function codeBlock (code) {
-	module ||= $modScope();
-	return module.d.b(code);
+	moduleScope ||= $modScope();
+	return moduleScope.d.b(code);
 }

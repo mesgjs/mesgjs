@@ -12,5 +12,7 @@ stale () {
 }
 
 for f in `stale`
-do deno run -A npm:esbuild src/runtime/$f --minify --outdir=dist/runtime-min --format=esm --sourcemap=external
+do
+	# deno run -A npm:esbuild src/runtime/$f --minify --outdir=dist/runtime-min --format=esm --sourcemap=external
+	esbuild src/runtime/$f --minify --outdir=dist/runtime-min --format=esm --sourcemap=external
 done

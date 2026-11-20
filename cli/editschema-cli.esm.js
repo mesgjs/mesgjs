@@ -4,32 +4,34 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import { parseArgs } from 'jsr:@std/cli/parse-args';
-import { DB } from 'https://deno.land/x/sqlite/mod.ts';
+import { exit, getEnv } from '@compat/runtime';
+import { args as getArgs } from '@compat/cli';
+import { parseArgs } from '@parseargs';
+import { readTextFileSync } from '@compat/file';
+import { openDatabase } from '@compat/sqlite';
 import { parseSLID } from '@nanos';
 
 // --- Main ---
 
-const gt = globalThis;
-const args = gt.Deno?.args || gt.process?.argv?.slice(2);
-const flags = parseArgs(args, {});
+const rawArgs = getArgs();
+const { positionals } = parseArgs({ args: rawArgs, allowPositionals: true });
 
 // Show help if no arguments are provided.
-if (flags._.length < 2) {
+if (positionals.length < 2) {
 	showHelp();
-	(gt.Deno || gt.process).exit(flags._.length ? 1 : 0);
+	exit(positionals.length ? 1 : 0);
 }
 
 // Get the database and SLID file paths from the command-line arguments.
-const [dbPath, slidPath] = flags._;
+const [dbPath, slidPath] = positionals;
 
 try {
 	// Read and parse the SLID file.
-	const slidContent = await Deno.readTextFileSync(slidPath);
+	const slidContent = readTextFileSync(slidPath);
 	const edits = parseSLID(slidContent);
 
 	// Open the database.
-	const db = new DB(dbPath);
+	const db = await openDatabase(dbPath);
 
 	// Process the schema edits.
 	processEdits(db, edits);
@@ -39,11 +41,16 @@ try {
 
 	console.log('Schema update complete.');
 } catch (err) {
-	const debug = gt.Deno?.env?.has('DEBUG') || Object.hasOwn(gt.process?.env || {}, 'DEBUG');
+	let debug = false;
+	try {
+		debug = Boolean(getEnv()?.DEBUG);
+	} catch {
+		// Ignore if env permission is not granted
+	}
 
 	if (debug) throw err;
 	console.error(`Error: ${err.message}`);
-	(gt.Deno || gt.process).exit(1);
+	exit(1);
 }
 
 // --- Functions ---
@@ -65,19 +72,19 @@ Arguments:
 /**
  * Processes the schema edits from the SLID file.
  *
- * @param {DB} db The database instance.
- * @param {NANOS} edits The parsed SLID file content.
+ * @param {object} db The database instance.
+ * @param {object} edits The parsed SLID file content.
  */
 function processEdits (db, edits) {
-	// The SLID file is a list with one item, a NANOS with 'add' and/or 'remove' lists.
-	const editSet = edits.at(0);
+	// The SLID file is a list with one item or directly a NANOS with 'add' and/or 'remove' lists.
+	const editSet = edits.at?.(0) ?? edits;
 	const identRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 	const validateIdentifier = (ident) => {
 		if (!identRegex.test(ident)) throw new Error(`Invalid identifier: ${ident}`);
 	};
 
-	const removals = editSet.get('remove');
+	const removals = editSet.get?.('remove') ?? editSet.at?.('remove');
 	if (removals) {
 		for (const [tableName, fields] of removals.entries()) {
 			validateIdentifier(tableName);
@@ -95,7 +102,7 @@ function processEdits (db, edits) {
 		}
 	}
 
-	const additions = editSet.get('add');
+	const additions = editSet.get?.('add') ?? editSet.at?.('add');
 	if (additions) {
 		for (const [tableName, fields] of additions.entries()) {
 			validateIdentifier(tableName);
@@ -119,7 +126,7 @@ function processEdits (db, edits) {
 /**
  * Retrieves the schema for a given table.
  *
- * @param {DB} db The database instance.
+ * @param {object} db The database instance.
  * @param {string} tableName The name of the table.
  * @returns {string[]} A list of column names in the table.
  */

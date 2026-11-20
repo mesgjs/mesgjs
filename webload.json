@@ -4,9 +4,22 @@
 		"@escape-js": "https://cdn.jsdelivr.net/gh/mesgjs/escape-js@0.1.0/src/escape.esm.js",
 		"mesgjs/": "./",
 		"@nanos": "https://cdn.jsdelivr.net/gh/mesgjs/nanos@1.5.1/src/nanos.esm.js",
-		"@reactive": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/src/reactive.esm.js"
+		"@reactive": "https://cdn.jsdelivr.net/gh/mesgjs/reactive@0.1.6/src/reactive.esm.js",
+		"@std/assert": "https://esm.sh/jsr/@std/assert?target=node",
+		"@compat/cli": "https://esm.sh/jsr/@tundralibs/compat@2.8.1/cli?target=node",
+		"@compat/file": "https://cdn.jsdelivr.net/gh/bkatzung/extcompat@0.5.0/src/file.esm.js",
+		"@tundralibs/compat/file": "https://esm.sh/jsr/@tundralibs/compat@2.8.1/file?target=node",
+		"@compat/path": "https://esm.sh/jsr/@tundralibs/compat@2.8.1/path?target=node",
+		"@compat/runtime": "https://esm.sh/jsr/@tundralibs/compat@2.8.1/runtime?target=node",
+		"@compat/sqlite": "https://cdn.jsdelivr.net/gh/bkatzung/extcompat@0.5.0/src/sqlite.esm.js",
+		"@compat/subprocess": "https://cdn.jsdelivr.net/gh/bkatzung/extcompat@0.5.0/src/subprocess.esm.js",
+		"@compat/test": "https://esm.sh/jsr/@tundralibs/compat@2.8.1/test?target=node",
+		"@cross/test": "https://esm.sh/jsr/@cross/test?target=node",
+		"@parseargs": "https://esm.sh/@pkgjs/parseargs@0.11.0/node/parseargs.mjs",
+		"logic-solver": "https://esm.sh/logic-solver@2.0.1?target=node"
 	},
 	"script-src": [
+		"https://cdn.jsdelivr.net/gh/bkatzung/",
 		"https://cdn.jsdelivr.net/gh/mesgjs/",
 		"https://esm.sh/"
 	]

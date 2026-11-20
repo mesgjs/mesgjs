@@ -10,13 +10,14 @@
  * Reserved special objects: @c, @d, @e, @f, @n, @t, @u, @posinf, @neginf
  */
 
-import { assertEquals, assertExists, assert } from 'jsr:@std/assert';
+import { test } from '@cross/test';
+import { assert, assertStrictEquals } from '@std/assert';
 import '../src/runtime/mesgjs.esm.js';
 // Being foundational to the language, NANOS is added to globalThis when the runtime is loaded
 import { loadMesgjsModuleSource, transpileMesgjs } from "./harness.esm.js";
 import { lex, parse } from "../src/lexparse.esm.js";
 
-Deno.test('Mesgjs Syntax Coverage', async (t) => {
+test('Mesgjs Syntax Coverage', async (t) => {
 	const $gss = globalThis.$gss;
 	const $c = globalThis.$c;
 
@@ -34,14 +35,14 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('decimal'), 42, 'Decimal number literal');
-		assertEquals($gss.at('negative'), -17, 'Negative number literal');
-		assertEquals($gss.at('float'), 3.14, 'Float number literal');
-		assertEquals($gss.at('scientific'), 1500, 'Scientific notation literal');
-		assertEquals($gss.at('binary'), 10, 'Binary number literal');
-		assertEquals($gss.at('octal'), 493, 'Octal number literal');
-		assertEquals($gss.at('hex'), 255, 'Hex number literal');
-		assertEquals($gss.at('bigint'), 123456789012345678901234567890n, 'BigInt literal');
+		assertStrictEquals($gss.at('decimal'), 42, 'Decimal number literal');
+		assertStrictEquals($gss.at('negative'), -17, 'Negative number literal');
+		assertStrictEquals($gss.at('float'), 3.14, 'Float number literal');
+		assertStrictEquals($gss.at('scientific'), 1500, 'Scientific notation literal');
+		assertStrictEquals($gss.at('binary'), 10, 'Binary number literal');
+		assertStrictEquals($gss.at('octal'), 493, 'Octal number literal');
+		assertStrictEquals($gss.at('hex'), 255, 'Hex number literal');
+		assertStrictEquals($gss.at('bigint'), 123456789012345678901234567890n, 'BigInt literal');
 	});
 
 	await t.step('should handle text literals (qtext) with escape sequences', async () => {
@@ -60,16 +61,16 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('single'), 'single quoted', 'Single-quoted text');
-		assertEquals($gss.at('double'), 'double quoted', 'Double-quoted text');
-		assertEquals($gss.at('backslash'), 'back\\slash', 'Backslash escape \\b');
-		assertEquals($gss.at('newline'), 'line1\nline2', 'Newline escape \\n');
-		assertEquals($gss.at('tab'), 'tab\there', 'Tab escape \\t');
-		assertEquals($gss.at('hex'), 'hexA', 'Hex escape \\x');
-		assertEquals($gss.at('unicode'), 'unicodeA', 'Unicode escape \\u');
-		assertEquals($gss.at('singleQuote'), "it's", 'Escaped single quote');
-		assertEquals($gss.at('doubleQuote'), 'say "hi"', 'Escaped double quote');
-		assertEquals($gss.at('empty'), '', 'Empty string');
+		assertStrictEquals($gss.at('single'), 'single quoted', 'Single-quoted text');
+		assertStrictEquals($gss.at('double'), 'double quoted', 'Double-quoted text');
+		assertStrictEquals($gss.at('backslash'), 'back\\slash', 'Backslash escape \\b');
+		assertStrictEquals($gss.at('newline'), 'line1\nline2', 'Newline escape \\n');
+		assertStrictEquals($gss.at('tab'), 'tab\there', 'Tab escape \\t');
+		assertStrictEquals($gss.at('hex'), 'hexA', 'Hex escape \\x');
+		assertStrictEquals($gss.at('unicode'), 'unicodeA', 'Unicode escape \\u');
+		assertStrictEquals($gss.at('singleQuote'), "it's", 'Escaped single quote');
+		assertStrictEquals($gss.at('doubleQuote'), 'say "hi"', 'Escaped double quote');
+		assertStrictEquals($gss.at('empty'), '', 'Empty string');
 	});
 
 	await t.step('should handle code point escapes and transpile to proper surrogate pairs', async () => {
@@ -89,10 +90,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 
 		// 2. Load and verify runtime values
 		await loadMesgjsModuleSource(source);
-		assertEquals($gss.at('hex_cp'), '\uD83D\uDE00', 'Hexadecimal Unicode code point escape');
-		assertEquals($gss.at('dec_cp'), '\uD83D\uDE00', 'Decimal Unicode code point escape (lowercase d)');
-		assertEquals($gss.at('dec_cp_upper'), '\uD83D\uDE00', 'Decimal Unicode code point escape (uppercase D)');
-		assertEquals($gss.at('bmp_cp'), 'A', 'BMP Unicode code point escape');
+		assertStrictEquals($gss.at('hex_cp'), '\uD83D\uDE00', 'Hexadecimal Unicode code point escape');
+		assertStrictEquals($gss.at('dec_cp'), '\uD83D\uDE00', 'Decimal Unicode code point escape (lowercase d)');
+		assertStrictEquals($gss.at('dec_cp_upper'), '\uD83D\uDE00', 'Decimal Unicode code point escape (uppercase D)');
+		assertStrictEquals($gss.at('bmp_cp'), 'A', 'BMP Unicode code point escape');
 	});
 
 	await t.step('should handle word literals (regularWord and opWord)', async () => {
@@ -109,14 +110,14 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('simple'), 'hello', 'Simple word');
-		assertEquals($gss.at('hyphenated'), 'hello-world', 'Hyphenated word');
-		assertEquals($gss.at('underscored'), 'hello_world', 'Underscored word');
-		assertEquals($gss.at('withNumbers'), 'test123', 'Word with numbers');
-		assertEquals($gss.at('withSlash'), 'and/or', 'Word with slash');
-		assertEquals($gss.at('withPlus'), 'bread+butter', 'Word with plus');
-		assertEquals($gss.at('colonPrefixed'), ':prefixed', 'Colon-prefixed word');
-		assertEquals($gss.at('atPrefixed'), '@custom', 'At-prefixed word');
+		assertStrictEquals($gss.at('simple'), 'hello', 'Simple word');
+		assertStrictEquals($gss.at('hyphenated'), 'hello-world', 'Hyphenated word');
+		assertStrictEquals($gss.at('underscored'), 'hello_world', 'Underscored word');
+		assertStrictEquals($gss.at('withNumbers'), 'test123', 'Word with numbers');
+		assertStrictEquals($gss.at('withSlash'), 'and/or', 'Word with slash');
+		assertStrictEquals($gss.at('withPlus'), 'bread+butter', 'Word with plus');
+		assertStrictEquals($gss.at('colonPrefixed'), ':prefixed', 'Colon-prefixed word');
+		assertStrictEquals($gss.at('atPrefixed'), '@custom', 'At-prefixed word');
 	});
 
 	await t.step('should handle operator-style words (opWords)', async () => {
@@ -128,12 +129,12 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		const opWords = $gss.at('opWords');
-		assertEquals(opWords.at(0), '<', 'Op-word <');
-		assertEquals(opWords.at(1), '<=', 'Op-word <=');
-		assertEquals(opWords.at(2), '>', 'Op-word >');
-		assertEquals(opWords.at(3), '>=', 'Op-word >=');
-		assertEquals(opWords.at(4), '==', 'Op-word ==');
-		assertEquals(opWords.at(5), '!=', 'Op-word !=');
+		assertStrictEquals(opWords.at(0), '<', 'Op-word <');
+		assertStrictEquals(opWords.at(1), '<=', 'Op-word <=');
+		assertStrictEquals(opWords.at(2), '>', 'Op-word >');
+		assertStrictEquals(opWords.at(3), '>=', 'Op-word >=');
+		assertStrictEquals(opWords.at(4), '==', 'Op-word ==');
+		assertStrictEquals(opWords.at(5), '!=', 'Op-word !=');
 	});
 
 	await t.step('should handle special object literals', async () => {
@@ -148,12 +149,12 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('trueVal'), true, '@t is true');
-		assertEquals($gss.at('falseVal'), false, '@f is false');
-		assertEquals($gss.at('nullVal'), null, '@n is null');
-		assertEquals($gss.at('undefinedVal'), undefined, '@u is undefined');
-		assertEquals($gss.at('posInf'), Infinity, '@posinf is positive infinity');
-		assertEquals($gss.at('negInf'), -Infinity, '@neginf is negative infinity');
+		assertStrictEquals($gss.at('trueVal'), true, '@t is true');
+		assertStrictEquals($gss.at('falseVal'), false, '@f is false');
+		assertStrictEquals($gss.at('nullVal'), null, '@n is null');
+		assertStrictEquals($gss.at('undefinedVal'), undefined, '@u is undefined');
+		assertStrictEquals($gss.at('posInf'), Infinity, '@posinf is positive infinity');
+		assertStrictEquals($gss.at('negInf'), -Infinity, '@neginf is negative infinity');
 	});
 
 	await t.step('should handle list literals', async () => {
@@ -167,24 +168,24 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		const empty = $gss.at('empty');
-		assertEquals(empty.size, 0, 'Empty list');
+		assertStrictEquals(empty.size, 0, 'Empty list');
 
 		const simple = $gss.at('simple');
-		assertEquals(simple.at(0), 'a', 'Simple list element 0');
-		assertEquals(simple.at(1), 'b', 'Simple list element 1');
-		assertEquals(simple.at(2), 'c', 'Simple list element 2');
+		assertStrictEquals(simple.at(0), 'a', 'Simple list element 0');
+		assertStrictEquals(simple.at(1), 'b', 'Simple list element 1');
+		assertStrictEquals(simple.at(2), 'c', 'Simple list element 2');
 
 		const mixed = $gss.at('mixed');
-		assertEquals(mixed.at(0), 1, 'Mixed list number');
-		assertEquals(mixed.at(1), 'two', 'Mixed list word');
-		assertEquals(mixed.at(2), 3.0, 'Mixed list float');
+		assertStrictEquals(mixed.at(0), 1, 'Mixed list number');
+		assertStrictEquals(mixed.at(1), 'two', 'Mixed list word');
+		assertStrictEquals(mixed.at(2), 3.0, 'Mixed list float');
 
 		const nested = $gss.at('nested');
-		assertEquals(nested.at(0), 'outer', 'Nested list outer element');
+		assertStrictEquals(nested.at(0), 'outer', 'Nested list outer element');
 		const inner = nested.at(1);
-		assertEquals(inner.at(0), 'inner1', 'Nested list inner element 0');
-		assertEquals(inner.at(1), 'inner2', 'Nested list inner element 1');
-		assertEquals(nested.at(2), 'last', 'Nested list last element');
+		assertStrictEquals(inner.at(0), 'inner1', 'Nested list inner element 0');
+		assertStrictEquals(inner.at(1), 'inner2', 'Nested list inner element 1');
+		assertStrictEquals(nested.at(2), 'last', 'Nested list last element');
 	});
 
 	await t.step('should handle named values in lists (key=value association)', async () => {
@@ -196,15 +197,15 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		const named = $gss.at('named');
-		assertEquals(named.at('x'), 10, 'Named value x');
-		assertEquals(named.at('y'), 20, 'Named value y');
-		assertEquals(named.at('z'), 30, 'Named value z');
+		assertStrictEquals(named.at('x'), 10, 'Named value x');
+		assertStrictEquals(named.at('y'), 20, 'Named value y');
+		assertStrictEquals(named.at('z'), 30, 'Named value z');
 
 		const mixed = $gss.at('mixed');
-		assertEquals(mixed.at(0), 'first', 'Mixed list positional 0');
-		assertEquals(mixed.at(1), 2, 'Mixed list positional 1');
-		assertEquals(mixed.at('third'), 3, 'Mixed list named value');
-		assertEquals(mixed.at(2), 4, 'Mixed list positional 2');
+		assertStrictEquals(mixed.at(0), 'first', 'Mixed list positional 0');
+		assertStrictEquals(mixed.at(1), 2, 'Mixed list positional 1');
+		assertStrictEquals(mixed.at('third'), 3, 'Mixed list named value');
+		assertStrictEquals(mixed.at(2), 4, 'Mixed list positional 2');
 	});
 
 	await t.step('should handle block literals', async () => {
@@ -220,9 +221,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset blockType=@c(type #block))
 		`);
 
-		assertEquals($gss.at('nonReturning'), undefined, 'Non-returning block returns undefined');
-		assertEquals($gss.at('returning'), 42, 'Returning block returns value');
-		assertEquals($gss.at('blockType'), '@code', 'Block literal has @code type');
+		assertStrictEquals($gss.at('nonReturning'), undefined, 'Non-returning block returns undefined');
+		assertStrictEquals($gss.at('returning'), 42, 'Returning block returns value');
+		assertStrictEquals($gss.at('blockType'), '@code', 'Block literal has @code type');
 	});
 
 	await t.step('should handle message syntax', async () => {
@@ -237,9 +238,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset named=[a=1 b=2](at a))
 		`);
 
-		assertEquals($gss.at('simple'), 8, 'Simple message');
-		assertEquals($gss.at('multi'), 'hello world', 'Message with multiple parameters');
-		assertEquals($gss.at('named'), 1, 'Message with named parameter');
+		assertStrictEquals($gss.at('simple'), 8, 'Simple message');
+		assertStrictEquals($gss.at('multi'), 'hello world', 'Message with multiple parameters');
+		assertStrictEquals($gss.at('named'), 1, 'Message with named parameter');
 	});
 
 	await t.step('should handle message chains', async () => {
@@ -252,8 +253,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset fromStorage=#value(add 10)(mul 2))
 		`);
 
-		assertEquals($gss.at('chain'), 30, 'Message chain: (10+5)*2');
-		assertEquals($gss.at('fromStorage'), 30, 'Message chain from storage: (5+10)*2');
+		assertStrictEquals($gss.at('chain'), 30, 'Message chain: (10+5)*2');
+		assertStrictEquals($gss.at('fromStorage'), 30, 'Message chain from storage: (5+10)*2');
 	});
 
 	await t.step('should handle list-op messages', async () => {
@@ -272,10 +273,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset withElse=[a b c]([nonexistent else={ fallback !}]))
 		`);
 
-		assertEquals($gss.at('positional'), 'b', 'List-op with positional operation');
-		assertEquals($gss.at('opEqOp'), 1, 'List-op with op=op');
-		assertEquals($gss.at('withParams'), 1, 'List-op with params=[]');
-		assertEquals($gss.at('withElse'), 'fallback', 'List-op with else=...');
+		assertStrictEquals($gss.at('positional'), 'b', 'List-op with positional operation');
+		assertStrictEquals($gss.at('opEqOp'), 1, 'List-op with op=op');
+		assertStrictEquals($gss.at('withParams'), 1, 'List-op with params=[]');
+		assertStrictEquals($gss.at('withElse'), 'fallback', 'List-op with else=...');
 	});
 
 	await t.step('should handle storage operators - scratch (#)', async () => {
@@ -291,9 +292,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset scratchSum=#x(add #y))
 		`);
 
-		assertEquals($gss.at('scratchX'), 100, 'Scratch storage #x');
-		assertEquals($gss.at('scratchY'), 200, 'Scratch storage #y');
-		assertEquals($gss.at('scratchSum'), 300, 'Scratch storage arithmetic');
+		assertStrictEquals($gss.at('scratchX'), 100, 'Scratch storage #x');
+		assertStrictEquals($gss.at('scratchY'), 200, 'Scratch storage #y');
+		assertStrictEquals($gss.at('scratchSum'), 300, 'Scratch storage arithmetic');
 	});
 
 	await t.step('should handle storage operators - optional scratch (#?)', async () => {
@@ -306,8 +307,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('missing'), undefined, 'Optional scratch #? returns undefined for missing');
-		assertEquals($gss.at('present'), 42, 'Optional scratch #? returns value when present');
+		assertStrictEquals($gss.at('missing'), undefined, 'Optional scratch #? returns undefined for missing');
+		assertStrictEquals($gss.at('present'), 42, 'Optional scratch #? returns value when present');
 	});
 
 	await t.step('should handle storage operators - parameters (!)', async () => {
@@ -320,7 +321,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#func(call 10 20))
 		`);
 
-		assertEquals($gss.at('result'), 30, 'Parameter storage ! in function');
+		assertStrictEquals($gss.at('result'), 30, 'Parameter storage ! in function');
 	});
 
 	await t.step('should handle storage operators - optional parameters (!?)', async () => {
@@ -333,7 +334,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#func(call))
 		`);
 
-		assertEquals($gss.at('result'), undefined, 'Optional parameter !? returns undefined when not provided');
+		assertStrictEquals($gss.at('result'), undefined, 'Optional parameter !? returns undefined when not provided');
 	});
 
 	await t.step('should handle storage operators - protected (%)', async () => {
@@ -349,7 +350,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#obj(getVal))
 		`);
 
-		assertEquals($gss.at('result'), 42, 'Protected storage % in interface');
+		assertStrictEquals($gss.at('result'), 42, 'Protected storage % in interface');
 	});
 
 	await t.step('should handle storage operators - optional protected (%?)', async () => {
@@ -362,7 +363,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#obj(getOptional))
 		`);
 
-		assertEquals($gss.at('result'), undefined, 'Optional protected %? returns undefined for missing');
+		assertStrictEquals($gss.at('result'), undefined, 'Optional protected %? returns undefined for missing');
 	});
 
 	await t.step('should handle storage operators - exclusive (%%)', async () => {
@@ -378,7 +379,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#obj(getVal))
 		`);
 
-		assertEquals($gss.at('result'), 99, 'Exclusive storage %% in interface');
+		assertStrictEquals($gss.at('result'), 99, 'Exclusive storage %% in interface');
 	});
 
 	await t.step('should handle storage operators - optional exclusive (%%?)', async () => {
@@ -391,7 +392,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=#obj(getOptional))
 		`);
 
-		assertEquals($gss.at('result'), undefined, 'Optional exclusive %%? returns undefined for missing');
+		assertStrictEquals($gss.at('result'), undefined, 'Optional exclusive %%? returns undefined for missing');
 	});
 
 	await t.step('should handle storage operators - global shared (%*)', async () => {
@@ -403,7 +404,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=%*globalKey)
 		`);
 
-		assertEquals($gss.at('result'), 'global-value', 'Global shared storage %*');
+		assertStrictEquals($gss.at('result'), 'global-value', 'Global shared storage %*');
 	});
 
 	await t.step('should handle storage operators - optional global shared (%*?)', async () => {
@@ -414,8 +415,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('missing'), undefined, 'Optional global shared %*? returns undefined for missing');
-		assertExists($gss.at('present'), 'Optional global shared %*? returns value when present');
+		assertStrictEquals($gss.at('missing'), undefined, 'Optional global shared %*? returns undefined for missing');
+		assert($gss.at('present') !== undefined && $gss.at('present') !== null, 'Optional global shared %*? returns value when present');
 	});
 
 	await t.step('should handle storage operators - module private (%/)', async () => {
@@ -427,7 +428,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset result=%/moduleKey)
 		`);
 
-		assertEquals($gss.at('result'), 'module-value', 'Module private storage %/');
+		assertStrictEquals($gss.at('result'), 'module-value', 'Module private storage %/');
 	});
 
 	await t.step('should handle storage operators - optional module private (%/?)', async () => {
@@ -439,8 +440,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('missing'), undefined, 'Optional module private %/? returns undefined for missing');
-		assertExists($gss.at('present'), 'Optional module private %/? returns value when present');
+		assertStrictEquals($gss.at('missing'), undefined, 'Optional module private %/? returns undefined for missing');
+		assert($gss.at('present') !== undefined && $gss.at('present') !== null, 'Optional module private %/? returns value when present');
 	});
 
 	await t.step('should handle dangling storage operators as literals', async () => {
@@ -452,10 +453,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		const list = $gss.at('list');
-		assertEquals(list.at([0, 0]), '#', 'Dangling # is literal');
-		assertEquals(list.at([1, 0]), '%', 'Dangling % is literal');
-		assertEquals(list.at([2, 0]), '%*', 'Dangling %* is literal');
-		assertEquals(list.at(3), '%/', 'Dangling %/ is literal');
+		assertStrictEquals(list.at([0, 0]), '#', 'Dangling # is literal');
+		assertStrictEquals(list.at([1, 0]), '%', 'Dangling % is literal');
+		assertStrictEquals(list.at([2, 0]), '%*', 'Dangling %* is literal');
+		assertStrictEquals(list.at(3), '%/', 'Dangling %/ is literal');
 	});
 
 	await t.step('should handle comments', async () => {
@@ -473,9 +474,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset after=@t)
 		`);
 
-		assertEquals($gss.at('single'), 42, 'Single-line comments are ignored');
-		assertEquals($gss.at('multi'), 100, 'Inline comments are ignored');
-		assertEquals($gss.at('after'), true, 'Inline comments are ignored');
+		assertStrictEquals($gss.at('single'), 42, 'Single-line comments are ignored');
+		assertStrictEquals($gss.at('multi'), 100, 'Inline comments are ignored');
+		assertStrictEquals($gss.at('after'), true, 'Inline comments are ignored');
 	});
 
 	// Note: harness default is { debugBlocks: true, enableJS: true }
@@ -491,7 +492,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset debugValue=#value)
 		`, 'test-no-debug', { debugBlocks: false });
 
-		assertEquals($gss.at('debugValue'), 'before', '@debug blocks can be stripped with debugBlocks: false');
+		assertStrictEquals($gss.at('debugValue'), 'before', '@debug blocks can be stripped with debugBlocks: false');
 
 		// Test with debugBlocks: true (default)
 		await loadMesgjsModuleSource(`
@@ -502,7 +503,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset debugValue2=#value2)
 		`);
 
-		assertEquals($gss.at('debugValue2'), 'debug-mode', '@debug blocks execute with debugBlocks: true');
+		assertStrictEquals($gss.at('debugValue2'), 'debug-mode', '@debug blocks execute with debugBlocks: true');
 	});
 
 	await t.step('should handle @js embedded JavaScript', async () => {
@@ -513,7 +514,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			@}
 		`);
 
-		assertEquals($gss.at('jsEmbedded'), 'from-javascript', '@js embedded JavaScript executes');
+		assertStrictEquals($gss.at('jsEmbedded'), 'from-javascript', '@js embedded JavaScript executes');
 	});
 
 	await t.step('should handle whitespace and empty statements', async () => {
@@ -528,7 +529,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 
 		`);
 
-		assertEquals($gss.at('whitespaceTest'), 'whitespace-test', 'Whitespace is handled correctly');
+		assertStrictEquals($gss.at('whitespaceTest'), 'whitespace-test', 'Whitespace is handled correctly');
 	});
 
 	await t.step('should handle complex syntax combinations', async () => {
@@ -548,10 +549,10 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('x1'), 1, 'Nested named value access x1');
-		assertEquals($gss.at('y1'), 2, 'Nested named value access y1');
-		assertEquals($gss.at('x2'), 3, 'Nested named value access x2');
-		assertEquals($gss.at('y2'), 4, 'Nested named value access y2');
+		assertStrictEquals($gss.at('x1'), 1, 'Nested named value access x1');
+		assertStrictEquals($gss.at('y1'), 2, 'Nested named value access y1');
+		assertStrictEquals($gss.at('x2'), 3, 'Nested named value access x2');
+		assertStrictEquals($gss.at('y2'), 4, 'Nested named value access y2');
 	});
 
 	await t.step('should handle varOptName (storage without name)', async () => {
@@ -563,7 +564,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 
 		const keys = $gss.at('scratchKeys');
 		const scratch = $gss.at('scratch');
-		assertExists(keys, 'Storage operator # can be messaged directly');
+		assert(keys !== undefined && keys !== null, 'Storage operator # can be messaged directly');
 		assert(scratch instanceof NANOS, 'Storage operator # is a NANOS instance');
 	});
 
@@ -582,9 +583,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset numericResult=#0)
 		`);
 
-		assertEquals($gss.at('result'), 123, 'Storage with word name');
-		assertEquals($gss.at('quotedResult'), 456, 'Storage with quoted name');
-		assertEquals($gss.at('numericResult'), 789, 'Storage with numeric name');
+		assertStrictEquals($gss.at('result'), 123, 'Storage with word name');
+		assertStrictEquals($gss.at('quotedResult'), 456, 'Storage with quoted name');
+		assertStrictEquals($gss.at('numericResult'), 789, 'Storage with numeric name');
 	});
 
 	await t.step('should handle namedValue with various name types', async () => {
@@ -598,9 +599,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 		`);
 
 		const list = $gss.at('list');
-		assertEquals(list.at('word'), 1, 'Named value with word name');
-		assertEquals(list.at('quoted'), 2, 'Named value with quoted name');
-		assertEquals(list.at('chain'), 'HELLO', 'Named value with chain as name');
+		assertStrictEquals(list.at('word'), 1, 'Named value with word name');
+		assertStrictEquals(list.at('quoted'), 2, 'Named value with quoted name');
+		assertStrictEquals(list.at('chain'), 'HELLO', 'Named value with chain as name');
 	});
 
 	await t.step('should handle storage namespace list-key syntax', async () => {
@@ -619,9 +620,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('result1'), 42, 'Nested list-key access %*[nested outer inner value]');
-		assertEquals($gss.at('result2'), 10, 'List-key access %*[data x]');
-		assertEquals($gss.at('result3'), 20, 'List-key access %*[data y]');
+		assertStrictEquals($gss.at('result1'), 42, 'Nested list-key access %*[nested outer inner value]');
+		assertStrictEquals($gss.at('result2'), 10, 'List-key access %*[data x]');
+		assertStrictEquals($gss.at('result3'), 20, 'List-key access %*[data y]');
 	});
 
 	await t.step('should handle storage namespace list-key syntax with optional ?', async () => {
@@ -636,9 +637,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('found'), 'value', 'Optional list-key with existing path %*?[existing level1 level2]');
-		assertEquals($gss.at('missing'), undefined, 'Optional list-key with missing path %*?[nonexistent key]');
-		assertEquals($gss.at('partialMissing'), undefined, 'Optional list-key with partial missing path %*?[existing nonexistent subkey]');
+		assertStrictEquals($gss.at('found'), 'value', 'Optional list-key with existing path %*?[existing level1 level2]');
+		assertStrictEquals($gss.at('missing'), undefined, 'Optional list-key with missing path %*?[nonexistent key]');
+		assertStrictEquals($gss.at('partialMissing'), undefined, 'Optional list-key with partial missing path %*?[existing nonexistent subkey]');
 	});
 
 	await t.step('should handle storage namespace list-key syntax with else=', async () => {
@@ -653,9 +654,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('withElse1'), 100, 'List-key with existing path ignores else=');
-		assertEquals($gss.at('withElse2'), 'default2', 'List-key with missing path uses else= default');
-		assertEquals($gss.at('withElse3'), 'default3', 'List-key with partial missing path uses else= default');
+		assertStrictEquals($gss.at('withElse1'), 100, 'List-key with existing path ignores else=');
+		assertStrictEquals($gss.at('withElse2'), 'default2', 'List-key with missing path uses else= default');
+		assertStrictEquals($gss.at('withElse3'), 'default3', 'List-key with partial missing path uses else= default');
 	});
 
 	await t.step('should handle storage namespace list-key syntax with all storage types', async () => {
@@ -693,11 +694,11 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset exclusiveResult=#testObjEx(getVal))
 		`);
 
-		assertEquals($gss.at('globalResult'), 'global-value', 'List-key with global storage %*[...]');
-		assertEquals($gss.at('moduleResult'), 'module-value', 'List-key with module storage %/[...]');
-		assertEquals($gss.at('scratchResult'), 'scratch-value', 'List-key with scratch storage #[...]');
-		assertEquals($gss.at('protectedResult'), 'protected-value', 'List-key with protected storage %[...]');
-		assertEquals($gss.at('exclusiveResult'), 'exclusive-value', 'List-key with exclusive storage %%[...]');
+		assertStrictEquals($gss.at('globalResult'), 'global-value', 'List-key with global storage %*[...]');
+		assertStrictEquals($gss.at('moduleResult'), 'module-value', 'List-key with module storage %/[...]');
+		assertStrictEquals($gss.at('scratchResult'), 'scratch-value', 'List-key with scratch storage #[...]');
+		assertStrictEquals($gss.at('protectedResult'), 'protected-value', 'List-key with protected storage %[...]');
+		assertStrictEquals($gss.at('exclusiveResult'), 'exclusive-value', 'List-key with exclusive storage %%[...]');
 	});
 
 	await t.step('should handle storage namespace list-key syntax with parameters (!)', async () => {
@@ -711,7 +712,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset paramResult=#funcWithListKey(call [nested=[deep=[value=param-value]]]))
 		`);
 
-		assertEquals($gss.at('paramResult'), 'param-value', 'List-key with parameter storage ![...]');
+		assertStrictEquals($gss.at('paramResult'), 'param-value', 'List-key with parameter storage ![...]');
 	});
 
 	await t.step('should handle storage namespace list-key syntax combining ? and else=', async () => {
@@ -726,9 +727,9 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('combo1'), 1, 'List-key with ?[] and else= when path exists');
-		assertEquals($gss.at('combo2'), 'default2', 'List-key with ?[] and else= when path missing');
-		assertEquals($gss.at('combo3'), 'default3', 'List-key with ?[] and else= when root missing');
+		assertStrictEquals($gss.at('combo1'), 1, 'List-key with ?[] and else= when path exists');
+		assertStrictEquals($gss.at('combo2'), 'default2', 'List-key with ?[] and else= when path missing');
+		assertStrictEquals($gss.at('combo3'), 'default3', 'List-key with ?[] and else= when root missing');
 	});
 
 	await t.step('should handle storage namespace list-key syntax with numeric keys', async () => {
@@ -737,7 +738,7 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			%*(nset numericResult=%*[list sub 1])
 		`);
 
-		assertEquals($gss.at('numericResult'), 20, 'List-key with numeric index %*[list sub 1]');
+		assertStrictEquals($gss.at('numericResult'), 20, 'List-key with numeric index %*[list sub 1]');
 	});
 
 	await t.step('should handle list-keys with else (both RIC and static values)', async () => {
@@ -748,8 +749,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			)
 		`);
 
-		assertEquals($gss.at('staticResult'), 'static-value', 'List-key with static else value');
-		assertEquals($gss.at('ricResult'), 'RIC-value', 'List-key with RIC else value');
+		assertStrictEquals($gss.at('staticResult'), 'static-value', 'List-key with static else value');
+		assertStrictEquals($gss.at('ricResult'), 'RIC-value', 'List-key with RIC else value');
 	});
 
 	await t.step('should handle dynamic name syntax and error handling', async () => {
@@ -760,8 +761,8 @@ Deno.test('Mesgjs Syntax Coverage', async (t) => {
 			#(nset dynSet={ %*(nset ![0]=!1) }(fn))
 			#dynSet(call dynKey2 dynVal2)
 		`);
-		assertEquals($gss.at('dynamicKey'), 'dynamicValue', 'Dynamic name #[name]=#value');
-		assertEquals($gss.at('dynKey2'), 'dynVal2', 'Dynamic set fn ![0]=!1');
+		assertStrictEquals($gss.at('dynamicKey'), 'dynamicValue', 'Dynamic name #[name]=#value');
+		assertStrictEquals($gss.at('dynKey2'), 'dynVal2', 'Dynamic set fn ![0]=!1');
 
 		// 2. Invalid dynamic name #name=#value should generate an error
 		const { errors } = parse(lex("%*(nset #name=#value)").tokens);

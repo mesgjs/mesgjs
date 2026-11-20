@@ -4,17 +4,18 @@
  * Author: Brian Katzung <briank@kappacs.com>
  */
 
-import fs from 'node:fs';
-import process from 'node:process';
-import { parseArgs } from 'node:util';
-import { Buffer } from 'node:buffer';
+import { exit, getEnv } from '@compat/runtime';
+import { args as getArgs } from '@compat/cli';
+import { readTextFileSync, statSync } from '@compat/file';
+import { parseArgs } from '@parseargs';
 
 import { lex, parse } from 'mesgjs/src/lexparse.esm.js';
 import { transpileTree } from 'mesgjs/src/transpile.esm.js';
 import { NANOS, parseSLID } from '@nanos';
 import 'mesgjs/src/runtime/mesgjs.esm.js';
 
-const rawArgs = (typeof process !== 'undefined' && process.argv ? process.argv.slice(2) : []) || globalThis.Deno?.args || [];
+const env = getEnv();
+const rawArgs = getArgs();
 
 let scriptArgs = [];
 let tlrArgs = rawArgs;
@@ -39,10 +40,10 @@ const { values: flags, positionals } = parseArgs({
 
 if (!positionals.length) {
 	console.error('Usage: msjstlr [options] <files...> [-- <script-args...>]');
-	process.exit(1);
+	exit(1);
 }
 
-const envDebug = (process.env?.MESGJS_DEFAULT_DEBUG ?? globalThis.Deno?.env?.get?.('MESGJS_DEFAULT_DEBUG'));
+const envDebug = env?.MESGJS_DEFAULT_DEBUG;
 const defaultDebug = envDebug !== 'false';
 let debugBlocks = defaultDebug;
 if (flags['enable-debug']) debugBlocks = true;
@@ -54,34 +55,9 @@ const txpOpts = {
 };
 
 function extractJsSLID (filePath) {
-	const decoder = new TextDecoder();
-	let fd = null;
+	const text = readTextFileSync(filePath);
 
-	try {
-		fd = fs.openSync(filePath, 'r');
-
-		const chunkSize = 4096;
-		const buf = new Uint8Array(chunkSize);
-		let bytesRead = fs.readSync(fd, buf, 0, chunkSize, null);
-
-		if (!bytesRead) return null;
-
-		let text = decoder.decode(buf.subarray(0, bytesRead));
-
-		if (!text.includes('[(')) return null;
-		while (!text.includes(')]')) {
-			bytesRead = fs.readSync(fd, buf, 0, chunkSize, null);
-			if (!bytesRead) break;
-			text += decoder.decode(buf.subarray(0, bytesRead));
-		}
-		return parseSLID(text);
-	} catch (_err) {
-		return null;
-	} finally {
-		if (fd !== null) {
-			try { fs.closeSync(fd); } catch (_) {}
-		}
-	}
+	return parseSLID(text);
 }
 
 function extractValues (val) {
@@ -99,15 +75,15 @@ function extractValues (val) {
 
 function extractMetadata (filePath) {
 	try {
-		const stat = fs.statSync(filePath);
+		const stat = statSync(filePath);
 
-		if (!stat.isFile()) {
+		if (!stat.isFile) {
 			console.error(`Error: "${filePath}" is not a regular file`);
-			process.exit(1);
+			exit(1);
 		}
 	} catch (_err) {
 		console.error(`Error: File not found: "${filePath}"`);
-		process.exit(1);
+		exit(1);
 	}
 
 	const isMsjs = filePath.endsWith('.msjs');
@@ -115,7 +91,7 @@ function extractMetadata (filePath) {
 	let tokens = null;
 
 	if (isMsjs) {
-		const source = fs.readFileSync(filePath, 'utf8');
+		const source = readTextFileSync(filePath);
 		const lexResult = lex(source, { src: filePath });
 
 		tokens = lexResult.tokens;
@@ -124,7 +100,7 @@ function extractMetadata (filePath) {
 				config = parseSLID(lexResult.configSLID);
 			} catch (err) {
 				console.error(`Error: Failed to parse configuration SLID in "${filePath}": ${err.message}`);
-				process.exit(1);
+				exit(1);
 			}
 		}
 	} else {
@@ -252,17 +228,17 @@ if (flags['deps-only']) {
 	if (errors.length) {
 		console.error('\nDependency Errors:');
 		for (const err of errors) console.error(`  - ${err}`);
-		process.exit(1);
+		exit(1);
 	} else {
 		console.log('\nDependencies successfully resolved.');
-		process.exit(0);
+		exit(0);
 	}
 }
 
 if (errors.length) {
 	console.error('Dependency resolution failed:');
 	for (const err of errors) console.error(`  - ${err}`);
-	process.exit(1);
+	exit(1);
 }
 
 // In-memory transpilation
@@ -272,21 +248,21 @@ for (const fileMeta of includedFiles) {
 
 		if (parseErrors?.length) {
 			console.error(`Parse errors in "${fileMeta.path}":\n${parseErrors.join('\n')}`);
-			process.exit(1);
+			exit(1);
 		}
 
 		const { code, errors: txpErrors, fatal } = transpileTree(tree, txpOpts);
 
 		if (txpErrors?.length) console.error(`Transpilation errors in "${fileMeta.path}":\n${txpErrors.join('\n')}`);
 		if (fatal) console.error(`Transpilation fatal error in "${fileMeta.path}": ${fatal}`);
-		if (txpErrors?.length || fatal) process.exit(1);
+		if (txpErrors?.length || fatal) exit(1);
 
-		const b64Code = Buffer.from(code, 'utf8').toString('base64');
+		const b64Code = new TextEncoder().encode(code).toBase64();
 
 		fileMeta.url = `data:application/javascript;base64,${b64Code}`;
 	} else {
-		const jsCode = fs.readFileSync(fileMeta.path, 'utf8');
-		const b64Code = Buffer.from(jsCode, 'utf8').toString('base64');
+		const jsCode = readTextFileSync(fileMeta.path);
+		const b64Code = new TextEncoder().encode(jsCode).toBase64();
 		fileMeta.url = `data:application/javascript;base64,${b64Code}`;
 	}
 }
