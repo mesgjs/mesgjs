@@ -1,32 +1,30 @@
-import {
-	assertEquals,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
-import "../../src/runtime/mesgjs.esm.js";
-import { NANOS } from "@nanos";
+import { describe, it } from '@compat/test';
+import { assertStrictEquals } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
+import { NANOS } from '@nanos';
 
-Deno.test("$toMsjs Type Conversion", async (t) => {
+describe('$toMsjs Type Conversion', () => {
 	//const $toMsjs = globalThis.$toMsjs;
 	const $toMsjs = globalThis.$msjsReceiver;
 
-	await t.step("should convert JS primitives to Mesgjs types", () => {
-		assertEquals($toMsjs(true).msjsType, "@true");
-		assertEquals($toMsjs(false).msjsType, "@false");
-		assertEquals($toMsjs(null).msjsType, "@null");
-		assertEquals($toMsjs(undefined).msjsType, "@undefined");
-		assertEquals($toMsjs(10n).msjsType, "@number");
-		assertEquals($toMsjs(10).msjsType, "@number");
-		assertEquals($toMsjs("text").msjsType, "@string");
+	it('should convert JS primitives to Mesgjs types', () => {
+		assertStrictEquals($toMsjs(true).msjsType, '@true');
+		assertStrictEquals($toMsjs(false).msjsType, '@false');
+		assertStrictEquals($toMsjs(null).msjsType, '@null');
+		assertStrictEquals($toMsjs(undefined).msjsType, '@undefined');
+		assertStrictEquals($toMsjs(10n).msjsType, '@number');
+		assertStrictEquals($toMsjs(10).msjsType, '@number');
+		assertStrictEquals($toMsjs('text').msjsType, '@string');
 	});
 
-	await t.step("should convert JS objects to Mesgjs types", () => {
+	it('should convert JS objects to Mesgjs types', () => {
 		const n1 = new NANOS();
 		const n1o = $toMsjs(n1);
-		assertEquals(n1o.msjsType, "@list");
-		assertEquals($toMsjs(n1), n1o);
+		assertStrictEquals(n1o.msjsType, '@list');
+		assertStrictEquals($toMsjs(n1), n1o);
 		const a1 = [];
 		const a1o = $toMsjs(a1);
-		assertEquals(a1o.msjsType, "@jsArray");
-		assertEquals($toMsjs(a1), a1o);
+		assertStrictEquals(a1o.msjsType, '@jsArray');
+		assertStrictEquals($toMsjs(a1), a1o);
 	});
-
 });

@@ -1,7 +1,5 @@
-import {
-	assert,
-	assertEquals,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assert, assertStrictEquals } from '@std/assert';
 import '../../src/runtime/mesgjs.esm.js';
 import { getInterface, getInstance, senderFLC } from '../../src/runtime/runtime.esm.js';
 
@@ -26,33 +24,33 @@ flcIface.set({
 
 const flcInst = getInstance(flcIface.ifName);
 
-Deno.test("senderFLC - anonymous call", () => {
-	capturedFLC = null;
-	$c.sm(flcInst, "captureAnon"); // <-- this line should be reported
-	const flc = capturedFLC;
+describe("senderFLC", () => {
+	it("senderFLC - anonymous call", () => {
+		capturedFLC = null;
+		$c.sm(flcInst, "captureAnon"); // <-- this line should be reported
+		const flc = capturedFLC;
 
-	assert(flc, "senderFLC should return an object for an anonymous call");
-	assertEquals(flc.file.endsWith("/runtime/senderFLC.test.js"), true,
-		"senderFLC should report the test file as the source");
-	// The line above is the call site; adjust if this file changes.
-	assertEquals(typeof flc.line, "number",
-		"senderFLC should report the line of the anonymous call site");
-	assertEquals(typeof flc.column, "number",
-		"senderFLC should report a column number");
-});
+		assert(flc, "senderFLC should return an object for an anonymous call");
+		assertStrictEquals(flc.file.endsWith("/runtime/senderFLC.test.js"), true,
+			"senderFLC should report the test file as the source");
+		assertStrictEquals(typeof flc.line, "number",
+			"senderFLC should report the line of the anonymous call site");
+		assertStrictEquals(typeof flc.column, "number",
+			"senderFLC should report a column number");
+	});
 
-Deno.test("senderFLC - attributed call", () => {
-	capturedFLC = null;
-	const d = $c.sm(flcInst, "getD");
-	d.sm(flcInst, "captureAttr"); // <-- this line should be reported
-	const flc = capturedFLC;
+	it("senderFLC - attributed call", () => {
+		capturedFLC = null;
+		const d = $c.sm(flcInst, "getD");
+		d.sm(flcInst, "captureAttr"); // <-- this line should be reported
+		const flc = capturedFLC;
 
-	assert(flc, "senderFLC should return an object for an attributed call");
-	assertEquals(flc.file.endsWith("/runtime/senderFLC.test.js"), true,
-		"senderFLC should report the test file as the source");
-	// The line above is the call site; adjust if this file changes.
-	assertEquals(typeof flc.line, "number",
-		"senderFLC should report the line of the attributed call site");
-	assertEquals(typeof flc.column, "number",
-		"senderFLC should report a column number");
+		assert(flc, "senderFLC should return an object for an attributed call");
+		assertStrictEquals(flc.file.endsWith("/runtime/senderFLC.test.js"), true,
+			"senderFLC should report the test file as the source");
+		assertStrictEquals(typeof flc.line, "number",
+			"senderFLC should report the line of the attributed call site");
+		assertStrictEquals(typeof flc.column, "number",
+			"senderFLC should report a column number");
+	});
 });

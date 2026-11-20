@@ -1,25 +1,24 @@
-import {
-	assertEquals,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
-import "../../src/runtime/mesgjs.esm.js";
-import { debugConfig, getInstance, getInterface } from "../../src/runtime/runtime.esm.js";
+import { describe, it } from '@compat/test';
+import { assertStrictEquals } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
+import { debugConfig, getInstance, getInterface } from '../../src/runtime/runtime.esm.js';
 
 debugConfig({ handlerCache: true });
 
-Deno.test("Dispatch Stability", async (t) => {
-	await t.step("should handle chained dispatches", () => {
+describe('Dispatch Stability', () => {
+	it('should handle chained dispatches', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
@@ -29,35 +28,35 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifA.opA");
-		assertEquals(run2, "ifA.opA");
+		assertStrictEquals(run1, 'ifA.opA');
+		assertStrictEquals(run2, 'ifA.opA');
 	});
 
-	await t.step("should handle redispatching (default)", () => {
+	it('should handle redispatching (default)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis");
+					order.push('ifB.opA');
+					d.sm(d, 'redis');
 				},
 			},
 		});
@@ -66,37 +65,37 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle redispatching (super-type)", () => {
+	it('should handle redispatching (super-type)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { type: ifA.ifName });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { type: ifA.ifName });
 				},
 			},
 		});
@@ -105,37 +104,37 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle redispatching (@next)", () => {
+	it('should handle redispatching (@next)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { type: "@next" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { type: '@next' });
 				},
 			},
 		});
@@ -144,41 +143,41 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle complex redispatching", () => {
+	it('should handle complex redispatching', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { op: "opB" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { op: 'opB' });
 				},
 				opB: (d) => {
-					order.push("ifB.opB");
-					d.sm(d, "redis", { op: "opA", type: ifA.ifName });
+					order.push('ifB.opB');
+					d.sm(d, 'redis', { op: 'opA', type: ifA.ifName });
 				},
 			},
 		});
@@ -187,41 +186,41 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
-		assertEquals(run2, "ifB.opA ifB.opB ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifB.opB ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifB.opB ifA.opA');
 	});
 
-	await t.step("should handle complex redispatching (@next)", () => {
+	it('should handle complex redispatching (@next)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { op: "opB" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { op: 'opB' });
 				},
 				opB: (d) => {
-					order.push("ifB.opB");
-					d.sm(d, "redis", { op: "opA", type: "@next" });
+					order.push('ifB.opB');
+					d.sm(d, 'redis', { op: 'opA', type: '@next' });
 				},
 			},
 		});
@@ -230,37 +229,37 @@ Deno.test("Dispatch Stability", async (t) => {
 		let run1, run2;
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run1 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run1 = order.join(' ');
 
 		order.length = 0;
-		$c.sm(instB, "opA");
-		run2 = order.join(" ");
+		$c.sm(instB, 'opA');
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
-		assertEquals(run2, "ifB.opA ifB.opB ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifB.opB ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifB.opB ifA.opA');
 	});
 });
 
-Deno.test("Dispatch Stability (via JS method)", async (t) => {
-	await t.step("should handle chained dispatches", () => {
+describe('Dispatch Stability (via JS method)', () => {
+	it('should handle chained dispatches', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
@@ -271,41 +270,41 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifA.opA");
-		assertEquals(run2, "ifA.opA");
+		assertStrictEquals(run1, 'ifA.opA');
+		assertStrictEquals(run2, 'ifA.opA');
 	});
 
-	await t.step("should handle redispatching (default)", () => {
+	it('should handle redispatching (default)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis");
+					order.push('ifB.opA');
+					d.sm(d, 'redis');
 				},
 			},
 		});
@@ -315,41 +314,41 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle redispatching (super-type)", () => {
+	it('should handle redispatching (super-type)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { type: ifA.ifName });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { type: ifA.ifName });
 				},
 			},
 		});
@@ -359,41 +358,41 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle redispatching (@next)", () => {
+	it('should handle redispatching (@next)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { type: "@next" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { type: '@next' });
 				},
 			},
 		});
@@ -403,45 +402,45 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifA.opA");
-		assertEquals(run2, "ifB.opA ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifA.opA');
 	});
 
-	await t.step("should handle complex redispatching", () => {
+	it('should handle complex redispatching', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { op: "opB" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { op: 'opB' });
 				},
 				opB: (d) => {
-					order.push("ifB.opB");
-					d.sm(d, "redis", { op: "opA", type: ifA.ifName });
+					order.push('ifB.opB');
+					d.sm(d, 'redis', { op: 'opA', type: ifA.ifName });
 				},
 			},
 		});
@@ -451,45 +450,45 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
-		assertEquals(run2, "ifB.opA ifB.opB ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifB.opB ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifB.opB ifA.opA');
 	});
 
-	await t.step("should handle complex redispatching (@next)", () => {
+	it('should handle complex redispatching (@next)', () => {
 		const order = [];
-		const ifA = getInterface(":?");
+		const ifA = getInterface(':?');
 		ifA.set({
 			lock: true,
 			handlers: {
-				"@init": (d) => {
+				'@init': (d) => {
 					d.rr.opA = function () {
-						$c.sm(this, "opA");
+						$c.sm(this, 'opA');
 					};
 				},
 				opA: (d) => {
-					order.push("ifA.opA");
+					order.push('ifA.opA');
 				},
 			},
 		});
 
-		const ifB = getInterface(":?");
+		const ifB = getInterface(':?');
 		ifB.set({
 			lock: true,
 			chain: [ifA.ifName],
 			handlers: {
 				opA: (d) => {
-					order.push("ifB.opA");
-					d.sm(d, "redis", { op: "opB" });
+					order.push('ifB.opA');
+					d.sm(d, 'redis', { op: 'opB' });
 				},
 				opB: (d) => {
-					order.push("ifB.opB");
-					d.sm(d, "redis", { op: "opA", type: "@next" });
+					order.push('ifB.opB');
+					d.sm(d, 'redis', { op: 'opA', type: '@next' });
 				},
 			},
 		});
@@ -499,13 +498,13 @@ Deno.test("Dispatch Stability (via JS method)", async (t) => {
 
 		order.length = 0;
 		instB.opA();
-		run1 = order.join(" ");
+		run1 = order.join(' ');
 
 		order.length = 0;
 		instB.opA();
-		run2 = order.join(" ");
+		run2 = order.join(' ');
 
-		assertEquals(run1, "ifB.opA ifB.opB ifA.opA");
-		assertEquals(run2, "ifB.opA ifB.opB ifA.opA");
+		assertStrictEquals(run1, 'ifB.opA ifB.opB ifA.opA');
+		assertStrictEquals(run2, 'ifB.opA ifB.opB ifA.opA');
 	});
 });

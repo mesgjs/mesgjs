@@ -1,14 +1,24 @@
-import {
-	assert,
-	assertEquals,
-	assertStringIncludes,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
-import { spy, assertSpyCalls } from "https://deno.land/std@0.152.0/testing/mock.ts";
+import { describe, it } from '@compat/test';
+import { assert, assertStrictEquals } from '@std/assert';
 import '../../src/runtime/mesgjs.esm.js';
 import { debugConfig, getInterface, getInstance } from '../../src/runtime/runtime.esm.js';
 
-Deno.test("Debug System End-to-End Tracing", async (t) => {
+function createSpy (target, methodName) {
+	const original = target[methodName];
+	const calls = [];
+	const spyFn = function (...args) {
+		calls.push({ args, this: this });
+		return original?.apply(this, args);
+	};
+	spyFn.calls = calls;
+	spyFn.restore = () => {
+		target[methodName] = original;
+	};
+	target[methodName] = spyFn;
+	return spyFn;
+}
 
+describe("Debug System End-to-End Tracing", () => {
 	const iface = getInterface("debug-test-iface");
 	iface.set({
 		handlers: {
@@ -24,10 +34,10 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 	const originalConfig = debugConfig().storage;
 	let logSpy, warnSpy;
 
-	await t.step("should produce correct dispatch, param, and return logs", () => {
+	it("should produce correct dispatch, param, and return logs", () => {
 		try {
-			logSpy = spy(console, "log");
-			warnSpy = spy(console, "warn");
+			logSpy = createSpy(console, "log");
+			warnSpy = createSpy(console, "warn");
 
 			debugConfig({
 				dispatch: true,
@@ -37,19 +47,19 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 
 			const result = $c.sm(instance, "double", 5);
 
-			assertEquals(result, 10);
+			assertStrictEquals(result, 10);
 
 			// Check for the expected log messages
 			const firstLog = logSpy.calls[0].args[0];
 			const secondLog = logSpy.calls[1].args[0];
 
-			assertStringIncludes(firstLog, "Mesgjs dispatch");
-			assertStringIncludes(firstLog, "@u => debug-test-iface(double J.number)");
+			assert(firstLog.includes("Mesgjs dispatch"));
+			assert(firstLog.includes("@u => debug-test-iface(double J.number)"));
 
-			assertStringIncludes(secondLog, "Mesgjs return");
-			assertStringIncludes(secondLog, "J.number"); // The return type of 10
+			assert(secondLog.includes("Mesgjs return"));
+			assert(secondLog.includes("J.number")); // The return type of 10
 
-			assertSpyCalls(warnSpy, 0); // No warnings should be issued
+			assertStrictEquals(warnSpy.calls.length, 0); // No warnings should be issued
 
 		} finally {
 			logSpy?.restore();
@@ -58,64 +68,72 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 		}
 	});
 
-	await t.step("anonymous call: only MsjsObject.sm is active during handler (not MsjsDispatch.sm)", () => {
-		// For an anonymous call ($c.sm(instance, op, mp)), the trampoline design means:
-		// - MsjsObject.sm gets the handler, then invokes the handler directly
-		// - MsjsDispatch.sm is NOT on the stack during handler execution
-		// We verify this by capturing the JS call stack from inside the handler.
-		let capturedStack = null;
+	it({
+		name: "anonymous call: only MsjsObject.sm is active during handler (not MsjsDispatch.sm)",
+		bun: false,
+		fn: () => {
+			// For an anonymous call ($c.sm(instance, op, mp)), the trampoline design means:
+			// - MsjsObject.sm gets the handler, then invokes the handler directly
+			// - MsjsDispatch.sm is NOT on the stack during handler execution
+			// We verify this by capturing the JS call stack from inside the handler.
+			let capturedStack = null;
 
-		const aif = getInterface(":?");
-		aif.set({
-			handlers: {
-				captureStack: (_d) => {
-					capturedStack = new Error().stack || '';
+			const aif = getInterface(":?");
+			aif.set({
+				handlers: {
+					captureStack: (_d) => {
+						capturedStack = new Error().stack || '';
+					}
 				}
-			}
-		});
-		const inst = getInstance(aif.ifName);
+			});
+			const inst = getInstance(aif.ifName);
 
-		$c.sm(inst, "captureStack");
+			$c.sm(inst, "captureStack");
 
-		assert(capturedStack !== null, "Handler was not called");
-		// MsjsObject.sm should be present (anonymous call path)
-		assertStringIncludes(capturedStack, "MsjsObject.sm");
-		// MsjsDispatch.sm should NOT be present
-		assertEquals(capturedStack.includes("MsjsDispatch.sm"), false,
-			"MsjsDispatch should not be on the stack during an anonymous call handler");
+			assert(capturedStack !== null, "Handler was not called");
+			// MsjsObject.sm should be present (anonymous call path)
+			assert(capturedStack.includes("MsjsObject.sm"));
+			// MsjsDispatch.sm should NOT be present
+			assertStrictEquals(capturedStack.includes("MsjsDispatch.sm"), false,
+				"MsjsDispatch should not be on the stack during an anonymous call handler");
+		}
 	});
 
-	await t.step("attributed call: only MsjsDispatch.sm is active during handler (not MsjsObject.sm)", () => {
-		// For an attributed call (d.sm(rr, op, mp)), the trampoline design means:
-		// - MsjsDispatch.sm gets the handler, then invokes the handler directly
-		// - MsjsObject.sm is NOT on the stack during handler execution
-		// We verify this by capturing the JS call stack from inside the handler.
-		let capturedStack = null;
+	it({
+		name: "attributed call: only MsjsDispatch.sm is active during handler (not MsjsObject.sm)",
+		bun: false,
+		fn: () => {
+			// For an attributed call (d.sm(rr, op, mp)), the trampoline design means:
+			// - MsjsDispatch.sm gets the handler, then invokes the handler directly
+			// - MsjsObject.sm is NOT on the stack during handler execution
+			// We verify this by capturing the JS call stack from inside the handler.
+			let capturedStack = null;
 
-		const aif = getInterface(":?");
-		aif.set({
-			handlers: {
-				getD: (d) => d,
-				captureStack: (_d) => {
-					capturedStack = new Error().stack || '';
+			const aif = getInterface(":?");
+			aif.set({
+				handlers: {
+					getD: (d) => d,
+					captureStack: (_d) => {
+						capturedStack = new Error().stack || '';
+					}
 				}
-			}
-		});
-		const inst = getInstance(aif.ifName);
+			});
+			const inst = getInstance(aif.ifName);
 
-		// Get a dispatch object so we can use d.sm for an attributed call
-		const d = $c.sm(inst, "getD");
-		d.sm(inst, "captureStack");
+			// Get a dispatch object so we can use d.sm for an attributed call
+			const d = $c.sm(inst, "getD");
+			d.sm(inst, "captureStack");
 
-		assert(capturedStack !== null, "Handler was not called");
-		// msjsS$SendMsg should be present (attributed call path)
-		assertStringIncludes(capturedStack, "MsjsDispatch.sm");
-		// msjsR$RecvMsg should NOT be present (trampoline: receiver frame is gone after baton handshake)
-		assertEquals(capturedStack.includes("MsjsObject.sm"), false,
-			"msjsR$RecvMsg should not be on the stack during an attributed call handler");
+			assert(capturedStack !== null, "Handler was not called");
+			// msjsS$SendMsg should be present (attributed call path)
+			assert(capturedStack.includes("MsjsDispatch.sm"));
+			// msjsR$RecvMsg should NOT be present (trampoline: receiver frame is gone after baton handshake)
+			assertStrictEquals(capturedStack.includes("MsjsObject.sm"), false,
+				"msjsR$RecvMsg should not be on the stack during an attributed call handler");
+		}
 	});
 
-	await t.step("stack tracing: Mesgjs dispatch stack is appended to exception on error", () => {
+	it("stack tracing: Mesgjs dispatch stack is appended to exception on error", () => {
 		// When stack > 0 and an exception is thrown, appendStackTrace should add
 		// the '-- Mesgjs Dispatch Stack --' section to the error's .stack string.
 		const aif = getInterface(":?");
@@ -137,16 +155,16 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 				caughtError = e;
 			}
 			assert(caughtError !== null, "Exception was not thrown");
-			assertStringIncludes(caughtError.stack, "-- Mesgjs Dispatch Stack --",
+			assert(caughtError.stack.includes("-- Mesgjs Dispatch Stack --"),
 				"Mesgjs dispatch stack header should be appended to the error stack");
-			assertStringIncludes(caughtError.stack, "throwOp",
+			assert(caughtError.stack.includes("throwOp"),
 				"The dispatched operation name should appear in the Mesgjs stack trace");
 		} finally {
 			debugConfig(originalConfig);
 		}
 	});
 
-	await t.step("stack tracing: Mesgjs stack entry shows correct sender and receiver types", () => {
+	it("stack tracing: Mesgjs stack entry shows correct sender and receiver types", () => {
 		// The stack entry format is: "${sender_type} => ${receiver_type}(${op})"
 		// For an anonymous call, sender type is '@u' (undefined).
 		const aif = getInterface(":?");
@@ -169,14 +187,14 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 			}
 			assert(caughtError !== null, "Exception was not thrown");
 			// Anonymous call: sender is @u, receiver is the interface type
-			assertStringIncludes(caughtError.stack, `@u => ${aif.ifName}(namedOp)`,
+			assert(caughtError.stack.includes(`@u => ${aif.ifName}(namedOp)`),
 				"Stack entry should show '@u => interfaceType(op)' for anonymous calls");
 		} finally {
 			debugConfig(originalConfig);
 		}
 	});
 
-	await t.step("stack tracing: attributed call shows correct sender type in stack entry", () => {
+	it("stack tracing: attributed call shows correct sender type in stack entry", () => {
 		// For an attributed call (d.sm(d, op, mp)), the sender type should be the
 		// type of the object that owns the dispatch object (d.rt).
 		const senderIf = getInterface(":?");
@@ -210,10 +228,10 @@ Deno.test("Debug System End-to-End Tracing", async (t) => {
 				caughtError = e;
 			}
 			assert(caughtError !== null, "Exception was not thrown");
-			assertStringIncludes(caughtError.stack, "-- Mesgjs Dispatch Stack --",
+			assert(caughtError.stack.includes("-- Mesgjs Dispatch Stack --"),
 				"Mesgjs dispatch stack header should be present");
 			// The attributed throwOp call should show the sender type
-			assertStringIncludes(caughtError.stack, `${senderIf.ifName} => ${receiverIf.ifName}(throwOp)`,
+			assert(caughtError.stack.includes(`${senderIf.ifName} => ${receiverIf.ifName}(throwOp)`),
 				"Stack entry should show 'senderType => receiverType(op)' for attributed calls");
 		} finally {
 			debugConfig(originalConfig);

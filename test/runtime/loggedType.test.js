@@ -1,32 +1,31 @@
-import { assertEquals } from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assertStrictEquals } from '@std/assert';
 import "../../src/runtime/mesgjs.esm.js";
 import { loggedType, getInstance } from "../../src/runtime/runtime.esm.js";
 
-Deno.test("loggedType", async (t) => {
-
-	await t.step("should log primitive types correctly", () => {
-		assertEquals(loggedType(true), "@t");
-		assertEquals(loggedType(false), "@f");
-		assertEquals(loggedType(null), "@n");
-		assertEquals(loggedType(undefined), "@u");
+describe("loggedType", () => {
+	it("should log primitive types correctly", () => {
+		assertStrictEquals(loggedType(true), "@t");
+		assertStrictEquals(loggedType(false), "@f");
+		assertStrictEquals(loggedType(null), "@n");
+		assertStrictEquals(loggedType(undefined), "@u");
 	});
 
-	await t.step("should log standard JavaScript types correctly", () => {
-		assertEquals(loggedType(123), "J.number");
-		assertEquals(loggedType("hello"), "J.string");
-		assertEquals(loggedType({ a: 1 }), "J.Object");
-		assertEquals(loggedType([1, 2]), "J.Array");
-		assertEquals(loggedType(() => {}), "J.function");
+	it("should log standard JavaScript types correctly", () => {
+		assertStrictEquals(loggedType(123), "J.number");
+		assertStrictEquals(loggedType("hello"), "J.string");
+		assertStrictEquals(loggedType({ a: 1 }), "J.Object");
+		assertStrictEquals(loggedType([1, 2]), "J.Array");
+		assertStrictEquals(loggedType(() => {}), "J.function");
 	});
 
-	await t.step("should log Mesgjs objects correctly", () => {
+	it("should log Mesgjs objects correctly", () => {
 		const msjsString = getInstance("@string", ["test"]);
 		const msjsNumber = getInstance("@number", [42]);
 		const msjsPromise = getInstance("@promise");
 
-		assertEquals(loggedType(msjsString), "M.@string");
-		assertEquals(loggedType(msjsNumber), "M.@number");
-		assertEquals(loggedType(msjsPromise), "M.@promise");
+		assertStrictEquals(loggedType(msjsString), "M.@string");
+		assertStrictEquals(loggedType(msjsNumber), "M.@number");
+		assertStrictEquals(loggedType(msjsPromise), "M.@promise");
 	});
-
 });

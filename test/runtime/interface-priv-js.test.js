@@ -1,9 +1,5 @@
-import {
-	assertEquals,
-	assert,
-	assertThrows,
-	assertNotEquals,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assert, assertNotStrictEquals, assertStrictEquals, assertThrows } from '@std/assert';
 import "../../src/runtime/mesgjs.esm.js";
 import { getInterface, getInstance, MsjsObject } from "../../src/runtime/runtime.esm.js";
 
@@ -38,7 +34,7 @@ class MyWidget extends MsjsObject {
 // ===================================================================
 // 1. Class-with-constructor as proto
 // ===================================================================
-Deno.test("Class with constructor and private fields (proto)", async (t) => {
+describe("Class with constructor and private fields (proto)", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {
@@ -54,31 +50,31 @@ Deno.test("Class with constructor and private fields (proto)", async (t) => {
 		proto: MyWidget,
 	});
 
-	await t.step("instance should be of the custom class", () => {
+	it("instance should be of the custom class", () => {
 		const inst = getInstance(iface.ifName);
 		assert(inst instanceof MyWidget, "Instance should be instanceof MyWidget");
 		assert(inst instanceof MsjsObject, "Instance should be instanceof MsjsObject");
-		assertEquals(inst.msjsType, iface.ifName);
+		assertStrictEquals(inst.msjsType, iface.ifName);
 	});
 
-	await t.step("constructor should be called (private fields initialized)", () => {
+	it("constructor should be called (private fields initialized)", () => {
 		const inst = getInstance(iface.ifName);
 		// keyForTest accesses the private #key field; if the constructor
 		// didn't run, this would be undefined.
-		assertEquals(typeof inst.keyForTest, "symbol", "Constructor should have captured the key");
+		assertStrictEquals(typeof inst.keyForTest, "symbol", "Constructor should have captured the key");
 	});
 
-	await t.step("each instance should have a unique key", () => {
+	it("each instance should have a unique key", () => {
 		const a = getInstance(iface.ifName);
 		const b = getInstance(iface.ifName);
-		assertNotEquals(a.keyForTest, b.keyForTest, "Each instance gets a unique instantiation key");
+		assertNotStrictEquals(a.keyForTest, b.keyForTest, "Each instance gets a unique instantiation key");
 	});
 });
 
 // ===================================================================
 // 2. Bilingual state sharing: d.js (Mesgjs) <-> getJS/setJS (JS)
 // ===================================================================
-Deno.test("Bilingual state sharing: d.js <-> getJS/setJS", async (t) => {
+describe("Bilingual state sharing: d.js <-> getJS/setJS", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {
@@ -92,46 +88,46 @@ Deno.test("Bilingual state sharing: d.js <-> getJS/setJS", async (t) => {
 		proto: MyWidget,
 	});
 
-	await t.step("getJS should read state set by d.js in @init", () => {
+	it("getJS should read state set by d.js in @init", () => {
 		const inst = getInstance(iface.ifName);
 		const state = inst.getJSState();
-		assertEquals(state.name, "init", "JS-side getJS should see what @init set via d.js");
+		assertStrictEquals(state.name, "init", "JS-side getJS should see what @init set via d.js");
 	});
 
-	await t.step("setJS should write state readable by d.js", () => {
+	it("setJS should write state readable by d.js", () => {
 		const inst = getInstance(iface.ifName);
 		inst.setJSState({ name: "from-js" });
 		const viaDjs = $c.sm(inst, "getViaDjs");
-		assertEquals(viaDjs.name, "from-js", "d.js should see what JS-side setJS wrote");
+		assertStrictEquals(viaDjs.name, "from-js", "d.js should see what JS-side setJS wrote");
 	});
 
-	await t.step("d.js setter and getJS should see each other's writes", () => {
+	it("d.js setter and getJS should see each other's writes", () => {
 		const inst = getInstance(iface.ifName);
 
 		// Mesgjs writes, JS reads
 		$c.sm(inst, "setViaDjs", [{ name: "from-mesgjs" }]);
-		assertEquals(inst.getJSState().name, "from-mesgjs");
+		assertStrictEquals(inst.getJSState().name, "from-mesgjs");
 
 		// JS writes, Mesgjs reads
 		inst.setJSState({ name: "from-js-again" });
-		assertEquals($c.sm(inst, "getViaDjs").name, "from-js-again");
+		assertStrictEquals($c.sm(inst, "getViaDjs").name, "from-js-again");
 	});
 
-	await t.step("initial d.js state should be undefined before @init sets it", () => {
+	it("initial d.js state should be undefined before @init sets it", () => {
 		const bareIf = getInterface(":?");
 		bareIf.set({
 			handlers: {},
 			proto: MyWidget,
 		});
 		const inst = getInstance(bareIf.ifName);
-		assertEquals(inst.getJSState(), undefined, "Without @init setting d.js, getJS returns undefined");
+		assertStrictEquals(inst.getJSState(), undefined, "Without @init setting d.js, getJS returns undefined");
 	});
 });
 
 // ===================================================================
 // 3. getNullDispatch: JS-side access to dispatch properties
 // ===================================================================
-Deno.test("getNullDispatch provides dispatch access from JS", async (t) => {
+describe("getNullDispatch provides dispatch access from JS", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {
@@ -145,35 +141,35 @@ Deno.test("getNullDispatch provides dispatch access from JS", async (t) => {
 		proto: MyWidget,
 	});
 
-	await t.step("null dispatch .rr should be the object", () => {
+	it("null dispatch .rr should be the object", () => {
 		const inst = getInstance(iface.ifName);
 		const nd = inst.getNullDispatch();
-		assertEquals(nd.rr, inst, "nd.rr should be the instance");
+		assertStrictEquals(nd.rr, inst, "nd.rr should be the instance");
 	});
 
-	await t.step("null dispatch .rt should be the object type", () => {
+	it("null dispatch .rt should be the object type", () => {
 		const inst = getInstance(iface.ifName);
 		const nd = inst.getNullDispatch();
-		assertEquals(nd.rt, iface.ifName, "nd.rt should be the interface name");
+		assertStrictEquals(nd.rt, iface.ifName, "nd.rt should be the interface name");
 	});
 
-	await t.step("null dispatch .js should mirror d.js / getJS state", () => {
+	it("null dispatch .js should mirror d.js / getJS state", () => {
 		const inst = getInstance(iface.ifName);
 		const nd = inst.getNullDispatch();
 
 		// @init set d.js = { initialized: true }
-		assertEquals(nd.js.initialized, true, "nd.js should see what @init set via d.js");
+		assertStrictEquals(nd.js.initialized, true, "nd.js should see what @init set via d.js");
 
 		// JS-side setJS should be visible via nd.js
 		inst.setJSState({ updated: true });
-		assertEquals(nd.js.updated, true, "nd.js should see what setJS wrote");
+		assertStrictEquals(nd.js.updated, true, "nd.js should see what setJS wrote");
 
 		// nd.js setter should be visible via getJS
 		nd.js = { fromNullDispatch: true };
-		assertEquals(inst.getJSState().fromNullDispatch, true, "getJS should see what nd.js setter wrote");
+		assertStrictEquals(inst.getJSState().fromNullDispatch, true, "getJS should see what nd.js setter wrote");
 	});
 
-	await t.step("null dispatch .js should be visible from Mesgjs handlers", () => {
+	it("null dispatch .js should be visible from Mesgjs handlers", () => {
 		const iface2 = getInterface(":?");
 		iface2.set({
 			handlers: {
@@ -191,26 +187,26 @@ Deno.test("getNullDispatch provides dispatch access from JS", async (t) => {
 
 		// Read via Mesgjs handler
 		const result = $c.sm(inst, "getViaDjs");
-		assertEquals(result.fromNullDispatch, true, "d.js in handler should see what null dispatch wrote");
+		assertStrictEquals(result.fromNullDispatch, true, "d.js in handler should see what null dispatch wrote");
 	});
 
-	await t.step("null dispatch .p should provide persistent storage access", () => {
+	it("null dispatch .p should provide persistent storage access", () => {
 		const inst = getInstance(iface.ifName);
 		const nd = inst.getNullDispatch();
 
 		// @init set d.p.set("persistent-key", "persistent-value")
-		assertEquals(nd.p.at("persistent-key"), "persistent-value",
+		assertStrictEquals(nd.p.at("persistent-key"), "persistent-value",
 			"nd.p should see what @init set via d.p");
 
 		// Write via null dispatch .p
 		nd.p.set("from-js", "js-value");
 
 		// Read via Mesgjs handler
-		assertEquals($c.sm(inst, "getPersistent", ["from-js"]), "js-value",
+		assertStrictEquals($c.sm(inst, "getPersistent", ["from-js"]), "js-value",
 			"d.p in handler should see what null dispatch .p wrote");
 	});
 
-	await t.step("null dispatch .p writes should be visible from Mesgjs handlers", () => {
+	it("null dispatch .p writes should be visible from Mesgjs handlers", () => {
 		const inst = getInstance(iface.ifName);
 		const nd = inst.getNullDispatch();
 
@@ -218,20 +214,20 @@ Deno.test("getNullDispatch provides dispatch access from JS", async (t) => {
 		nd.p.set("nd-key", "nd-value");
 
 		// Read via handler
-		assertEquals($c.sm(inst, "getPersistent", ["nd-key"]), "nd-value");
+		assertStrictEquals($c.sm(inst, "getPersistent", ["nd-key"]), "nd-value");
 	});
 
-	await t.step("null dispatch should be cached (same object on repeated calls)", () => {
+	it("null dispatch should be cached (same object on repeated calls)", () => {
 		const inst = getInstance(iface.ifName);
 		const nd1 = inst.getNullDispatch();
 		const nd2 = inst.getNullDispatch();
-		assert(nd1 === nd2, "Repeated getNullDispatch calls should return the same object");
+		assertStrictEquals(nd1, nd2, "Repeated getNullDispatch calls should return the same object");
 	});
 
-	await t.step("different instances should have different null dispatches", () => {
+	it("different instances should have different null dispatches", () => {
 		const a = getInstance(iface.ifName);
 		const b = getInstance(iface.ifName);
-		assert(a.getNullDispatch() !== b.getNullDispatch(),
+		assertNotStrictEquals(a.getNullDispatch(), b.getNullDispatch(),
 			"Different instances should have different null dispatches");
 	});
 });
@@ -239,7 +235,7 @@ Deno.test("getNullDispatch provides dispatch access from JS", async (t) => {
 // ===================================================================
 // 4. getPS: JS-side access to persistent storage (d.p equivalent)
 // ===================================================================
-Deno.test("getPS provides persistent storage access from JS", async (t) => {
+describe("getPS provides persistent storage access from JS", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {
@@ -252,7 +248,7 @@ Deno.test("getPS provides persistent storage access from JS", async (t) => {
 		proto: MyWidget,
 	});
 
-	await t.step("getPS should JIT allocate storage if not yet initialized", () => {
+	it("getPS should JIT allocate storage if not yet initialized", () => {
 		const bareIf = getInterface(":?");
 		bareIf.set({
 			handlers: {},
@@ -261,46 +257,46 @@ Deno.test("getPS provides persistent storage access from JS", async (t) => {
 		const inst = getInstance(bareIf.ifName);
 		const ps = inst.getPSState();
 		assert(ps !== undefined, "getPS should return a NANOS instance");
-		assertEquals(ps.at("nonexistent"), undefined, "Unset key should return undefined");
+		assertStrictEquals(ps.at("nonexistent"), undefined, "Unset key should return undefined");
 	});
 
-	await t.step("getPS should read state set by d.p in @init", () => {
+	it("getPS should read state set by d.p in @init", () => {
 		const inst = getInstance(iface.ifName);
 		const ps = inst.getPSState();
-		assertEquals(ps.at("init-key"), "init-value", "JS-side getPS should see what @init set via d.p");
+		assertStrictEquals(ps.at("init-key"), "init-value", "JS-side getPS should see what @init set via d.p");
 	});
 
-	await t.step("getPS should write state readable by d.p", () => {
+	it("getPS should write state readable by d.p", () => {
 		const inst = getInstance(iface.ifName);
 		const ps = inst.getPSState();
 		ps.set("from-js", "js-value");
 		const viaDp = $c.sm(inst, "getPersistent", ["from-js"]);
-		assertEquals(viaDp, "js-value", "d.p should see what JS-side getPS wrote");
+		assertStrictEquals(viaDp, "js-value", "d.p should see what JS-side getPS wrote");
 	});
 
-	await t.step("d.p setter and getPS should see each other's writes", () => {
+	it("d.p setter and getPS should see each other's writes", () => {
 		const inst = getInstance(iface.ifName);
 
 		// Mesgjs writes, JS reads
 		$c.sm(inst, "setPersistent", ["from-mesgjs", "mesgjs-value"]);
-		assertEquals(inst.getPSState().at("from-mesgjs"), "mesgjs-value");
+		assertStrictEquals(inst.getPSState().at("from-mesgjs"), "mesgjs-value");
 
 		// JS writes, Mesgjs reads
 		inst.getPSState().set("from-js-again", "js-value-again");
-		assertEquals($c.sm(inst, "getPersistent", ["from-js-again"]), "js-value-again");
+		assertStrictEquals($c.sm(inst, "getPersistent", ["from-js-again"]), "js-value-again");
 	});
 
-	await t.step("getPS should return the same NANOS on repeated calls", () => {
+	it("getPS should return the same NANOS on repeated calls", () => {
 		const inst = getInstance(iface.ifName);
 		const ps1 = inst.getPSState();
 		const ps2 = inst.getPSState();
-		assert(ps1 === ps2, "Repeated getPS calls should return the same NANOS instance");
+		assertStrictEquals(ps1, ps2, "Repeated getPS calls should return the same NANOS instance");
 	});
 
-	await t.step("different instances should have different persistent storage", () => {
+	it("different instances should have different persistent storage", () => {
 		const a = getInstance(iface.ifName);
 		const b = getInstance(iface.ifName);
-		assert(a.getPSState() !== b.getPSState(),
+		assertNotStrictEquals(a.getPSState(), b.getPSState(),
 			"Different instances should have different persistent storage");
 	});
 });
@@ -308,114 +304,114 @@ Deno.test("getPS provides persistent storage access from JS", async (t) => {
 // ===================================================================
 // 5. Authorization: getJS / setJS / getNullDispatch / getPS key checks
 // ===================================================================
-Deno.test("Authorization: key checks for getJS / setJS / getNullDispatch / getPS", async (t) => {
+describe("Authorization: key checks for getJS / setJS / getNullDispatch / getPS", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {},
 		proto: MyWidget,
 	});
 
-	await t.step("getJS should throw with wrong key", () => {
+	it("getJS should throw with wrong key", () => {
 		const inst = getInstance(iface.ifName);
 		assertThrows(
 			() => MsjsObject.getJS(inst, Symbol("wrong")),
-			TypeError, "Unauthorized getJS",
+			TypeError,
 		);
 	});
 
-	await t.step("getJS should throw with undefined/null key", () => {
+	it("getJS should throw with undefined/null key", () => {
 		const inst = getInstance(iface.ifName);
-		assertThrows(() => MsjsObject.getJS(inst, undefined), TypeError, "Unauthorized getJS");
-		assertThrows(() => MsjsObject.getJS(inst, null), TypeError, "Unauthorized getJS");
+		assertThrows(() => MsjsObject.getJS(inst, undefined), TypeError);
+		assertThrows(() => MsjsObject.getJS(inst, null), TypeError);
 	});
 
-	await t.step("setJS should throw with wrong key", () => {
+	it("setJS should throw with wrong key", () => {
 		const inst = getInstance(iface.ifName);
 		assertThrows(
 			() => MsjsObject.setJS(inst, Symbol("wrong"), "value"),
-			TypeError, "Unauthorized setJS",
+			TypeError,
 		);
 	});
 
-	await t.step("setJS should throw with undefined/null key", () => {
+	it("setJS should throw with undefined/null key", () => {
 		const inst = getInstance(iface.ifName);
-		assertThrows(() => MsjsObject.setJS(inst, undefined, "v"), TypeError, "Unauthorized setJS");
-		assertThrows(() => MsjsObject.setJS(inst, null, "v"), TypeError, "Unauthorized setJS");
+		assertThrows(() => MsjsObject.setJS(inst, undefined, "v"), TypeError);
+		assertThrows(() => MsjsObject.setJS(inst, null, "v"), TypeError);
 	});
 
-	await t.step("getNullDispatch should throw with wrong key", () => {
+	it("getNullDispatch should throw with wrong key", () => {
 		const inst = getInstance(iface.ifName);
 		assertThrows(
 			() => MsjsObject.getNullDispatch(inst, Symbol("wrong")),
-			TypeError, "Unauthorized getNullDispatch",
+			TypeError,
 		);
 	});
 
-	await t.step("getNullDispatch should throw with undefined/null key", () => {
+	it("getNullDispatch should throw with undefined/null key", () => {
 		const inst = getInstance(iface.ifName);
-		assertThrows(() => MsjsObject.getNullDispatch(inst, undefined), TypeError, "Unauthorized getNullDispatch");
-		assertThrows(() => MsjsObject.getNullDispatch(inst, null), TypeError, "Unauthorized getNullDispatch");
+		assertThrows(() => MsjsObject.getNullDispatch(inst, undefined), TypeError);
+		assertThrows(() => MsjsObject.getNullDispatch(inst, null), TypeError);
 	});
 
-	await t.step("getPS should throw with wrong key", () => {
+	it("getPS should throw with wrong key", () => {
 		const inst = getInstance(iface.ifName);
 		assertThrows(
 			() => MsjsObject.getPS(inst, Symbol("wrong")),
-			TypeError, "Unauthorized getPS",
+			TypeError,
 		);
 	});
 
-	await t.step("getPS should throw with undefined/null key", () => {
+	it("getPS should throw with undefined/null key", () => {
 		const inst = getInstance(iface.ifName);
-		assertThrows(() => MsjsObject.getPS(inst, undefined), TypeError, "Unauthorized getPS");
-		assertThrows(() => MsjsObject.getPS(inst, null), TypeError, "Unauthorized getPS");
+		assertThrows(() => MsjsObject.getPS(inst, undefined), TypeError);
+		assertThrows(() => MsjsObject.getPS(inst, null), TypeError);
 	});
 
-	await t.step("instance A's key should not work on instance B", () => {
+	it("instance A's key should not work on instance B", () => {
 		const a = getInstance(iface.ifName);
 		const b = getInstance(iface.ifName);
 
 		// a's key works on a
 		MsjsObject.setJS(a, a.keyForTest, "secret");
-		assertEquals(MsjsObject.getJS(a, a.keyForTest), "secret");
+		assertStrictEquals(MsjsObject.getJS(a, a.keyForTest), "secret");
 
 		// a's key should NOT work on b
-		assertThrows(() => MsjsObject.getJS(b, a.keyForTest), TypeError, "Unauthorized getJS");
-		assertThrows(() => MsjsObject.setJS(b, a.keyForTest, "x"), TypeError, "Unauthorized setJS");
-		assertThrows(() => MsjsObject.getNullDispatch(b, a.keyForTest), TypeError, "Unauthorized getNullDispatch");
-		assertThrows(() => MsjsObject.getPS(b, a.keyForTest), TypeError, "Unauthorized getPS");
+		assertThrows(() => MsjsObject.getJS(b, a.keyForTest), TypeError);
+		assertThrows(() => MsjsObject.setJS(b, a.keyForTest, "x"), TypeError);
+		assertThrows(() => MsjsObject.getNullDispatch(b, a.keyForTest), TypeError);
+		assertThrows(() => MsjsObject.getPS(b, a.keyForTest), TypeError);
 	});
 
-	await t.step("runtime objects should reject all key-based access", () => {
+	it("runtime objects should reject all key-based access", () => {
 		// Runtime objects (e.g. interface management objects) have #userKey === undefined
 		const testIface = getInterface(":?");
-		assertThrows(() => MsjsObject.getJS(testIface, Symbol()), TypeError, "Unauthorized getJS");
-		assertThrows(() => MsjsObject.setJS(testIface, Symbol(), "v"), TypeError, "Unauthorized setJS");
-		assertThrows(() => MsjsObject.getNullDispatch(testIface, Symbol()), TypeError, "Unauthorized getNullDispatch");
-		assertThrows(() => MsjsObject.getPS(testIface, Symbol()), TypeError, "Unauthorized getPS");
+		assertThrows(() => MsjsObject.getJS(testIface, Symbol()), TypeError);
+		assertThrows(() => MsjsObject.setJS(testIface, Symbol(), "v"), TypeError);
+		assertThrows(() => MsjsObject.getNullDispatch(testIface, Symbol()), TypeError);
+		assertThrows(() => MsjsObject.getPS(testIface, Symbol()), TypeError);
 
 		// Critical edge case: runtime objects have #userKey === undefined.
 		// Without the `!key` guard, passing undefined would match (undefined === undefined).
 		// The `!key` check must reject undefined/null even when #userKey is also undefined.
-		assertThrows(() => MsjsObject.getJS(testIface, undefined), TypeError, "Unauthorized getJS");
-		assertThrows(() => MsjsObject.setJS(testIface, undefined, "v"), TypeError, "Unauthorized setJS");
-		assertThrows(() => MsjsObject.getNullDispatch(testIface, undefined), TypeError, "Unauthorized getNullDispatch");
-		assertThrows(() => MsjsObject.getPS(testIface, undefined), TypeError, "Unauthorized getPS");
-		assertThrows(() => MsjsObject.getJS(testIface, null), TypeError, "Unauthorized getJS");
+		assertThrows(() => MsjsObject.getJS(testIface, undefined), TypeError);
+		assertThrows(() => MsjsObject.setJS(testIface, undefined, "v"), TypeError);
+		assertThrows(() => MsjsObject.getNullDispatch(testIface, undefined), TypeError);
+		assertThrows(() => MsjsObject.getPS(testIface, undefined), TypeError);
+		assertThrows(() => MsjsObject.getJS(testIface, null), TypeError);
 	});
 });
 
 // ===================================================================
-// 5. Instantiation key replay prevention
+// 6. Instantiation key replay prevention
 // ===================================================================
-Deno.test("Instantiation key replay prevention", async (t) => {
+describe("Instantiation key replay prevention", () => {
 	const iface = getInterface(":?");
 	iface.set({
 		handlers: {},
 		proto: MyWidget,
 	});
 
-	await t.step("should not be possible to replay an instantiation key to create another object", () => {
+	it("should not be possible to replay an instantiation key to create another object", () => {
 		const inst = getInstance(iface.ifName);
 		const key = inst.keyForTest;
 
@@ -423,11 +419,10 @@ Deno.test("Instantiation key replay prevention", async (t) => {
 		assertThrows(
 			() => new MsjsObject(key, iface.ifName),
 			Error,
-			"Use getInstance",
 		);
 	});
 
-	await t.step("replayed key should not produce a valid object even of the same type", () => {
+	it("replayed key should not produce a valid object even of the same type", () => {
 		const inst = getInstance(iface.ifName);
 		const key = inst.keyForTest;
 
@@ -435,7 +430,6 @@ Deno.test("Instantiation key replay prevention", async (t) => {
 		assertThrows(
 			() => new MyWidget(key, iface.ifName),
 			Error,
-			"Use getInstance",
 		);
 	});
 });

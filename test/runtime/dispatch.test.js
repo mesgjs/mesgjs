@@ -1,59 +1,55 @@
-import {
-	assertEquals,
-	assert,
-	assertNotEquals,
-	assertThrows,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
-import "../../src/runtime/mesgjs.esm.js";
-import { getInstance, getInterface, typeAccepts } from "../../src/runtime/runtime.esm.js";
+import { describe, it } from '@compat/test';
+import { assert, assertEquals, assertNotStrictEquals, assertStrictEquals, assertThrows } from '@std/assert';
+import '../../src/runtime/mesgjs.esm.js';
+import { getInstance, getInterface, typeAccepts } from '../../src/runtime/runtime.esm.js';
 
-Deno.test("Message Dispatching", async (t) => {
+describe('Message Dispatching', () => {
 	const msgd = (d, op, mp) => d.sm(d, op, mp);
 	const envRpt = (d) => new NANOS({ dop: d.dop, mop: d.mop, mp: d.mp });
 
-	await t.step("should create and configure two anonymous interfaces", () => {
-		const aif1 = getInterface(":?");
-		assert(aif1.ifName, "Interface name (.ifName) is missing");
-		assert(aif1.ifName[0] === ":" && aif1.ifName[1] === "?" && aif1.ifName !== ":?", `Unexpected interface name ${aif1.ifName}`);
+	it('should create and configure two anonymous interfaces', () => {
+		const aif1 = getInterface(':?');
+		assert(aif1.ifName, 'Interface name (.ifName) is missing');
+		assert(aif1.ifName[0] === ':' && aif1.ifName[1] === '?' && aif1.ifName !== ':?', `Unexpected interface name ${aif1.ifName}`);
 		aif1.set({
 			handlers: {
-				both: (d) => [d, "both", msgd(d, "redis")],
-				getD: (d) => [d, "getD"],
-				redis: (d) => msgd(d, { op: "redis", params: d.mp }),
-				"@default": (d) => [d, "default"],
+				both: (d) => [d, 'both', msgd(d, 'redis')],
+				getD: (d) => [d, 'getD'],
+				redis: (d) => msgd(d, { op: 'redis', params: d.mp }),
+				'@default': (d) => [d, 'default'],
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		assertEquals(inst1.msjsType, aif1.ifName);
-		const aif2 = getInterface(":?");
-		assert(aif2.ifName[0] === ":" && aif2.ifName[1] === "?" && aif2.ifName !== ":?", `Unexpected interface name ${aif2.ifName}`);
-		assertNotEquals(aif1.ifName, aif2.ifName, `Both interfaces are named ${aif1.ifName}`);
+		assertStrictEquals(inst1.msjsType, aif1.ifName);
+		const aif2 = getInterface(':?');
+		assert(aif2.ifName[0] === ':' && aif2.ifName[1] === '?' && aif2.ifName !== ':?', `Unexpected interface name ${aif2.ifName}`);
+		assertNotStrictEquals(aif1.ifName, aif2.ifName, `Both interfaces are named ${aif1.ifName}`);
 	});
 
-	await t.step("should handle basic dispatching", () => {
-		const aif1 = getInterface(":?");
+	it('should handle basic dispatching', () => {
+		const aif1 = getInterface(':?');
 		aif1.set({
 			handlers: {
-				getD: (d) => [d, "getD"],
+				getD: (d) => [d, 'getD'],
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = $c.sm(inst1, "getD");
-		assertEquals(d[1], "getD");
-		assertEquals(d[0].rr, inst1);
-		assertEquals(msgd(d[0], "rr"), inst1);
-		assertEquals(d[0].rt, inst1.msjsType);
-		assertEquals(msgd(d[0], "rt"), inst1.msjsType);
-		assertEquals(d[0].ht, inst1.msjsType);
-		assertEquals(msgd(d[0], "ht"), inst1.msjsType);
-		assertEquals(d[0].dop, "getD");
-		assertEquals(msgd(d[0], "dop"), "getD");
-		assertEquals(d[0].mop, "getD");
-		assertEquals(msgd(d[0], "mop"), "getD");
+		const d = $c.sm(inst1, 'getD');
+		assertStrictEquals(d[1], 'getD');
+		assertStrictEquals(d[0].rr, inst1);
+		assertStrictEquals(msgd(d[0], 'rr'), inst1);
+		assertStrictEquals(d[0].rt, inst1.msjsType);
+		assertStrictEquals(msgd(d[0], 'rt'), inst1.msjsType);
+		assertStrictEquals(d[0].ht, inst1.msjsType);
+		assertStrictEquals(msgd(d[0], 'ht'), inst1.msjsType);
+		assertStrictEquals(d[0].dop, 'getD');
+		assertStrictEquals(msgd(d[0], 'dop'), 'getD');
+		assertStrictEquals(d[0].mop, 'getD');
+		assertStrictEquals(msgd(d[0], 'mop'), 'getD');
 	});
 
-	await t.step("should handle redispatch (no super)", () => {
-		const aif1 = getInterface(":?");
+	it('should handle redispatch (no super)', () => {
+		const aif1 = getInterface(':?');
 		aif1.set({
 			handlers: {
 				mesg: (d) => d.sm(d, 'redis'),
@@ -61,17 +57,17 @@ Deno.test("Message Dispatching", async (t) => {
 		});
 		const inst1 = getInstance(aif1.ifName);
 		const r = $c.sm(inst1, 'mesg');
-		assertEquals(r, undefined, "redis without super returns undefined");
-	})
+		assertStrictEquals(r, undefined, 'redis without super returns undefined');
+	});
 
-	await t.step("should handle redispatch (original op, original params)", () => {
-		const superIf = getInterface(":?").set({
+	it('should handle redispatch (original op, original params)', () => {
+		const superIf = getInterface(':?').set({
 			handlers: {
 				mesg: (d) => envRpt(d),
 			},
 		});
-		const subIf = getInterface(":?").set({
-			chain: [ superIf.ifName ],
+		const subIf = getInterface(':?').set({
+			chain: [superIf.ifName],
 			handlers: {
 				mesg: (d) => d.sm(d, 'redis'),
 				subOnly: (d) => d.sm(d, 'redis'),
@@ -80,152 +76,152 @@ Deno.test("Message Dispatching", async (t) => {
 
 		const inst = getInstance(subIf.ifName);
 		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
-		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
-		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
-		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
-		assertEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
+		assertStrictEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertStrictEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
+		assertStrictEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
 
 		const r2 = $c.sm(inst, 'subOnly');
-		assertEquals(r2, undefined, "redis with sub-only message returns undefined");
+		assertStrictEquals(r2, undefined, 'redis with sub-only message returns undefined');
 	});
 
-	await t.step("should handle redispatch (original op, new params)", () => {
-		const superIf = getInterface(":?").set({
+	it('should handle redispatch (original op, new params)', () => {
+		const superIf = getInterface(':?').set({
 			handlers: {
 				mesg: (d) => envRpt(d),
 			},
 		});
-		const subIf = getInterface(":?").set({
-			chain: [ superIf.ifName ],
+		const subIf = getInterface(':?').set({
+			chain: [superIf.ifName],
 			handlers: {
-				mesg: (d) => d.sm(d, 'redis', { params: new NANOS('pos2', { key2: 'val2' })}),
+				mesg: (d) => d.sm(d, 'redis', { params: new NANOS('pos2', { key2: 'val2' }) }),
 			},
 		});
 		const inst = getInstance(subIf.ifName);
 		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
-		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
-		assertEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
-		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
-		assertEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
-		assertEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
-		assertEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
+		assertStrictEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertStrictEquals(r1.at('dop'), 'mesg', 'dispatch op is correct');
+		assertStrictEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
 	});
 
-	await t.step("should handle redispatch (new op, original params)", () => {
-		const superIf = getInterface(":?").set({
+	it('should handle redispatch (new op, original params)', () => {
+		const superIf = getInterface(':?').set({
 			handlers: {
 				mesg: (d) => envRpt(d),
 				mesg2: (d) => envRpt(d),
 			},
 		});
-		const subIf = getInterface(":?").set({
-			chain: [ superIf.ifName ],
+		const subIf = getInterface(':?').set({
+			chain: [superIf.ifName],
 			handlers: {
 				mesg: (d) => d.sm(d, 'redis', { op: 'mesg2' }),
 			},
 		});
 		const inst = getInstance(subIf.ifName);
 		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
-		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
-		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
-		assertEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
-		assertEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
+		assertStrictEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertStrictEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
+		assertStrictEquals(r1.at(['mp', 0]), 'pos1', 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key1']), 'val1', 'message params are correct');
 	});
 
-	await t.step("should handle redispatch (new op, new params)", () => {
-		const superIf = getInterface(":?").set({
+	it('should handle redispatch (new op, new params)', () => {
+		const superIf = getInterface(':?').set({
 			handlers: {
 				mesg: (d) => envRpt(d),
 				mesg2: (d) => envRpt(d),
 			},
 		});
-		const subIf = getInterface(":?").set({
-			chain: [ superIf.ifName ],
+		const subIf = getInterface(':?').set({
+			chain: [superIf.ifName],
 			handlers: {
 				mesg: (d) => d.sm(d, 'redis', { op: 'mesg2', params: new NANOS('pos2', { key2: 'val2' }) }),
 			},
 		});
 		const inst = getInstance(subIf.ifName);
 		const r1 = $c.sm(inst, 'mesg', new NANOS('pos1', { key1: 'val1' }));
-		assertEquals(r1.at('mop'), 'mesg', 'message op is correct');
-		assertEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
-		assertEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
-		assertEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
-		assertEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
-		assertEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
+		assertStrictEquals(r1.at('mop'), 'mesg', 'message op is correct');
+		assertStrictEquals(r1.at('dop'), 'mesg2', 'dispatch op is correct');
+		assertStrictEquals(r1.at(['mp', 0]), 'pos2', 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 1]), undefined, 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key1']), undefined, 'message params are correct');
+		assertStrictEquals(r1.at(['mp', 'key2']), 'val2', 'message params are correct');
 	});
 
-	await t.step("should fall back to the default handler", () => {
-		const aif1 = getInterface(":?");
+	it('should fall back to the default handler', () => {
+		const aif1 = getInterface(':?');
 		aif1.set({
 			handlers: {
-				"@default": (d) => [d, "default"],
+				'@default': (d) => [d, 'default'],
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = $c.sm(inst1, { op: "noSuchMessage", else: [0, "else"] });
-		assertEquals(d[1], "default");
-		assertEquals(d[0].dop, "noSuchMessage");
+		const d = $c.sm(inst1, { op: 'noSuchMessage', else: [0, 'else'] });
+		assertStrictEquals(d[1], 'default');
+		assertStrictEquals(d[0].dop, 'noSuchMessage');
 	});
 
-	await t.step("should handle chained dispatches", () => {
-		const aif1 = getInterface(":?");
+	it('should handle chained dispatches', () => {
+		const aif1 = getInterface(':?');
 		aif1.set({
 			handlers: {
-				both: (d) => [d, "both", d.sm(d, "redis")],
-				getD: (d) => [d, "getD"],
-				"@default": (d) => [d, "default", d.sm(d, "redis")],
+				both: (d) => [d, 'both', d.sm(d, 'redis')],
+				getD: (d) => [d, 'getD'],
+				'@default': (d) => [d, 'default', d.sm(d, 'redis')],
 			},
 		});
-		const aif2 = getInterface(":?");
+		const aif2 = getInterface(':?');
 		aif2.set({
 			chain: [aif1.ifName],
 			handlers: {
-				both: (d) => [d, "both", d.sm(d, "redis")],
-				only2: (d) => [d, "only2", d.sm(d, "redis")],
-				"@default": (d) => [d, "default", d.sm(d, "redis")],
+				both: (d) => [d, 'both', d.sm(d, 'redis')],
+				only2: (d) => [d, 'only2', d.sm(d, 'redis')],
+				'@default': (d) => [d, 'default', d.sm(d, 'redis')],
 			},
 		});
 		const inst2 = getInstance(aif2.ifName);
-		let d = $c.sm(inst2, "getD");
-		assertEquals(d[0].ht, aif1.ifName);
-		assertEquals(d[0].rr, inst2);
-		assertEquals(d[0].rt, aif2.ifName);
-		d = $c.sm(inst2, "only2");
-		assertEquals(d[1], "only2");
-		assertEquals(d[2], undefined);
-		d = $c.sm(inst2, "both");
-		assertEquals(d[1], "both");
-		assertEquals(d[2][1], "both");
-		assertEquals(d[2][2], undefined);
-		d = $c.sm(inst2, "noSuchMessage");
-		assertEquals(d[1], "default");
-		assertEquals(d[2][1], "default");
+		let d = $c.sm(inst2, 'getD');
+		assertStrictEquals(d[0].ht, aif1.ifName);
+		assertStrictEquals(d[0].rr, inst2);
+		assertStrictEquals(d[0].rt, aif2.ifName);
+		d = $c.sm(inst2, 'only2');
+		assertStrictEquals(d[1], 'only2');
+		assertStrictEquals(d[2], undefined);
+		d = $c.sm(inst2, 'both');
+		assertStrictEquals(d[1], 'both');
+		assertStrictEquals(d[2][1], 'both');
+		assertStrictEquals(d[2][2], undefined);
+		d = $c.sm(inst2, 'noSuchMessage');
+		assertStrictEquals(d[1], 'default');
+		assertStrictEquals(d[2][1], 'default');
 	});
 
-	await t.step("should throw when receiving an anonymous message", () => {
-		const aif1 = getInterface(":?");
+	it('should throw when receiving an anonymous message', () => {
+		const aif1 = getInterface(':?');
 		aif1.set({
 			handlers: {
 				getD: (d) => d,
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		const d = $c.sm(inst1, "getD");
-		assertThrows(() => $c.sm(d, "op"), TypeError, "@d(op) on mismatched dispatch");
+		const d = $c.sm(inst1, 'getD');
+		assertThrows(() => $c.sm(d, 'op'), TypeError, '@d(op) on mismatched dispatch');
 	});
 });
 
-Deno.test("Message Dispatching (@init)", async (t) => {
-	await t.step("should not error on missing @init", () => {
-		const aif1 = getInterface(":?");
+describe('Message Dispatching (@init)', () => {
+	it('should not error on missing @init', () => {
+		const aif1 = getInterface(':?');
 		const inst1 = getInstance(aif1.ifName);
-		assertEquals($c.sm(inst1, '@init'), undefined);
+		assertStrictEquals($c.sm(inst1, '@init'), undefined);
 		assertEquals(typeAccepts(aif1.ifName, '@init'), [aif1.ifName, 'specific']);
 	});
 
-	await t.step("should call @init on getInstance", () => {
-		const aif1 = getInterface(":?");
+	it('should call @init on getInstance', () => {
+		const aif1 = getInterface(':?');
 		let called = false;
 		aif1.set({
 			handlers: {
@@ -235,11 +231,11 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			},
 		});
 		getInstance(aif1.ifName);
-		assert(called, "The @init handler was not called on getInstance");
+		assert(called, 'The @init handler was not called on getInstance');
 	});
 
-	await t.step("should bypass @init after getInstance", () => {
-		const aif1 = getInterface(":?");
+	it('should bypass @init after getInstance', () => {
+		const aif1 = getInterface(':?');
 		let callCount = 0;
 		aif1.set({
 			handlers: {
@@ -249,20 +245,20 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			},
 		});
 		const inst1 = getInstance(aif1.ifName);
-		assertEquals(callCount, 1);
+		assertStrictEquals(callCount, 1);
 		$c.sm(inst1, '@init');
-		assertEquals(callCount, 1, "The @init handler was called after getInstance");
+		assertStrictEquals(callCount, 1, 'The @init handler was called after getInstance');
 	});
 
-	await t.step("should allow direct @init redispatch during getInstance", () => {
+	it('should allow direct @init redispatch during getInstance', () => {
 		let subInit = false, superInit = false;
 		const superIF = getInterface(':?');
 		superIF.set({
 			handlers: {
 				'@init': (d) => {
 					superInit = true;
-					assertEquals(d.dop, '@init');
-					assertEquals(d.mop, '@init');
+					assertStrictEquals(d.dop, '@init');
+					assertStrictEquals(d.mop, '@init');
 				}
 			}
 		});
@@ -272,26 +268,26 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			handlers: {
 				'@init': (d) => {
 					subInit = true;
-					assertEquals(d.dop, '@init');
-					assertEquals(d.mop, '@init');
+					assertStrictEquals(d.dop, '@init');
+					assertStrictEquals(d.mop, '@init');
 					d.sm(d, 'redis');
 				}
 			}
 		});
 		getInstance(subIF.ifName);
-		assert(subInit, "Sub-interface @init was not called");
-		assert(superInit, "Super-interface @init was not called via redispatch");
+		assert(subInit, 'Sub-interface @init was not called');
+		assert(superInit, 'Super-interface @init was not called via redispatch');
 	});
 
-	await t.step("should allow indirect @init redispatch during getInstance", () => {
+	it('should allow indirect @init redispatch during getInstance', () => {
 		let subInit = false, subOther = false, superInit = false;
 		const superIF = getInterface(':?');
 		superIF.set({
 			handlers: {
 				'@init': (d) => {
 					superInit = true;
-					assertEquals(d.dop, '@init');
-					assertEquals(d.mop, '@init');
+					assertStrictEquals(d.dop, '@init');
+					assertStrictEquals(d.mop, '@init');
 				}
 			}
 		});
@@ -301,8 +297,8 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			handlers: {
 				'@init': (d) => {
 					subInit = true;
-					assertEquals(d.dop, '@init');
-					assertEquals(d.mop, '@init');
+					assertStrictEquals(d.dop, '@init');
+					assertStrictEquals(d.mop, '@init');
 					d.sm(d, 'redis', { op: 'other' });
 				},
 				'other': (d) => {
@@ -318,7 +314,7 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 		assert(superInit, 'Super-interface @init was not called via indirect redispatch');
 	});
 
-	await t.step("should bypass @init from another object during @init", () => {
+	it('should bypass @init from another object during @init', () => {
 		let initA = 0, initB = 0, resultB = null;
 		const ifA = getInterface(':?'), ifB = getInterface(':?');
 		ifA.set({
@@ -341,8 +337,8 @@ Deno.test("Message Dispatching (@init)", async (t) => {
 			}
 		});
 		getInstance(ifA.ifName, [ true ]);
-		assertEquals(initA, 1, "Object A @init was not called exactly once");
-		assertEquals(initB, 1, "Object B @init was not called exactly once");
-		assertEquals(resultB, undefined, "B's call to A(@init) was not bypassed");
+		assertStrictEquals(initA, 1, 'Object A @init was not called exactly once');
+		assertStrictEquals(initB, 1, 'Object B @init was not called exactly once');
+		assertStrictEquals(resultB, undefined, "B's call to A(@init) was not bypassed");
 	});
 });

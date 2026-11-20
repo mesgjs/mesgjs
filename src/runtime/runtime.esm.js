@@ -126,13 +126,22 @@ export function debugConfig (set) {
  */
 export async function fetchModule (src, { decode, integrity } = {}) {
 	let data;
-	if (typeof Deno !== 'undefined' && !src.startsWith('https://') && !src.startsWith('data:')) {
-		data = await Deno.readFile(src);
-		if (!data) throw new Error(`fetchModule: File "${src}" not found`);
+	const isUrl = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:') || src.startsWith('blob:');
+
+	if (!isUrl) {
+		try {
+			const fs = await import('@compat/file');
+
+			data = await fs.readFile(src);
+		} catch (err) {
+			throw new Error(`fetchModule: File "${src}" not found`);
+		}
 	} else {
-		data = await fetch(src).then((r) => {
+		data = await fetch(src).then(async (r) => {
 			if (r.ok) {
-				return r.arrayBuffer();
+				const ab = await r.arrayBuffer();
+
+				return new Uint8Array(ab);
 			}
 			throw new Error(`fetchModule: File "${src}" not found`);
 		});
@@ -562,32 +571,32 @@ export class MsjsObject {
 				// #core2: the defining context
 				this.#core1 = params[0];
 				this.#core2 = params[1];
-				this.#dispatch = MsjsObject.#codeDispatch;
+				this.#dispatch = this.#codeDispatch;
 				break;
 			case TYPE_DISP: // @dispatch(context)
 				// #core1: the message context
 				// #core2: JIT bound code objects
 				this.#core1 = params[0];
-				this.#dispatch = MsjsObject.#dispatchDispatch;
+				this.#dispatch = this.#dispatchDispatch;
 				break;
 			case TYPE_FUN: // @function(code, ps)
 				// #core1: the code block function
 				// #core2: currently reserved for jsfn
 				this.#core1 = params[0];
 				this.#storage = params[1];
-				this.#dispatch = MsjsObject.#functionDispatch;
+				this.#dispatch = this.#functionDispatch;
 				break;
 			case TYPE_IF:
 				// #core1: the interface name
 				// #core2: the isFirst flag
 				this.#core1 = params[0];
 				this.#core2 = params[1];
-				this.#dispatch = MsjsObject.#interfaceDispatch;
+				this.#dispatch = this.#interfaceDispatch;
 				break;
 			case TYPE_MOD:
 				// #core1: unused
 				// #core2: unused
-				this.#dispatch = MsjsObject.#moduleDispatch;
+				this.#dispatch = this.#moduleDispatch;
 				break;
 			}
 		} else if (key === curObjKey && type === curObjType) { // Per-instance key for user types
@@ -595,13 +604,13 @@ export class MsjsObject {
 			this.#userKey = key;
 			this.#type = type;
 			curObjKey = null;
-		} else {
+		} else if (initPhase !== 1) {
 			throw new Error(`Use getInstance(${type ?? '...'}) instead of new MsjsObject`);
 		}
 	}
 
 	// @code Mesgjs message handlers
-	static #codeDispatch (mc, op, mp) {
+	#codeDispatch (mc, op, mp) {
 		switch (op) {
 		case 'fn':
 			mc.value = new MsjsFunction(OBJ_KEY, TYPE_FUN, this.#core1, mp);
@@ -631,7 +640,7 @@ export class MsjsObject {
 	}
 
 	// @dispatch Mesgjs message handlers
-	static #dispatchDispatch (mc, op, mp) {
+	#dispatchDispatch (mc, op, mp) {
 		const origCtx = this.#core1;
 
 		if (mc.sr !== origCtx.rr) throw new TypeError(`@d(${op}) on mismatched dispatch`);
@@ -767,7 +776,7 @@ export class MsjsObject {
 		stub(TYPE_DISP, 'dop', 'hop', 'ht', 'js', 'mop', 'orr', 'redis', 'return', 'rr', 'rt', 'sr', 'st', 'smi');
 	}
 
-	static #functionDispatch (mc, op, mp) {
+	#functionDispatch (mc, op, mp) {
 		switch (op) {
 		case 'call':
 			mc.code = this.#core1;
@@ -895,7 +904,7 @@ export class MsjsObject {
 		MsjsObject.#moduleInit();
 	}
 
-	static #interfaceDispatch (mc, op, mp) {
+	#interfaceDispatch (mc, op, mp) {
 		switch (op) {
 		case 'instance':
 			mc.value = MsjsObject.getInstance(this.#core1, mp, OBJ_KEY, mc.sr, mc.st);
@@ -935,7 +944,7 @@ export class MsjsObject {
 		stub(TYPE_IF, 'instance', 'name', 'set');
 	}
 
-	static #moduleDispatch () {
+	#moduleDispatch () {
 		return false;
 	}
 
@@ -1301,14 +1310,13 @@ function remapModURL (src, meta) {
 
 /*
  * Return a message sender's source file/line/column
- * CONTINUE HERE - update for all messages via {MsjsObject,MsjsDispatch}.sm
  */
-const SM_PATTERN = /MsjsDispatch\.sm |MsjsObject\.sm /;
+const SM_PATTERN = /at MsjsDispatch\.sm |at MsjsObject\.sm |at sm \(.*\/runtime\.esm\.js:/;
 
 export function senderFLC () {
 	const stack = (new Error().stack || '').split('\n');
 
-	// Discard stack frames through the msjsR$RecvMsg or msjsS$SendMsg frame.
+	// Discard stack frames through the sm (send message) frame.
 	// There shouldn't be any others, but we'll check and remove them if there are.
 	while (stack.length) if (SM_PATTERN.test(stack.shift())) break;
 	while (stack.length && SM_PATTERN.test(stack[0])) stack.shift();

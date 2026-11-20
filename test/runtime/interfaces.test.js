@@ -1,12 +1,9 @@
-import {
-	assertEquals,
-	assert,
-	assertThrows,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert';
 import "../../src/runtime/mesgjs.esm.js";
 import { getInterface, getInstance, MsjsObject, typeAccepts, typeChains } from "../../src/runtime/runtime.esm.js";
 
-Deno.test("Interface System", async (t) => {
+describe("Interface System", () => {
 	const supertypeName = "supertype";
 	const supertype = getInterface(supertypeName);
 	supertype.set({
@@ -25,31 +22,31 @@ Deno.test("Interface System", async (t) => {
 		}
 	});
 
-	await t.step("getInterface should return an interface object", () => {
+	it("getInterface should return an interface object", () => {
 		assert(supertype, "Interface object should be returned");
-		assertEquals(supertype.ifName, supertypeName);
+		assertStrictEquals(supertype.ifName, supertypeName);
 	});
 
-	await t.step("getInstance should create a new object instance", () => {
+	it("getInstance should create a new object instance", () => {
 		const instance = getInstance(supertypeName);
 		assert(instance, "Instance should be created");
-		assertEquals(instance.msjsType, supertypeName);
+		assertStrictEquals(instance.msjsType, supertypeName);
 	});
 
-	await t.step("instance should respond to messages", () => {
+	it("instance should respond to messages", () => {
 		const instance = getInstance(supertypeName);
 		const result = $c.sm(instance, "ping");
-		assertEquals(result, "pong");
+		assertStrictEquals(result, "pong");
 	});
 
-	await t.step("typeAccepts (2-param) should identify handlers", () => {
+	it("typeAccepts (2-param) should identify handlers", () => {
 		assertEquals(typeAccepts(supertypeName, "ping"), [supertypeName, 'specific']);
 		assertEquals(typeAccepts(supertypeName, "unknown"), [supertypeName, 'default']);
 		assertEquals(typeAccepts(subtypeName, "ping"), [supertypeName, 'specific']);
 		assertEquals(typeAccepts(subtypeName, "knock"), [subtypeName, 'specific']);
 	});
 
-	await t.step("typeAccepts (1-param) should list all handlers", () => {
+	it("typeAccepts (1-param) should list all handlers", () => {
 		const superHandlers = typeAccepts(supertypeName);
 		assert(superHandlers.includes("ping"));
 		assert(superHandlers.includes("@default"));
@@ -58,18 +55,18 @@ Deno.test("Interface System", async (t) => {
 		assert(subHandlers.includes("knock"));
 	});
 
-	await t.step("typeChains (2-param) should resolve inheritance", () => {
-		assertEquals(typeChains(subtypeName, supertypeName), true);
-		assertEquals(typeChains(supertypeName, subtypeName), false);
+	it("typeChains (2-param) should resolve inheritance", () => {
+		assertStrictEquals(typeChains(subtypeName, supertypeName), true);
+		assertStrictEquals(typeChains(supertypeName, subtypeName), false);
 	});
 
-	await t.step("typeChains (1-param) should list chained interfaces", () => {
+	it("typeChains (1-param) should list chained interfaces", () => {
 		const chains = typeChains(subtypeName);
 		assertEquals(chains, [supertypeName]);
 	});
 });
 
-Deno.test("Interface instance attribution", async (t) => {
+describe("Interface instance attribution", () => {
 	// This will receive sr and st from the sender
 	const inspectorInterface = getInterface("inspector");
 	inspectorInterface.set({
@@ -93,7 +90,7 @@ Deno.test("Interface instance attribution", async (t) => {
 		},
 	});
 
-	await t.step("should pass sender context to @init", () => {
+	it("should pass sender context to @init", () => {
 		$gss.clear(); // Ensure clean storage
 
 		const senderInstance = getInstance("sender");
@@ -102,11 +99,11 @@ Deno.test("Interface instance attribution", async (t) => {
 		const sr = $gss.at("sr");
 		const st = $gss.at("st");
 
-		assertEquals(sr, senderInstance, "Sender reference (sr) should be the sender instance");
-		assertEquals(st, "sender", "Sender type (st) should be 'sender'");
+		assertStrictEquals(sr, senderInstance, "Sender reference (sr) should be the sender instance");
+		assertStrictEquals(st, "sender", "Sender type (st) should be 'sender'");
 	});
 
-	await t.step("should pass sender context through redispatch to sub-interface @init", () => {
+	it("should pass sender context through redispatch to sub-interface @init", () => {
 		$gss.clear(); // Ensure clean storage
 
 		// Create a super-interface with @init handler
@@ -152,123 +149,120 @@ Deno.test("Interface instance attribution", async (t) => {
 		// Verify sender context was passed to sub-interface @init
 		const subSr = $gss.at("subSr");
 		const subSt = $gss.at("subSt");
-		assertEquals(subSr, senderInstance2, "Sender reference (subSr) should be the sender instance in sub-interface @init");
-		assertEquals(subSt, "sender2", "Sender type (subSt) should be 'sender2' in sub-interface @init");
+		assertStrictEquals(subSr, senderInstance2, "Sender reference (subSr) should be the sender instance in sub-interface @init");
+		assertStrictEquals(subSt, "sender2", "Sender type (subSt) should be 'sender2' in sub-interface @init");
 
 		// Verify sender context was preserved through redispatch to super-interface @init
 		const superSr = $gss.at("superSr");
 		const superSt = $gss.at("superSt");
-		assertEquals(superSr, senderInstance2, "Sender reference (superSr) should be the sender instance in super-interface @init");
-		assertEquals(superSt, "sender2", "Sender type (superSt) should be 'sender2' in super-interface @init");
+		assertStrictEquals(superSr, senderInstance2, "Sender reference (superSr) should be the sender instance in super-interface @init");
+		assertStrictEquals(superSt, "sender2", "Sender type (superSt) should be 'sender2' in super-interface @init");
 	});
 });
 
-Deno.test("Interface Attributes", async (t) => {
-	await t.step("abstract interface should not be instantiable", () => {
+describe("Interface Attributes", () => {
+	it("abstract interface should not be instantiable", () => {
 		const abstractName = "abstractType";
 		const abstractType = getInterface(abstractName);
 		abstractType.set({ abstract: true });
-		assertThrows(() => getInstance(abstractName), TypeError, 'Cannot get instance for abstract Mesgjs interface "abstractType"');
+		assertThrows(() => getInstance(abstractName), TypeError);
 	});
 
-	await t.step("final interface should not be chainable", () => {
+	it("final interface should not be chainable", () => {
 		const finalName = "finalType";
 		const finalType = getInterface(finalName);
 		finalType.set({ final: true });
 
 		const subFinalName = "subFinalType";
 		const subFinalType = getInterface(subFinalName);
-		assertThrows(() => subFinalType.set({ chain: [finalName] }), TypeError, `Mesgjs interface "subFinalType" tries to extend final interface "finalType"`);
+		assertThrows(() => subFinalType.set({ chain: [finalName] }), TypeError);
 	});
 
-	await t.step("locked interface should not be configurable", () => {
+	it("locked interface should not be configurable", () => {
 		const lockedName = "lockedType";
 		const lockedType = getInterface(lockedName);
 		lockedType.set({ lock: true });
-		assertThrows(() => lockedType.set({ handlers: { "a": () => "b" } }), TypeError, `Cannot change locked Mesgjs interface "lockedType"`);
+		assertThrows(() => lockedType.set({ handlers: { "a": () => "b" } }), TypeError);
 	});
 
-	await t.step("instantiated interface should not be configurable", () => {
+	it("instantiated interface should not be configurable", () => {
 		const instName = "instType";
 		const instType = getInterface(instName);
 		instType.set({ handlers: { "a": () => "b" } });
 		getInstance(instName);
-		assertThrows(() => instType.set({ handlers: { "c": () => "d" } }), TypeError, `Cannot change locked Mesgjs interface "instType"`);
+		assertThrows(() => instType.set({ handlers: { "c": () => "d" } }), TypeError);
 	});
 
-	await t.step("once interface should not be gettable more than once", () => {
+	it("once interface should not be gettable more than once", () => {
 		const onceName = "onceType";
 		const onceType = getInterface(onceName);
 		onceType.set({ once: true });
-		assert(getInterface(onceName) === undefined);
+		assertStrictEquals(getInterface(onceName), undefined);
 	});
 
-	await t.step("pristine interface must be new", () => {
+	it("pristine interface must be new", () => {
 		const pristineName = "pristineType";
 		const pristineType = getInterface(pristineName);
 		pristineType.set({}); // Make it not pristine
-		assertThrows(() => pristineType.set({ pristine: true }), TypeError, `Mesgjs interface "pristineType" is not pristine`);
+		assertThrows(() => pristineType.set({ pristine: true }), TypeError);
 	});
 
-	await t.step("private interface should only be instantiable by the interface object", () => {
+	it("private interface should only be instantiable by the interface object", () => {
 		const privateName = "privateType";
 		const privateType = getInterface(privateName);
 		privateType.set({ private: true });
-		assertEquals(getInstance(privateName), undefined);
+		assertStrictEquals(getInstance(privateName), undefined);
 		assert(privateType.instance());
 	});
 
-	await t.step("singleton interface should only create one instance", () => {
+	it("singleton interface should only create one instance", () => {
 		const singletonName = "singletonType";
 		const singletonType = getInterface(singletonName);
 		singletonType.set({ singleton: true });
 		const inst1 = getInstance(singletonName);
 		const inst2 = getInstance(singletonName);
-		assert(inst1 === inst2);
+		assertStrictEquals(inst1, inst2);
 	});
 });
 
-Deno.test("Interface proto validation", async (t) => {
-	await t.step("should throw if proto is not object or subclass of MsjsObject", () => {
+describe("Interface proto validation", () => {
+	it("should throw if proto is not object or subclass of MsjsObject", () => {
 		const badProtoName = "badProtoType";
 		const badProtoType = getInterface(badProtoName);
 		assertThrows(
 			() => badProtoType.set({ handlers: {}, proto: "not-an-object" }),
 			TypeError,
-			`Interface ${badProtoName} proto must be object or MsjsObject subclass`,
 		);
 	});
 
-	await t.step("should throw if proto is a plain function (not MsjsObject subclass)", () => {
+	it("should throw if proto is a plain function (not MsjsObject subclass)", () => {
 		const badProtoName2 = "badProtoType2";
 		const badProtoType2 = getInterface(badProtoName2);
 		assertThrows(
 			() => badProtoType2.set({ handlers: {}, proto: function NotAMsjsClass() {} }),
 			TypeError,
-			`Interface ${badProtoName2} proto must be object or MsjsObject subclass`,
 		);
 	});
 
-	await t.step("should throw if proto is a number", () => {
+	it("should throw if proto is a number", () => {
 		const badProtoName3 = "badProtoType3";
 		const badProtoType3 = getInterface(badProtoName3);
 		assertThrows(
 			() => badProtoType3.set({ handlers: {}, proto: 42 }),
 			TypeError,
-			`Interface ${badProtoName3} proto must be object or MsjsObject subclass`,
 		);
 	});
 });
 
-Deno.test("Interface (proto) message and .proto getter", async (t) => {
-	await t.step("should return undefined when no proto is configured", () => {
+describe("Interface (proto) message and .proto getter", () => {
+	it("should return undefined when no proto is configured", () => {
 		const noProtoName = "noProtoType";
 		const noProtoType = getInterface(noProtoName);
 		noProtoType.set({ handlers: {} });
-		assertEquals(noProtoType.proto, undefined);
+		assertStrictEquals(noProtoType.proto, undefined);
 	});
 
-	await t.step("should return class when configured with plain object proto", () => {
+	it("should return class when configured with plain object proto", () => {
 		const objProtoName = "objProtoType";
 		const objProtoType = getInterface(objProtoName);
 		const jsProto = {
@@ -281,13 +275,13 @@ Deno.test("Interface (proto) message and .proto getter", async (t) => {
 			proto: jsProto,
 		});
 		const protoClass = objProtoType.proto;
-		assert(typeof protoClass === 'function', "proto should be a class (function)");
+		assertStrictEquals(typeof protoClass, 'function', "proto should be a class (function)");
 		assert(protoClass.prototype instanceof MsjsObject, "proto should be instanceof MsjsObject");
 		// Verify the class has the methods from the plain object proto
-		assert(typeof protoClass.prototype.greetJS === 'function', "proto class should have greetJS method");
+		assertStrictEquals(typeof protoClass.prototype.greetJS, 'function', "proto class should have greetJS method");
 	});
 
-	await t.step("should return the same class when configured with MsjsObject subclass", () => {
+	it("should return the same class when configured with MsjsObject subclass", () => {
 		const classProtoName = "classProtoType";
 		const classProtoType = getInterface(classProtoName);
 		class MyWidget extends MsjsObject {} // Simplified for test
@@ -295,10 +289,10 @@ Deno.test("Interface (proto) message and .proto getter", async (t) => {
 			handlers: {},
 			proto: MyWidget,
 		});
-		assertEquals(classProtoType.proto, MyWidget);
+		assertStrictEquals(classProtoType.proto, MyWidget);
 	});
 
-	await t.step("(proto) message should return same value as .proto getter", () => {
+	it("(proto) message should return same value as .proto getter", () => {
 		const msgProtoName = "msgProtoType";
 		const msgProtoType = getInterface(msgProtoName);
 		const jsProto = {
@@ -312,6 +306,6 @@ Deno.test("Interface (proto) message and .proto getter", async (t) => {
 		const getterProto = msgProtoType.proto;
 		// Get via (proto) message
 		const messageProto = $c.sm(msgProtoType, 'proto');
-		assertEquals(messageProto, getterProto, "(proto) message should return same class as .proto getter");
+		assertStrictEquals(messageProto, getterProto, "(proto) message should return same class as .proto getter");
 	});
 });

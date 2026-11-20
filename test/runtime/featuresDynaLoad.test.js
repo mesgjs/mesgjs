@@ -1,7 +1,5 @@
-import {
-		assertEquals,
-		assert,
-} from "https://deno.land/std@0.152.0/testing/asserts.ts";
+import { describe, it } from '@compat/test';
+import { assertStrictEquals } from '@std/assert';
 import '../../src/runtime/mesgjs.esm.js';
 const { setModMeta, fcheck, fwait } = globalThis.$c;
 
@@ -32,16 +30,15 @@ const mockMeta = {
 
 setModMeta(mockMeta);
 
-Deno.test("Feature System (Dynamic Loading)", async (t) => {
-
-	await t.step("fcheck should return false for pending features", () => {
-		assertEquals(fcheck("feat1"), false);
-		assertEquals(fcheck("feat2"), false);
+describe('Feature System (Dynamic Loading)', () => {
+	it('fcheck should return false for pending features', () => {
+		assertStrictEquals(fcheck('feat1'), false);
+		assertStrictEquals(fcheck('feat2'), false);
 	});
 
-	await t.step("fwait should trigger chained loading of modules", async () => {
+	it('fwait should trigger chained loading of modules', async () => {
 		await fwait('feat1');
-		assertEquals(fcheck("feat1"), true);
-		assertEquals(fcheck("feat2"), true);
+		assertStrictEquals(fcheck('feat1'), true);
+		assertStrictEquals(fcheck('feat2'), true);
 	});
 });
