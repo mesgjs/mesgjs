@@ -40,6 +40,16 @@ async function getColumns (dbPath, tableName) {
 	return rows.flat();
 }
 
+// NB: describe('...', async () => {...}) does not work (at least for Deno)
+const hasDeno = await spawn('which', ['deno']).status.then((st) => st.success).catch(() => false);
+const denoIgnore = !hasDeno;
+const hasBun = await spawn('which', ['bun']).status.then((st) => st.success).catch(() => false);
+const hasWicbun = await spawn('which', ['wicbun']).status.then((st) => st.success).catch(() => false);
+const bunIgnore = !hasBun || !hasWicbun;
+const hasNode = await spawn('which', ['node']).status.then((st) => st.success).catch(() => false);
+const hasWicnode = await spawn('which', ['wicnode']).status.then((st) => st.success).catch(() => false);
+const nodeIgnore = !hasNode || !hasWicnode;
+
 describe('editschema CLI Portability Suite', () => {
 	let tempDir;
 
@@ -181,39 +191,34 @@ describe('editschema CLI Portability Suite', () => {
 	});
 
 	describe('Cross-Engine Execution Matrix', () => {
-		it('executes via MESGJS_ENGINE=deno', async () => {
-			const hasDeno = await spawn('which', ['deno']).status.then((st) => st.success).catch(() => false);
-			if (!hasDeno) {
-				it.skip?.('Deno engine not found');
-				return;
+		it({
+			name: denoIgnore ? 'Deno not found for MESGJS_ENGINE=deno' : 'executes via MESGJS_ENGINE=deno',
+			ignore: denoIgnore,
+			fn: async () => {
+				const res = await runEditschema([], { env: { MESGJS_ENGINE: 'deno' } });
+				assertStrictEquals(res.code, 0, res.stderr);
+				assertMatch(res.stdout, /Usage:/);
 			}
-			const res = await runEditschema([], { env: { MESGJS_ENGINE: 'deno' } });
-			assertStrictEquals(res.code, 0, res.stderr);
-			assertMatch(res.stdout, /Usage:/);
 		});
 
-		it('executes via MESGJS_ENGINE=bun', async () => {
-			const hasBun = await spawn('which', ['bun']).status.then((st) => st.success).catch(() => false);
-			const hasWicbun = await spawn('which', ['wicbun']).status.then((st) => st.success).catch(() => false);
-			if (!hasBun || !hasWicbun) {
-				it.skip?.('Bun or wicbun not found');
-				return;
+		it({
+			name: bunIgnore ? 'Bun or wicbun not found for MESGJS_ENGINE=bun' : 'executes via MESGJS_ENGINE=bun',
+			ignore: bunIgnore,
+			fn: async () => {
+				const res = await runEditschema([], { env: { MESGJS_ENGINE: 'bun' } });
+				assertStrictEquals(res.code, 0, res.stderr);
+				assertMatch(res.stdout, /Usage:/);
 			}
-			const res = await runEditschema([], { env: { MESGJS_ENGINE: 'bun' } });
-			assertStrictEquals(res.code, 0, res.stderr);
-			assertMatch(res.stdout, /Usage:/);
 		});
 
-		it('executes via MESGJS_ENGINE=node', async () => {
-			const hasNode = await spawn('which', ['node']).status.then((st) => st.success).catch(() => false);
-			const hasWicnode = await spawn('which', ['wicnode']).status.then((st) => st.success).catch(() => false);
-			if (!hasNode || !hasWicnode) {
-				it.skip?.('Node or wicnode not found');
-				return;
+		it({
+			name: nodeIgnore ? 'Node or wicnode not found for MESGJS_ENGINE=node' : 'executes via MESGJS_ENGINE=node',
+			ignore: nodeIgnore,
+			fn: async () => {
+				const res = await runEditschema([], { env: { MESGJS_ENGINE: 'node' } });
+				assertStrictEquals(res.code, 0, res.stderr);
+				assertMatch(res.stdout, /Usage:/);
 			}
-			const res = await runEditschema([], { env: { MESGJS_ENGINE: 'node' } });
-			assertStrictEquals(res.code, 0, res.stderr);
-			assertMatch(res.stdout, /Usage:/);
 		});
 	});
 });

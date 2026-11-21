@@ -58,6 +58,16 @@ async function createCatalogDb (dbPath) {
 	db.close();
 }
 
+// NB: describe('...', async () => {...}) does not work (at least for Deno)
+const hasDeno = await spawn('which', ['deno']).status.then((st) => st.success).catch(() => false);
+const denoIgnore = !hasDeno;
+const hasBun = await spawn('which', ['bun']).status.then((st) => st.success).catch(() => false);
+const hasWicbun = await spawn('which', ['wicbun']).status.then((st) => st.success).catch(() => false);
+const bunIgnore = !hasBun || !hasWicbun;
+const hasNode = await spawn('which', ['node']).status.then((st) => st.success).catch(() => false);
+const hasWicnode = await spawn('which', ['wicnode']).status.then((st) => st.success).catch(() => false);
+const nodeIgnore = !hasNode || !hasWicnode;
+
 describe('msjstrans CLI Portability Suite', () => {
 	let tempDir;
 
@@ -294,45 +304,40 @@ describe('msjstrans CLI Portability Suite', () => {
 	});
 
 	describe('Cross-Engine Execution Matrix', () => {
-		it('executes via MESGJS_ENGINE=deno', async () => {
-			const hasDeno = await spawn('which', ['deno']).status.then((st) => st.success).catch(() => false);
-			if (!hasDeno) {
-				it.skip?.('Deno engine not found');
-				return;
-			}
-			const srcPath = path.join(tempDir, 'engine_deno.msjs');
-			await writeTextFile(srcPath, '@c(log "engine test")\n');
+		it({
+			name: denoIgnore ? 'Deno not found for MESGJS_ENGINE=deno' : 'executes via MESGJS_ENGINE=deno',
+			ignore: denoIgnore,
+			fn: async () => {
+				const srcPath = path.join(tempDir, 'engine_deno.msjs');
+				await writeTextFile(srcPath, '@c(log "engine test")\n');
 
-			const resDeno = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'deno' } });
-			assertStrictEquals(resDeno.code, 0, resDeno.stderr);
+				const resDeno = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'deno' } });
+				assertStrictEquals(resDeno.code, 0, resDeno.stderr);
+			}
 		});
 
-		it('executes via MESGJS_ENGINE=bun', async () => {
-			const hasBun = await spawn('which', ['bun']).status.then((st) => st.success).catch(() => false);
-			const hasWicbun = await spawn('which', ['wicbun']).status.then((st) => st.success).catch(() => false);
-			if (!hasBun || !hasWicbun) {
-				it.skip?.('Bun or wicbun not found');
-				return;
-			}
-			const srcPath = path.join(tempDir, 'engine_bun.msjs');
-			await writeTextFile(srcPath, '@c(log "engine test")\n');
+		it({
+			name: bunIgnore ? 'Bun or wicbun not found for MESGJS_ENGINE=bun' : 'executes via MESGJS_ENGINE=bun',
+			ignore: bunIgnore,
+			fn: async () => {
+				const srcPath = path.join(tempDir, 'engine_bun.msjs');
+				await writeTextFile(srcPath, '@c(log "engine test")\n');
 
-			const resBun = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'bun' } });
-			assertStrictEquals(resBun.code, 0, resBun.stderr);
+				const resBun = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'bun' } });
+				assertStrictEquals(resBun.code, 0, resBun.stderr);
+			}
 		});
 
-		it('executes via MESGJS_ENGINE=node', async () => {
-			const hasNode = await spawn('which', ['node']).status.then((st) => st.success).catch(() => false);
-			const hasWicnode = await spawn('which', ['wicnode']).status.then((st) => st.success).catch(() => false);
-			if (!hasNode || !hasWicnode) {
-				it.skip?.('Node or wicnode not found');
-				return;
-			}
-			const srcPath = path.join(tempDir, 'engine_node.msjs');
-			await writeTextFile(srcPath, '@c(log "engine test")\n');
+		it({
+			name: nodeIgnore ? 'Node or wicnode not found for MESGJS_ENGINE=node' : 'executes via MESGJS_ENGINE=node',
+			ignore: nodeIgnore,
+			fn: async () => {
+				const srcPath = path.join(tempDir, 'engine_node.msjs');
+				await writeTextFile(srcPath, '@c(log "engine test")\n');
 
-			const resNode = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'node' } });
-			assertStrictEquals(resNode.code, 0, resNode.stderr);
+				const resNode = await runTranspiler([srcPath], { env: { MESGJS_ENGINE: 'node' } });
+				assertStrictEquals(resNode.code, 0, resNode.stderr);
+			}
 		});
 	});
 });
